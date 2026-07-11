@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/jobs/trial-expiration",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/jobs/payment-reminders",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/jobs/demo-cleanup",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { OrderingApp } from "@/components/order/ordering-app";
+
+export default async function OrderPage({ params }: { params: { slug: string } }) {
+  const supabase = createClient();
+
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select(
+      "id, name, slug, logo_url, payment_mode, evc_ussd_code, edahab_ussd_code, dine_in_enabled, takeaway_enabled, is_active"
+    )
+    .eq("slug", params.slug)
+    .maybeSingle();
+
+  if (!restaurant || !restaurant.is_active) notFound();
+
+  const [{ data: categories }, { data: menuItems }, { data: addOns }, { data: tables }] = await Promise.all([
+    supabase.from("categories").select("*").eq("restaurant_id", restaurant.id).order("display_order"),
+    supabase
+      .from("menu_items")
+      .select("*")
+      .eq("restaurant_id", restaurant.id)
+      .eq("is_available", true)
+      .order("created_at"),
+    supabase.from("add_ons").select("*").eq("restaurant_id", restaurant.id),
+    supabase.from("tables").select("*").eq("restaurant_id", restaurant.id).eq("is_active", true).order("table_number"),
+  ]);
+
+  return (
+    <OrderingApp
+      restaurant={restaurant as any}
+      categories={categories ?? []}
+      menuItems={menuItems ?? []}
+      addOns={addOns ?? []}
+      tables={tables ?? []}
+    />
+  );
+}
