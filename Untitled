@@ -1,3 +1,0 @@
-git add .
-git commit -m "Remove vercel.json to fix cron job error"
-git push
