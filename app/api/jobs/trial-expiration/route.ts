@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { isAuthorizedCronRequest } from "@/lib/jobs/verify-cron";
 
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/jobs/trial-expiration
  * Runs nightly via Vercel Cron. Any restaurant still on the 'trial' tier

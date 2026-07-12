@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { isAuthorizedCronRequest } from "@/lib/jobs/verify-cron";
 import { sendPaymentReminder } from "@/lib/notifications/send-reminder";
 
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/jobs/payment-reminders
  * Runs daily via Vercel Cron. Finds restaurants whose subscription expires

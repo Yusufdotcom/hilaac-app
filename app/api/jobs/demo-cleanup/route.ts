@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { isAuthorizedCronRequest } from "@/lib/jobs/verify-cron";
 
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/jobs/demo-cleanup
  * Purges "Try Demo" restaurants (and their cascading tables/menu/orders)
