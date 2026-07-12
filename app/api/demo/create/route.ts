@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-
+export const dynamic = 'force-dynamic';
 function errorResponse(message: string, status = 500, details?: string) {
   return NextResponse.json(
     {
