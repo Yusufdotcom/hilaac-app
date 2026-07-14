@@ -57,7 +57,7 @@ export function LandingHeader({ dashboardHref = null }: { dashboardHref?: string
   const isLoggedIn = Boolean(dashboardHref);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-[#334155]/60 bg-[#0F172A]/95 backdrop-blur-md">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-[#334155]/60 bg-hilaac-navy backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-2 px-4 sm:h-[4.5rem] sm:gap-3 sm:px-6 lg:grid lg:h-20 lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
         <div className="flex min-w-0 flex-1 justify-start overflow-hidden sm:flex-none">
           <HilaacLogo
