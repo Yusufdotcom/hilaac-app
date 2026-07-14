@@ -15,6 +15,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Receipt } from "lucide-react";
 import type { ReportData } from "@/lib/reports/types";
 import { formatCurrency } from "@/lib/utils";
 
@@ -59,10 +60,16 @@ export function ReportCharts({ data }: { data: ReportData }) {
     orders: Number(h.order_count),
   }));
 
-  const paymentData = data.paymentSplit.map((p) => ({
-    name: p.payment_method,
-    value: Number(p.revenue),
-  }));
+  const paymentData = data.paymentSplit
+    .filter((p) => p.payment_method !== "no_orders")
+    .map((p) => ({
+      name: p.payment_method,
+      value: Number(p.revenue),
+    }));
+
+  const hasNoPaymentOrders =
+    data.paymentSplit.length === 0 ||
+    (data.paymentSplit.length === 1 && data.paymentSplit[0].payment_method === "no_orders");
 
   const waiterData = data.waiterPerformance.map((w) => ({
     name: w.waiter_name,
@@ -132,19 +139,31 @@ export function ReportCharts({ data }: { data: ReportData }) {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Payment split" chartId="chart-payment-split">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={paymentData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
-                {paymentData.map((_, index) => (
-                  <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        {hasNoPaymentOrders ? (
+          <article className="rounded-xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-6">
+            <h3 className="mb-4 text-base font-semibold text-[#0F172A]">Payment split</h3>
+            <div className="flex h-64 flex-col items-center justify-center text-center sm:h-72">
+              <Receipt className="mb-3 h-8 w-8 text-gray-400" aria-hidden="true" />
+              <p className="max-w-xs text-sm text-gray-400">
+                No orders yet. Start serving customers to see payment insights.
+              </p>
+            </div>
+          </article>
+        ) : (
+          <ChartCard title="Payment split" chartId="chart-payment-split">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={paymentData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
+                  {paymentData.map((_, index) => (
+                    <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        )}
       </div>
 
       <ChartCard title="Waiter performance" chartId="chart-waiter-performance">
