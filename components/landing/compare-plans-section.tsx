@@ -56,7 +56,7 @@ function MobilePlanCard({
       )}
     >
       {highlight && (
-        <span className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[#D4A373] px-3 py-1 text-xs font-semibold text-[#0F172A] shadow-md">
+        <span className="absolute left-1/2 top-20 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[#D4A373] px-3 py-1 text-xs font-semibold text-[#0F172A] shadow-md">
           Most Popular
         </span>
       )}
