@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   LayoutDashboard,
   Utensils,
   Table,
@@ -120,6 +121,14 @@ export function AdminSidebar({
         >
           <ListOrdered className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span>Orders</span>
+        </Link>
+        <Link
+          href={`/admin/${slug}/reports`}
+          className={navLinkClass(pathname, `/admin/${slug}/reports`)}
+          onClick={handleNavClick}
+        >
+          <BarChart3 className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <span>Reports</span>
         </Link>
         <Link
           href={`/admin/${slug}/staff-access`}

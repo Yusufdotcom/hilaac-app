@@ -49,22 +49,22 @@ function MobilePlanCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border p-5 sm:p-6",
+        "relative rounded-2xl border p-5 sm:p-6",
         highlight
-          ? "border-[#D4A373]/50 bg-[#D4A373]/10 ring-1 ring-[#D4A373]/30"
+          ? "border-[#D4A373]/50 bg-[#D4A373]/10 pt-8 ring-1 ring-[#D4A373]/30"
           : "border-white/10 bg-white/5"
       )}
     >
+      {highlight && (
+        <span className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[#D4A373] px-3 py-1 text-xs font-semibold text-[#0F172A] shadow-md">
+          Most Popular
+        </span>
+      )}
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-[#D4A373]">{planName}</p>
           <p className="mt-1 text-2xl font-bold text-white">{priceLabel}</p>
         </div>
-        {highlight && (
-          <span className="rounded-full bg-[#D4A373] px-3 py-1 text-xs font-semibold text-[#0F172A]">
-            Most Popular
-          </span>
-        )}
       </div>
 
       <ul className="space-y-4">
@@ -112,7 +112,7 @@ export function ComparePlansSection() {
       </div>
 
       {/* Mobile: stacked plan cards */}
-      <div className="mt-8 grid grid-cols-1 gap-6 md:hidden">
+      <div className="mt-8 grid grid-cols-1 gap-8 md:hidden">
         <MobilePlanCard
           planKey="starter"
           planName={PLANS.starter.name}
@@ -127,8 +127,8 @@ export function ComparePlansSection() {
       </div>
 
       {/* Desktop: comparison table */}
-      <div className="mt-8 hidden overflow-hidden rounded-2xl border border-white/10 bg-[#0F172A] shadow-xl shadow-black/20 md:block">
-        <div className="overflow-x-auto">
+      <div className="relative mt-8 hidden overflow-visible rounded-2xl border border-white/10 bg-[#0F172A] pt-5 shadow-xl shadow-black/20 md:block">
+        <div className="overflow-x-auto overflow-y-visible">
           <table className="w-full min-w-[640px] border-collapse text-left">
             <thead>
               <tr className="border-b border-white/10 bg-[#1E293B]/80">
@@ -139,8 +139,8 @@ export function ComparePlansSection() {
                   </p>
                   <p className="mt-1 text-2xl font-bold text-white">{PLANS.starter.priceLabel}</p>
                 </th>
-                <th className="relative bg-[#D4A373]/10 p-5 text-center ring-1 ring-inset ring-[#D4A373]/30">
-                  <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#D4A373] px-3 py-1 text-xs font-semibold text-[#0F172A]">
+                <th className="relative bg-[#D4A373]/10 p-5 pt-6 text-center ring-1 ring-inset ring-[#D4A373]/30">
+                  <span className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[#D4A373] px-3 py-1 text-xs font-semibold text-[#0F172A] shadow-md">
                     Most Popular
                   </span>
                   <p className="mt-2 text-xs font-medium uppercase tracking-wider text-[#D4A373]">
