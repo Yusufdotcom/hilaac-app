@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AdminLayoutShell } from "@/components/admin/admin-layout-shell";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { getAdminSlugRedirect } from "@/lib/admin/resolve-user-restaurant";
 
@@ -21,14 +21,21 @@ export default async function AdminLayout({
   const slugRedirect = await getAdminSlugRedirect(supabase, user.id, params.slug);
   if (slugRedirect) redirect(slugRedirect);
 
-  const { restaurant } = await getRestaurantContext(params.slug, ["owner", "manager"]);
+  const { restaurant, profile } = await getRestaurantContext(params.slug, ["owner", "manager"]);
+
+  const userName =
+    profile.full_name?.trim() ||
+    user.user_metadata?.full_name?.trim() ||
+    user.email?.split("@")[0] ||
+    "User";
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <AdminSidebar restaurantName={restaurant.name} subscriptionTier={restaurant.subscription_tier} />
-      <main className="app-light-surface relative z-0 ml-64 min-h-screen min-w-0 overflow-y-auto text-[#0F172A]">
-        <div className="p-6 sm:p-8">{children}</div>
-      </main>
-    </div>
+    <AdminLayoutShell
+      restaurantName={restaurant.name}
+      subscriptionTier={restaurant.subscription_tier}
+      userName={userName}
+    >
+      {children}
+    </AdminLayoutShell>
   );
 }

@@ -58,9 +58,16 @@ export function LandingHeader({ dashboardHref = null }: { dashboardHref?: string
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-[#334155]/60 bg-[#0F172A]/95 backdrop-blur-md">
-      <div className="mx-auto flex h-[4.5rem] max-w-[1200px] items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6 lg:grid lg:h-20 lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
-        <div className="flex min-w-0 justify-start">
-          <HilaacLogo href="/" variant="light" showWordmark src="/logo-icon.png" />
+      <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-2 px-4 sm:h-[4.5rem] sm:gap-3 sm:px-6 lg:grid lg:h-20 lg:grid-cols-[1fr_auto_1fr] lg:gap-6">
+        <div className="flex min-w-0 flex-1 justify-start overflow-hidden sm:flex-none">
+          <HilaacLogo
+            href="/"
+            variant="light"
+            showWordmark
+            src="/logo-icon.png"
+            className="min-w-0"
+            wordmarkClassName="truncate text-base sm:text-lg"
+          />
         </div>
 
         {/* Center — nav (true center via 3-column grid on lg+) */}
@@ -90,9 +97,9 @@ export function LandingHeader({ dashboardHref = null }: { dashboardHref?: string
         </nav>
 
         {/* Right — actions */}
-        <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2 md:gap-3">
           {isLoggedIn ? (
-            <Link href={dashboardHref!} className="landing-btn-nav-pill whitespace-nowrap">
+            <Link href={dashboardHref!} className="landing-btn-nav-pill whitespace-nowrap text-xs sm:text-sm">
               Go to Dashboard
             </Link>
           ) : (
@@ -106,7 +113,7 @@ export function LandingHeader({ dashboardHref = null }: { dashboardHref?: string
               >
                 Contact Sales
               </a>
-              <TryDemoButton className="landing-btn-nav-pill disabled:opacity-60" />
+              <TryDemoButton className="landing-btn-nav-pill px-3 text-xs disabled:opacity-60 sm:px-4 sm:text-sm" />
             </>
           )}
         </div>

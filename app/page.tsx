@@ -38,10 +38,10 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="landing-page min-h-screen">
+    <div className="landing-page min-h-screen overflow-x-hidden">
       <LandingHeader dashboardHref={dashboardHref} />
       {/* Hero — full viewport */}
-      <section className="landing-hero relative flex min-h-screen flex-col items-center justify-center px-6 pb-32 pt-36 text-center sm:pt-40 lg:pt-48">
+      <section className="landing-hero relative flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center px-4 pb-20 pt-28 text-center sm:min-h-screen sm:px-6 sm:pb-32 sm:pt-36 md:pt-40 lg:pt-48">
         <div className="landing-hero-bg pointer-events-none" aria-hidden="true">
           <Image
             src="/dashboard-bg.png"
@@ -53,13 +53,13 @@ export default async function LandingPage() {
           />
         </div>
 
-        <div className="landing-hero-content relative z-10 mx-auto max-w-4xl">
+        <div className="landing-hero-content relative z-10 mx-auto w-full max-w-4xl px-1">
           <h1 className="landing-display text-white">Hilaac</h1>
-          <p className="landing-subtitle mx-auto mt-10 max-w-2xl text-center">
+          <p className="landing-subtitle mx-auto mt-6 max-w-2xl text-center sm:mt-10">
             Run your restaurant smarter with QR ordering, real-time kitchen dashboards, and
             AI-powered menus.
           </p>
-          <div className="mt-16 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5">
+          <div className="mx-auto mt-10 flex w-full max-w-md flex-col items-stretch justify-center gap-3 sm:mt-16 sm:max-w-none sm:flex-row sm:items-center sm:gap-5">
             <Link href="/signup" className="landing-btn-gold-lg">
               Start Free Trial
             </Link>
@@ -69,15 +69,15 @@ export default async function LandingPage() {
       </section>
 
       {/* Product showcase */}
-      <section id="showcase" className="px-6 py-20">
+      <section id="showcase" className="px-4 py-12 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-[1200px] text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+          <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-5xl">
             The complete restaurant OS.
           </h2>
-          <p className="landing-subtitle mx-auto mt-4 max-w-2xl">
+          <p className="landing-subtitle mx-auto mt-3 max-w-2xl sm:mt-4">
             One platform for your customers, your kitchen, and your staff.
           </p>
-          <div className="mx-auto mt-12 max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#1E293B] p-2 shadow-2xl shadow-hilaac-gold/20 sm:p-3">
+          <div className="mx-auto mt-8 max-w-5xl overflow-hidden rounded-xl border border-white/10 bg-[#1E293B] p-1.5 shadow-2xl shadow-hilaac-gold/20 sm:mt-12 sm:rounded-2xl sm:p-2 md:p-3">
             <Image
               src="/hero-mockup.png"
               alt="Hilaac restaurant dashboard mockup"
@@ -92,24 +92,24 @@ export default async function LandingPage() {
       </section>
 
       {/* Features anchor */}
-      <section id="features" className="border-t border-white/10 px-6 py-28">
+      <section id="features" className="border-t border-white/10 px-4 py-16 sm:px-6 sm:py-28">
         <div className="mx-auto max-w-[1200px]">
-          <h2 className="text-center text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-center text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
             Built for modern restaurants
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-center text-lg leading-relaxed text-[#94A3B8]">
+          <p className="mx-auto mt-3 max-w-xl text-center text-base leading-relaxed text-[#94A3B8] sm:mt-4 sm:text-lg">
             Everything you need to take orders, run the kitchen, and get paid — in one platform.
           </p>
-          <div className="mt-16 grid gap-6 md:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:mt-16 sm:gap-6 md:grid-cols-3">
             {FEATURES.map((f) => (
               <div
                 key={f.title}
-                className="rounded-2xl border border-white/10 bg-white/5 p-8 transition-colors hover:border-[#D4A373]/40"
+                className="rounded-2xl border border-white/10 bg-white/5 p-6 transition-colors hover:border-[#D4A373]/40 sm:p-8"
               >
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#D4A373]/15 text-[#D4A373]">
-                  <f.icon className="h-6 w-6" />
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#D4A373]/15 text-[#D4A373] sm:mb-5 sm:h-12 sm:w-12">
+                  <f.icon className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
-                <h3 className="text-xl font-semibold text-white">{f.title}</h3>
+                <h3 className="text-lg font-semibold text-white sm:text-xl">{f.title}</h3>
                 <p className="mt-3 leading-relaxed text-[#94A3B8]">{f.description}</p>
               </div>
             ))}
@@ -118,24 +118,24 @@ export default async function LandingPage() {
       </section>
 
       {/* Pricing anchor */}
-      <section id="pricing" className="border-t border-white/10 px-6 py-28">
+      <section id="pricing" className="border-t border-white/10 px-4 py-16 sm:px-6 sm:py-28">
         <div className="mx-auto max-w-[1200px]">
-          <h2 className="text-center text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-center text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
             Simple pricing
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-center text-lg text-[#94A3B8]">
+          <p className="mx-auto mt-3 max-w-xl text-center text-base text-[#94A3B8] sm:mt-4 sm:text-lg">
             7-day free trial. No credit card required.
           </p>
-          <div className="mx-auto mt-16 grid max-w-3xl gap-8 sm:grid-cols-2">
+          <div className="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-6 sm:mt-16 sm:grid-cols-2 sm:gap-8">
             {Object.entries(PLANS).map(([key, plan]) => (
               <div
                 key={key}
-                className="rounded-2xl border border-white/10 bg-white/5 p-8 transition-colors hover:border-[#D4A373]/30"
+                className="rounded-2xl border border-white/10 bg-white/5 p-6 transition-colors hover:border-[#D4A373]/30 sm:p-8"
               >
-                <p className="text-sm font-medium uppercase tracking-wider text-[#D4A373]">
+                <p className="text-xs font-medium uppercase tracking-wider text-[#D4A373] sm:text-sm">
                   {plan.name}
                 </p>
-                <p className="mt-2 text-4xl font-bold text-white">{plan.priceLabel}</p>
+                <p className="mt-2 text-3xl font-bold text-white sm:text-4xl">{plan.priceLabel}</p>
                 <p className="mt-3 text-[#94A3B8]">{plan.description}</p>
                 <ul className="mt-8 space-y-3">
                   {plan.features.slice(0, 4).map((feat) => (
@@ -155,8 +155,8 @@ export default async function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 px-6 py-12">
-        <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-6 sm:flex-row">
+      <footer className="border-t border-white/10 px-4 py-10 sm:px-6 sm:py-12">
+        <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-4 sm:flex-row sm:gap-6">
           <p className="text-sm text-[#94A3B8]">
             &copy; {new Date().getFullYear()} Hilaac. All rights reserved.
           </p>

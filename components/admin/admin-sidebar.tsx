@@ -11,6 +11,7 @@ import {
   CreditCard,
   LogOut,
   Users,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -30,9 +31,13 @@ function navLinkClass(pathname: string, href: string) {
 export function AdminSidebar({
   restaurantName,
   subscriptionTier,
+  mobileOpen = false,
+  onMobileClose,
 }: {
   restaurantName: string;
   subscriptionTier: string;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }) {
   const pathname = usePathname();
   const slug = pathname.split("/")[2];
@@ -43,10 +48,29 @@ export function AdminSidebar({
     window.location.href = "/login";
   }
 
+  function handleNavClick() {
+    onMobileClose?.();
+  }
+
   return (
-    <aside className="pointer-events-auto fixed inset-y-0 left-0 z-[200] flex h-screen w-64 shrink-0 flex-col border-r border-hilaac-dark bg-hilaac-navy text-white">
-      <div className="flex h-16 shrink-0 items-center border-b border-hilaac-dark px-5">
+    <aside
+      className={cn(
+        "pointer-events-auto fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-hilaac-dark bg-hilaac-navy text-white transition-transform duration-300 ease-in-out md:z-[200] md:translate-x-0",
+        mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+      )}
+    >
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-hilaac-dark px-5">
         <HilaacLogo href="/" variant="light" src="/logo-icon.png" />
+        {onMobileClose && (
+          <button
+            type="button"
+            onClick={onMobileClose}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-hilaac-muted transition-colors hover:bg-slate-800 hover:text-white md:hidden"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <div className="shrink-0 border-b border-hilaac-dark px-5 py-4">
@@ -67,6 +91,7 @@ export function AdminSidebar({
         <Link
           href={`/admin/${slug}/dashboard`}
           className={navLinkClass(pathname, `/admin/${slug}/dashboard`)}
+          onClick={handleNavClick}
         >
           <LayoutDashboard className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span>Dashboard</span>
@@ -74,6 +99,7 @@ export function AdminSidebar({
         <Link
           href={`/admin/${slug}/menu`}
           className={navLinkClass(pathname, `/admin/${slug}/menu`)}
+          onClick={handleNavClick}
         >
           <Utensils className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span>Menu</span>
@@ -81,6 +107,7 @@ export function AdminSidebar({
         <Link
           href={`/admin/${slug}/tables`}
           className={navLinkClass(pathname, `/admin/${slug}/tables`)}
+          onClick={handleNavClick}
         >
           <Table className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span>Tables</span>
@@ -88,6 +115,7 @@ export function AdminSidebar({
         <Link
           href={`/admin/${slug}/orders`}
           className={navLinkClass(pathname, `/admin/${slug}/orders`)}
+          onClick={handleNavClick}
         >
           <ListOrdered className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span>Orders</span>
@@ -95,6 +123,7 @@ export function AdminSidebar({
         <Link
           href={`/admin/${slug}/staff-access`}
           className={navLinkClass(pathname, `/admin/${slug}/staff-access`)}
+          onClick={handleNavClick}
         >
           <Users className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span>Staff Access</span>
@@ -102,6 +131,7 @@ export function AdminSidebar({
         <Link
           href={`/admin/${slug}/settings`}
           className={navLinkClass(pathname, `/admin/${slug}/settings`)}
+          onClick={handleNavClick}
         >
           <Settings className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span>Settings</span>
@@ -109,6 +139,7 @@ export function AdminSidebar({
         <Link
           href={`/admin/${slug}/billing`}
           className={navLinkClass(pathname, `/admin/${slug}/billing`)}
+          onClick={handleNavClick}
         >
           <CreditCard className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span>Billing</span>
