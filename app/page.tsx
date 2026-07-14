@@ -4,6 +4,7 @@ import { Check, QrCode, ChefHat, Sparkles } from "lucide-react";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { WatchDemoButton } from "@/components/landing/watch-demo-button";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
+import { ComparePlansSection } from "@/components/landing/compare-plans-section";
 import { PLANS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { getPostLoginPath } from "@/lib/admin/resolve-user-restaurant";
@@ -152,6 +153,8 @@ export default async function LandingPage() {
               </div>
             ))}
           </div>
+
+          <ComparePlansSection />
         </div>
       </section>
 
