@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminUserMenu } from "@/components/admin/admin-user-menu";
 import { HilaacLogo } from "@/components/brand/hilaac-logo";
+import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 
 export function AdminLayoutShell({
   children,
@@ -59,8 +60,9 @@ export function AdminLayoutShell({
         onMobileClose={() => setMobileOpen(false)}
       />
 
-      <main className="app-light-surface relative z-0 min-h-screen min-w-0 overflow-y-auto pt-14 text-[#0F172A] md:ml-64">
-        <div className="p-4 sm:p-6 md:p-8">{children}</div>
+      <main className="app-light-surface relative z-0 flex min-h-screen min-w-0 flex-col overflow-y-auto pt-14 text-[#0F172A] md:ml-64">
+        <div className="flex-1 p-4 sm:p-6 md:p-8">{children}</div>
+        <PoweredByHilaac className="pb-6 pt-2" />
       </main>
     </div>
   );

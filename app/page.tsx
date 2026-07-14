@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Check, QrCode, ChefHat, Sparkles } from "lucide-react";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { WatchDemoButton } from "@/components/landing/watch-demo-button";
+import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { PLANS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { getPostLoginPath } from "@/lib/admin/resolve-user-restaurant";
@@ -177,6 +178,7 @@ export default async function LandingPage() {
             </Link>
           </div>
         </div>
+        <PoweredByHilaac variant="dark" className="mt-8" />
       </footer>
     </div>
   );

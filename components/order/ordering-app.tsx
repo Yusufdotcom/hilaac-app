@@ -9,6 +9,7 @@ import { MenuStep } from "@/components/order/menu-step";
 import { CartSheet } from "@/components/order/cart-sheet";
 import { ItemCustomizeSheet } from "@/components/order/item-customize-sheet";
 import { OrderConfirmation } from "@/components/order/order-confirmation";
+import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 
 type Step = "landing" | "table" | "menu" | "confirmation";
 type OrderType = "dine-in" | "takeaway";
@@ -88,11 +89,18 @@ export function OrderingApp({
   }
 
   if (step === "confirmation" && placedOrderId) {
-    return <OrderConfirmation orderId={placedOrderId} restaurant={restaurant} onNewOrder={handleNewOrder} />;
+    return (
+      <OrderConfirmation
+        orderId={placedOrderId}
+        restaurant={restaurant}
+        onNewOrder={handleNewOrder}
+      />
+    );
   }
 
   return (
-    <div className="min-h-screen bg-muted/20 pb-28">
+    <div className="flex min-h-screen flex-col bg-muted/20 pb-28">
+      <div className="flex-1">
       {step === "landing" && (
         <LandingStep restaurant={restaurant} onSelect={handleSelectOrderType} />
       )}
@@ -144,6 +152,9 @@ export function OrderingApp({
         onRemoveItem={handleRemoveCartItem}
         onOrderPlaced={handleOrderPlaced}
       />
+      </div>
+
+      <PoweredByHilaac className="pb-6 pt-2" />
     </div>
   );
 }

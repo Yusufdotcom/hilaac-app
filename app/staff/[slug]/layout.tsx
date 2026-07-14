@@ -1,5 +1,6 @@
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { StaffSidebar } from "@/components/staff/staff-sidebar";
+import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 
 export default async function StaffLayout({
   children,
@@ -13,8 +14,9 @@ export default async function StaffLayout({
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
       <StaffSidebar restaurantName={restaurant.name} role={profile.role} />
-      <main className="app-light-surface relative z-0 min-w-0 flex-1 overflow-y-auto p-4 text-[#0F172A] sm:p-6">
-        {children}
+      <main className="app-light-surface relative z-0 flex min-w-0 flex-1 flex-col overflow-y-auto p-4 text-[#0F172A] sm:p-6">
+        <div className="flex-1">{children}</div>
+        <PoweredByHilaac className="pb-2 pt-6" />
       </main>
     </div>
   );

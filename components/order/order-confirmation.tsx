@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, ChefHat, Clock, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 
 interface TrackedOrder {
   id: string;
@@ -98,6 +99,8 @@ export function OrderConfirmation({
       <Button variant="outline" className="mt-10" onClick={onNewOrder}>
         Samee dalab cusub
       </Button>
+
+      <PoweredByHilaac className="mt-auto pt-10" />
     </div>
   );
 }
