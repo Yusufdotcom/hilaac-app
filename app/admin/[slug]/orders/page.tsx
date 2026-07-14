@@ -47,6 +47,7 @@ export default async function AdminOrdersPage({ params }: { params: { slug: stri
                   <th className="p-4 font-medium">Table</th>
                   <th className="p-4 font-medium">Status</th>
                   <th className="p-4 font-medium">Payment</th>
+                  <th className="p-4 font-medium">Delivered by</th>
                   <th className="p-4 font-medium">Method</th>
                   <th className="p-4 font-medium">Total</th>
                   <th className="p-4 font-medium">Placed</th>
@@ -68,6 +69,7 @@ export default async function AdminOrdersPage({ params }: { params: { slug: stri
                         {order.payment_status}
                       </Badge>
                     </td>
+                    <td className="p-4 text-muted-foreground">{order.delivered_by ?? "—"}</td>
                     <td className="p-4 uppercase text-muted-foreground">{order.payment_method ?? "—"}</td>
                     <td className="p-4 font-medium">{formatCurrency(Number(order.total))}</td>
                     <td className="p-4 text-muted-foreground">{formatDate(order.created_at)}</td>
@@ -75,7 +77,7 @@ export default async function AdminOrdersPage({ params }: { params: { slug: stri
                 ))}
                 {(!orders || orders.length === 0) && (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
                       No orders yet.
                     </td>
                   </tr>

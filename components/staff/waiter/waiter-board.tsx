@@ -11,9 +11,17 @@ import {
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
-import type { OrderStatus, OrderWithItems, RestaurantTable } from "@/types/database";
+import type { OrderStatus, OrderWithItems, RestaurantTable, Waiter } from "@/types/database";
 
 const ACTIVE_STATUSES: OrderStatus[] = ["new", "preparing", "ready"];
 
@@ -41,15 +49,17 @@ function sortTables(tables: RestaurantTable[]) {
 
 function DeliveredButton({
   busy,
+  disabled,
   onClick,
 }: {
   busy: boolean;
+  disabled?: boolean;
   onClick: () => void;
 }) {
   return (
     <Button
       type="button"
-      disabled={busy}
+      disabled={busy || disabled}
       className="mt-4 h-10 w-full rounded-xl bg-[#0F172A] font-semibold text-white hover:bg-[#1E293B] disabled:opacity-70"
       onClick={onClick}
     >
@@ -68,14 +78,17 @@ export function WaiterBoard({
   restaurantName,
   tables,
   initialOrders,
+  waiters,
 }: {
   restaurantId: string;
   restaurantName: string;
   tables: RestaurantTable[];
   initialOrders: OrderWithItems[];
+  waiters: Waiter[];
 }) {
   const { orders, updateOrderFields } = useRealtimeOrders(restaurantId, initialOrders);
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
+  const [selectedWaiter, setSelectedWaiter] = useState("");
 
   const activeDineIn = useMemo(
     () => orders.filter((o) => o.order_type === "dine-in" && ACTIVE_STATUSES.includes(o.status)),
@@ -103,10 +116,19 @@ export function WaiterBoard({
   }, [tables, activeDineIn]);
 
   async function markDelivered(orderId: string) {
+    if (!selectedWaiter) {
+      toast.error("Select who is delivering before marking an order as delivered.");
+      return;
+    }
+
     const order = orders.find((o) => o.id === orderId);
     setBusyOrderId(orderId);
     try {
-      const fields: { status: "completed"; payment_status?: "paid" } = { status: "completed" };
+      const fields: {
+        status: "completed";
+        payment_status?: "paid";
+        delivered_by: string;
+      } = { status: "completed", delivered_by: selectedWaiter };
       if (order?.payment_status !== "paid") {
         fields.payment_status = "paid";
       }
@@ -133,6 +155,30 @@ export function WaiterBoard({
           <p className="text-sm text-[#64748B]">{restaurantName}</p>
         </div>
       </header>
+
+      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-5">
+        <Label htmlFor="delivering-waiter" className="text-sm font-semibold text-[#0F172A]">
+          Who is delivering?
+        </Label>
+        {waiters.length === 0 ? (
+          <p className="mt-2 text-sm text-[#64748B]">
+            No waiters configured yet. Ask your manager to add waiter names in the Admin Dashboard.
+          </p>
+        ) : (
+          <Select value={selectedWaiter} onValueChange={setSelectedWaiter}>
+            <SelectTrigger id="delivering-waiter" className="mt-2 h-12 rounded-xl">
+              <SelectValue placeholder="Select your name" />
+            </SelectTrigger>
+            <SelectContent>
+              {waiters.map((waiter) => (
+                <SelectItem key={waiter.id} value={waiter.name}>
+                  {waiter.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
 
       <section className="space-y-4">
         <div className="flex items-center gap-2">
@@ -176,6 +222,7 @@ export function WaiterBoard({
                   {order?.status === "ready" ? (
                     <DeliveredButton
                       busy={busyOrderId === order.id}
+                      disabled={!selectedWaiter}
                       onClick={() => markDelivered(order.id)}
                     />
                   ) : (
@@ -233,6 +280,7 @@ export function WaiterBoard({
 
                 <DeliveredButton
                   busy={busyOrderId === order.id}
+                  disabled={!selectedWaiter}
                   onClick={() => markDelivered(order.id)}
                 />
               </article>

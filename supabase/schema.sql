@@ -131,6 +131,14 @@ create table if not exists public.add_ons (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.waiters (
+  id uuid primary key default gen_random_uuid(),
+  restaurant_id uuid not null references public.restaurants (id) on delete cascade,
+  name text not null,
+  created_at timestamptz not null default now(),
+  unique (restaurant_id, name)
+);
+
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   restaurant_id uuid not null references public.restaurants (id) on delete cascade,
@@ -143,6 +151,7 @@ create table if not exists public.orders (
   total numeric(10, 2) not null default 0,
   customer_phone text,
   notes text,
+  delivered_by text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -167,6 +176,7 @@ create index if not exists idx_categories_restaurant on public.categories (resta
 create index if not exists idx_menu_items_restaurant on public.menu_items (restaurant_id);
 create index if not exists idx_menu_items_category on public.menu_items (category_id);
 create index if not exists idx_add_ons_restaurant on public.add_ons (restaurant_id);
+create index if not exists idx_waiters_restaurant on public.waiters (restaurant_id);
 create index if not exists idx_orders_restaurant on public.orders (restaurant_id);
 create index if not exists idx_orders_status on public.orders (restaurant_id, status);
 create index if not exists idx_orders_created_at on public.orders (restaurant_id, created_at desc);
@@ -349,6 +359,7 @@ alter table public.tables enable row level security;
 alter table public.categories enable row level security;
 alter table public.menu_items enable row level security;
 alter table public.add_ons enable row level security;
+alter table public.waiters enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
 
@@ -449,6 +460,22 @@ drop policy if exists "staff can manage own add_ons" on public.add_ons;
 create policy "staff can manage own add_ons" on public.add_ons
   for all using (restaurant_id = public.get_my_restaurant_id())
   with check (restaurant_id = public.get_my_restaurant_id());
+
+-- ---- waiters -----------------------------------------------------------------
+drop policy if exists "staff can view own waiters" on public.waiters;
+create policy "staff can view own waiters" on public.waiters
+  for select using (restaurant_id = public.get_my_restaurant_id());
+
+drop policy if exists "managers can manage waiters" on public.waiters;
+create policy "managers can manage waiters" on public.waiters
+  for all using (
+    restaurant_id = public.get_my_restaurant_id()
+    and public.is_manager_or_owner()
+  )
+  with check (
+    restaurant_id = public.get_my_restaurant_id()
+    and public.is_manager_or_owner()
+  );
 
 -- ---- orders --------------------------------------------------------------------
 -- Customers never talk to this table directly (no anon INSERT/SELECT

@@ -89,7 +89,7 @@ export function useRealtimeOrders(
 
   async function updateOrderFields(
     orderId: string,
-    fields: { status?: string; payment_status?: string }
+    fields: { status?: string; payment_status?: string; delivered_by?: string }
   ) {
     setOrders((prev) => {
       const updated = prev.map((o) => (o.id === orderId ? { ...o, ...(fields as object) } : o));

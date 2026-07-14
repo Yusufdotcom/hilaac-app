@@ -52,6 +52,13 @@ export interface RestaurantTable {
   created_at: string;
 }
 
+export interface Waiter {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  created_at: string;
+}
+
 export interface Category {
   id: string;
   restaurant_id: string;
@@ -95,6 +102,7 @@ export interface Order {
   total: number;
   customer_phone: string | null;
   notes: string | null;
+  delivered_by: string | null;
   created_at: string;
   updated_at: string;
 }

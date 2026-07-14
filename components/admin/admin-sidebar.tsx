@@ -11,6 +11,7 @@ import {
   CreditCard,
   LogOut,
   Users,
+  UserRound,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -127,6 +128,14 @@ export function AdminSidebar({
         >
           <Users className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span>Staff Access</span>
+        </Link>
+        <Link
+          href={`/admin/${slug}/staff`}
+          className={navLinkClass(pathname, `/admin/${slug}/staff`)}
+          onClick={handleNavClick}
+        >
+          <UserRound className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <span>Waiters</span>
         </Link>
         <Link
           href={`/admin/${slug}/settings`}
