@@ -1,31 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Check, QrCode, ChefHat, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { WatchDemoButton } from "@/components/landing/watch-demo-button";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { ComparePlansSection } from "@/components/landing/compare-plans-section";
+import { FeaturesSection } from "@/components/landing/features-section";
 import { PLANS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { getPostLoginPath } from "@/lib/admin/resolve-user-restaurant";
-
-const FEATURES = [
-  {
-    icon: QrCode,
-    title: "QR Ordering",
-    description: "Customers scan, browse, and order from their phone — no app required.",
-  },
-  {
-    icon: ChefHat,
-    title: "Kitchen Display",
-    description: "Real-time tickets from New → Preparing → Ready with one tap.",
-  },
-  {
-    icon: Sparkles,
-    title: "AI Menu",
-    description: "Generate mouth-watering dish photos for your menu in seconds.",
-  },
-];
 
 export default async function LandingPage() {
   const supabase = createClient();
@@ -93,31 +76,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Features anchor */}
-      <section id="features" className="border-t border-white/10 px-4 py-16 sm:px-6 sm:py-28">
-        <div className="mx-auto max-w-[1200px]">
-          <h2 className="text-center text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-            Built for modern restaurants
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-center text-base leading-relaxed text-[#94A3B8] sm:mt-4 sm:text-lg">
-            Everything you need to take orders, run the kitchen, and get paid — in one platform.
-          </p>
-          <div className="mt-10 grid grid-cols-1 gap-4 sm:mt-16 sm:gap-6 md:grid-cols-3">
-            {FEATURES.map((f) => (
-              <div
-                key={f.title}
-                className="rounded-2xl border border-white/10 bg-white/5 p-6 transition-colors hover:border-[#D4A373]/40 sm:p-8"
-              >
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#D4A373]/15 text-[#D4A373] sm:mb-5 sm:h-12 sm:w-12">
-                  <f.icon className="h-5 w-5 sm:h-6 sm:w-6" />
-                </div>
-                <h3 className="text-lg font-semibold text-white sm:text-xl">{f.title}</h3>
-                <p className="mt-3 leading-relaxed text-[#94A3B8]">{f.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FeaturesSection />
 
       {/* Pricing anchor */}
       <section id="pricing" className="border-t border-white/10 px-4 py-16 sm:px-6 sm:py-28">
