@@ -17,6 +17,7 @@ import type { RestaurantTable } from "@/types/database";
 interface MinimalRestaurant {
   id: string;
   name: string;
+  slug: string;
   payment_mode: "ussd" | "api";
   evc_ussd_code: string | null;
   edahab_ussd_code: string | null;
@@ -37,6 +38,7 @@ export function CartSheet({
   onUpdateItem,
   onRemoveItem,
   onOrderPlaced,
+  onUssdPaymentStarted,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -50,11 +52,11 @@ export function CartSheet({
   onUpdateItem: (cartId: string, updates: Partial<CartItem>) => void;
   onRemoveItem: (cartId: string) => void;
   onOrderPlaced: (orderId: string) => void;
+  onUssdPaymentStarted: (payload: { orderId: string; code: string }) => void;
 }) {
   const [notes, setNotes] = useState("");
   const [phone, setPhone] = useState("");
   const [placing, setPlacing] = useState<"evc" | "edahab" | null>(null);
-  const [ussdOverlay, setUssdOverlay] = useState<{ orderId: string; code: string } | null>(null);
 
   const total = useMemo(() => cartTotal(cart), [cart]);
 
@@ -123,7 +125,8 @@ export function CartSheet({
         if (code) {
           const dialString = ussdDialString(code, total);
           window.location.href = `tel:${encodeURIComponent(dialString)}`;
-          setUssdOverlay({ orderId, code: dialString });
+          onOpenChange(false);
+          onUssdPaymentStarted({ orderId, code: dialString });
         } else {
           onOrderPlaced(orderId);
         }
@@ -146,16 +149,8 @@ export function CartSheet({
     }
   }
 
-  function confirmUssdPaid() {
-    if (ussdOverlay) {
-      onOrderPlaced(ussdOverlay.orderId);
-      setUssdOverlay(null);
-    }
-  }
-
   return (
-    <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
           className="mx-auto flex max-h-[92vh] w-full max-w-lg flex-col gap-0 overflow-hidden p-0"
@@ -322,21 +317,5 @@ export function CartSheet({
           </div>
         </SheetContent>
       </Sheet>
-
-      {ussdOverlay && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-6">
-          <div className="w-full max-w-sm rounded-2xl bg-card p-6 text-center shadow-xl">
-            <p className="text-lg font-bold">Dhawaaq lambarkaaga</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Waxaan furay lambarka <span className="font-mono">{ussdOverlay.code}</span>. Marka aad dhamaystirto lacag
-              bixinta, taabo hoos.
-            </p>
-            <Button size="lg" className="mt-6 w-full" onClick={confirmUssdPaid}>
-              Haa, waan bixiyay
-            </Button>
-          </div>
-        </div>
-      )}
-    </>
   );
 }

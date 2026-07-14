@@ -9,6 +9,7 @@ import { MenuStep } from "@/components/order/menu-step";
 import { CartSheet } from "@/components/order/cart-sheet";
 import { ItemCustomizeSheet } from "@/components/order/item-customize-sheet";
 import { OrderConfirmation } from "@/components/order/order-confirmation";
+import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 
 type Step = "landing" | "table" | "menu" | "confirmation";
@@ -46,6 +47,7 @@ export function OrderingApp({
   const [cartOpen, setCartOpen] = useState(false);
   const [customizeItem, setCustomizeItem] = useState<MenuItem | null>(null);
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [ussdPayment, setUssdPayment] = useState<{ orderId: string; code: string } | null>(null);
 
   const topPicks = useMemo(() => menuItems.filter((m) => m.is_top_pick), [menuItems]);
 
@@ -83,6 +85,12 @@ export function OrderingApp({
     setStep("confirmation");
   }
 
+  function handleUssdPaymentStarted(payload: { orderId: string; code: string }) {
+    setUssdPayment(payload);
+    setCart([]);
+    setCartOpen(false);
+  }
+
   function handleNewOrder() {
     setPlacedOrderId(null);
     setStep("landing");
@@ -99,6 +107,7 @@ export function OrderingApp({
   }
 
   return (
+    <>
     <div className="flex min-h-screen flex-col bg-muted/20 pb-28">
       <div className="flex-1">
       {step === "landing" && (
@@ -151,11 +160,21 @@ export function OrderingApp({
         onUpdateItem={handleUpdateCartItem}
         onRemoveItem={handleRemoveCartItem}
         onOrderPlaced={handleOrderPlaced}
+        onUssdPaymentStarted={handleUssdPaymentStarted}
       />
       </div>
 
       <PoweredByHilaac className="pb-6 pt-2" />
     </div>
+
+    <PaymentConfirmationModal
+      open={!!ussdPayment}
+      orderId={ussdPayment?.orderId ?? ""}
+      slug={restaurant.slug}
+      ussdCode={ussdPayment?.code ?? ""}
+      onClose={() => setUssdPayment(null)}
+    />
+    </>
   );
 }
 

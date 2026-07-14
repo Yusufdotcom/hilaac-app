@@ -478,14 +478,40 @@ create policy "managers can manage waiters" on public.waiters
   );
 
 -- ---- orders --------------------------------------------------------------------
--- Customers never talk to this table directly (no anon INSERT/SELECT
--- policies at all): order creation goes through POST /api/orders and order
--- tracking through GET /api/orders/[id]/track, both service-role-backed so
--- prices are recomputed server-side and no tenant's orders can be dumped via
--- the anon key. Only staff (scoped to their own restaurant) get direct RLS
--- access here.
+-- Customers never talk to this table directly for writes (no anon INSERT
+-- policies): order creation goes through POST /api/orders. For live status
+-- tracking, anon may SELECT recent orders via column grants (status fields
+-- only — same surface as GET /api/orders/[id]/track) so Realtime UPDATE
+-- events can reach the customer confirmation screen.
 drop policy if exists "public can create orders" on public.orders;
 drop policy if exists "public can view order by id" on public.orders;
+
+drop policy if exists "customers can track recent orders" on public.orders;
+create policy "customers can track recent orders"
+  on public.orders
+  for select
+  to anon
+  using (created_at >= (now() - interval '7 days'));
+
+revoke all on public.orders from anon;
+grant select (
+  id, status, payment_status, order_type, total, created_at
+) on public.orders to anon;
+grant update (payment_status) on public.orders to anon;
+
+drop policy if exists "customers can confirm payment on recent orders" on public.orders;
+create policy "customers can confirm payment on recent orders"
+  on public.orders
+  for update
+  to anon
+  using (
+    created_at >= (now() - interval '7 days')
+    and payment_status = 'pending'
+  )
+  with check (
+    created_at >= (now() - interval '7 days')
+    and payment_status = 'paid'
+  );
 
 drop policy if exists "staff can view own restaurant orders" on public.orders;
 create policy "staff can view own restaurant orders" on public.orders

@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, ChefHat, Clock, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
+import { useOrderStatusRealtime } from "@/lib/hooks/use-order-status-realtime";
+import type { OrderStatus } from "@/types/database";
+import { cn } from "@/lib/utils";
 
-interface TrackedOrder {
-  id: string;
-  status: "new" | "preparing" | "ready" | "delivered" | "completed";
-  payment_status: "pending" | "paid" | "failed";
-}
-
-const STATUS_STEPS: { key: TrackedOrder["status"]; label: string }[] = [
+const STATUS_STEPS: { key: OrderStatus; label: string }[] = [
   { key: "new", label: "La helay" },
   { key: "preparing", label: "Karinta" },
   { key: "ready", label: "Diyaar" },
@@ -20,38 +17,45 @@ const STATUS_STEPS: { key: TrackedOrder["status"]; label: string }[] = [
   { key: "completed", label: "Dhammaystiran" },
 ];
 
+const STATUS_BADGE: Record<
+  "new" | "preparing" | "ready" | "delivered",
+  { label: string; className: string }
+> = {
+  new: { label: "New", className: "border-gray-200 bg-gray-100 text-gray-700" },
+  preparing: { label: "Preparing", className: "border-yellow-200 bg-yellow-100 text-yellow-800" },
+  ready: { label: "Ready", className: "border-green-200 bg-green-100 text-green-800" },
+  delivered: { label: "Delivered", className: "border-blue-200 bg-blue-100 text-blue-800" },
+};
+
+function OrderStatusBadge({ status }: { status: OrderStatus | undefined }) {
+  if (!status) return null;
+
+  const badgeKey =
+    status === "completed" ? "delivered" : status in STATUS_BADGE ? (status as keyof typeof STATUS_BADGE) : null;
+
+  if (!badgeKey) return null;
+
+  const { label, className } = STATUS_BADGE[badgeKey];
+
+  return (
+    <Badge variant="outline" className={cn("text-sm", className)}>
+      {label}
+    </Badge>
+  );
+}
+
 export function OrderConfirmation({
   orderId,
   restaurant,
   onNewOrder,
+  newOrderHref,
 }: {
   orderId: string;
   restaurant: { name: string };
-  onNewOrder: () => void;
+  onNewOrder?: () => void;
+  newOrderHref?: string;
 }) {
-  const [order, setOrder] = useState<TrackedOrder | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function poll() {
-      try {
-        const res = await fetch(`/api/orders/${orderId}/track`, { cache: "no-store" });
-        const data = await res.json();
-        if (active && res.ok) setOrder(data.order);
-      } catch {
-        // ignore transient network errors, next poll will retry
-      }
-    }
-
-    poll();
-    const interval = setInterval(poll, 4000);
-
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
-  }, [orderId]);
+  const order = useOrderStatusRealtime(orderId);
 
   const currentIndex = STATUS_STEPS.findIndex((s) => s.key === order?.status);
 
@@ -62,6 +66,10 @@ export function OrderConfirmation({
       </div>
       <h1 className="text-2xl font-bold">Dalabkaagu wuu socdaa!</h1>
       <p className="mt-1 text-muted-foreground">{restaurant.name} ayaa diyaarinaya dalabkaaga.</p>
+
+      <div className="mt-4">
+        <OrderStatusBadge status={order?.status} />
+      </div>
 
       <div className="mt-8 w-full max-w-sm space-y-3">
         {STATUS_STEPS.map((step, idx) => (
@@ -83,11 +91,15 @@ export function OrderConfirmation({
         ))}
       </div>
 
-      <div className="mt-6 flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Lacag bixinta:</span>
-        <Badge variant={order?.payment_status === "paid" ? "success" : order?.payment_status === "failed" ? "destructive" : "warning"} className="capitalize">
-          {order?.payment_status ?? "pending"}
-        </Badge>
+      <div className="mt-6 flex items-center justify-center gap-2">
+        <span className="text-sm text-muted-foreground">Payment:</span>
+        {order?.payment_status === "paid" ? (
+          <Badge variant="success">✅ Paid</Badge>
+        ) : order?.payment_status === "failed" ? (
+          <Badge variant="destructive">Failed</Badge>
+        ) : (
+          <Badge variant="warning">Pending</Badge>
+        )}
       </div>
 
       {order?.status === "completed" && (
@@ -96,9 +108,15 @@ export function OrderConfirmation({
         </div>
       )}
 
-      <Button variant="outline" className="mt-10" onClick={onNewOrder}>
-        Samee dalab cusub
-      </Button>
+      {newOrderHref ? (
+        <Button variant="outline" className="mt-10" asChild>
+          <Link href={newOrderHref}>Samee dalab cusub</Link>
+        </Button>
+      ) : (
+        <Button variant="outline" className="mt-10" onClick={onNewOrder}>
+          Samee dalab cusub
+        </Button>
+      )}
 
       <PoweredByHilaac className="mt-auto pt-10" />
     </div>
