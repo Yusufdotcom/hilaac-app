@@ -7,6 +7,7 @@ import { AdminUserMenu } from "@/components/admin/admin-user-menu";
 import { HilaacLogo } from "@/components/brand/hilaac-logo";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { cn } from "@/lib/utils";
+import type { OwnerBranch } from "@/lib/admin/owner-branches";
 
 const SIDEBAR_STORAGE_KEY = "hilaac-admin-sidebar-open";
 
@@ -15,11 +16,15 @@ export function AdminLayoutShell({
   restaurantName,
   subscriptionTier,
   userName,
+  currentSlug,
+  branches = [],
 }: {
   children: React.ReactNode;
   restaurantName: string;
   subscriptionTier: string;
   userName: string;
+  currentSlug: string;
+  branches?: OwnerBranch[];
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -100,6 +105,8 @@ export function AdminLayoutShell({
         onToggleSidebar={toggleSidebar}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
+        currentSlug={currentSlug}
+        branches={branches}
       />
 
       <main

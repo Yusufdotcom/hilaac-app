@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { getUserRestaurantContext } from "@/lib/admin/resolve-user-restaurant";
+import { createAdminClient } from "@/lib/supabase/server";
+import { ownerCanAccessSlug } from "@/lib/admin/owner-branches";
 import type { Profile, Restaurant } from "@/types/database";
 
 export type ReportsAccessContext = {
@@ -9,8 +10,8 @@ export type ReportsAccessContext = {
 };
 
 /**
- * Verifies the authenticated user owns the restaurant for `slug`
- * and has owner/manager role. Never trusts slug alone.
+ * Verifies the authenticated user can access the restaurant for `slug`
+ * and has owner/manager role.
  */
 export async function getVerifiedReportsContext(
   slug: string
@@ -21,27 +22,38 @@ export async function getVerifiedReportsContext(
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const userCtx = await getUserRestaurantContext(supabase, user.id);
-  if (!userCtx || userCtx.slug !== slug) return null;
-
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-  if (!profile) return null;
+  if (!profile || !["owner", "manager"].includes(profile.role)) return null;
 
-  if (profile.restaurant_id !== userCtx.profile.restaurant_id) return null;
-  if (!["owner", "manager"].includes(profile.role)) return null;
+  let restaurant: Restaurant | null = null;
 
-  const { data: restaurant } = await supabase
+  const { data: scopedRestaurant } = await supabase
     .from("restaurants")
     .select("*")
-    .eq("id", profile.restaurant_id!)
+    .eq("slug", slug)
     .maybeSingle();
 
-  if (!restaurant || restaurant.slug !== slug) return null;
-  if (restaurant.id !== profile.restaurant_id) return null;
+  restaurant = (scopedRestaurant as Restaurant | null) ?? null;
+
+  if (!restaurant) {
+    const admin = createAdminClient();
+    const { data: adminRestaurant } = await admin.from("restaurants").select("*").eq("slug", slug).maybeSingle();
+    restaurant = (adminRestaurant as Restaurant | null) ?? null;
+  }
+
+  if (!restaurant) return null;
+
+  const isPrimaryRestaurant = profile.restaurant_id === restaurant.id;
+  const isOwnerOfRestaurant = profile.role === "owner" && restaurant.owner_id === user.id;
+  const ownerHasBranchAccess =
+    profile.role === "owner" && (await ownerCanAccessSlug(supabase, user.id, slug));
+
+  if (!isPrimaryRestaurant && !isOwnerOfRestaurant && !ownerHasBranchAccess) return null;
+  if (restaurant.slug !== slug) return null;
 
   return {
     supabase,
-    restaurant: restaurant as Restaurant,
+    restaurant,
     profile: profile as Profile,
   };
 }

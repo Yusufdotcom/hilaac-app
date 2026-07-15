@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AdminLayoutShell } from "@/components/admin/admin-layout-shell";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { getAdminSlugRedirect } from "@/lib/admin/resolve-user-restaurant";
+import { getOwnerBranches } from "@/lib/admin/owner-branches";
 
 export default async function AdminLayout({
   children,
@@ -23,6 +24,8 @@ export default async function AdminLayout({
 
   const { restaurant, profile } = await getRestaurantContext(params.slug, ["owner", "manager"]);
 
+  const branches = profile.role === "owner" ? await getOwnerBranches(supabase, user.id) : [];
+
   const userName =
     profile.full_name?.trim() ||
     user.user_metadata?.full_name?.trim() ||
@@ -31,9 +34,11 @@ export default async function AdminLayout({
 
   return (
     <AdminLayoutShell
-      restaurantName={restaurant.name}
+      restaurantName={restaurant.branch_name?.trim() || restaurant.name}
       subscriptionTier={restaurant.subscription_tier}
       userName={userName}
+      currentSlug={params.slug}
+      branches={branches}
     >
       {children}
     </AdminLayoutShell>

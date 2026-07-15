@@ -52,23 +52,49 @@ export async function updateSession(request: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
 
-    // Trial/subscription gate: only the owner/manager billing screens stay
-    // reachable once a subscription has expired; everything else in /admin
-    // bounces to /billing so the restaurant can upgrade.
-    if (profile?.restaurant_id) {
-      const { data: restaurant } = await supabase
+    const adminSlugMatch = pathname.match(/^\/admin\/([^/]+)/);
+    const urlSlug = adminSlugMatch?.[1];
+
+    let restaurant:
+      | { slug: string; subscription_status: string | null; subscription_end_date: string | null }
+      | null = null;
+
+    if (urlSlug) {
+      const { data: urlRestaurant } = await supabase
+        .from("restaurants")
+        .select("id, slug, subscription_status, subscription_end_date, owner_id")
+        .eq("slug", urlSlug)
+        .maybeSingle();
+
+      if (urlRestaurant) {
+        const isOwnerBranch = profile?.role === "owner" && urlRestaurant.owner_id === user.id;
+        const isProfileRestaurant = urlRestaurant.id === profile?.restaurant_id;
+        if (isOwnerBranch || isProfileRestaurant) {
+          restaurant = urlRestaurant;
+        }
+      }
+    }
+
+    if (!restaurant && profile?.restaurant_id) {
+      const { data: profileRestaurant } = await supabase
         .from("restaurants")
         .select("slug, subscription_status, subscription_end_date")
         .eq("id", profile.restaurant_id)
         .maybeSingle();
+      restaurant = profileRestaurant;
+    }
 
+    // Trial/subscription gate: only the owner/manager billing screens stay
+    // reachable once a subscription has expired; everything else in /admin
+    // bounces to /billing so the restaurant can upgrade.
+    if (restaurant) {
       const isExpired =
-        restaurant?.subscription_status === "expired" ||
-        (restaurant?.subscription_end_date && new Date(restaurant.subscription_end_date) < new Date());
+        restaurant.subscription_status === "expired" ||
+        (restaurant.subscription_end_date && new Date(restaurant.subscription_end_date) < new Date());
 
-      const isBillingRoute = pathname === `/admin/${restaurant?.slug}/billing`;
+      const isBillingRoute = pathname === `/admin/${restaurant.slug}/billing`;
 
-      if (isExpired && pathname.startsWith("/admin") && !isBillingRoute && restaurant?.slug) {
+      if (isExpired && pathname.startsWith("/admin") && !isBillingRoute && restaurant.slug) {
         const url = request.nextUrl.clone();
         url.pathname = `/admin/${restaurant.slug}/billing`;
         return NextResponse.redirect(url);

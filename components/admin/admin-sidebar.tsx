@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { HilaacLogo } from "@/components/brand/hilaac-logo";
+import { BranchSelector } from "@/components/admin/branch-selector";
+import type { OwnerBranch } from "@/lib/admin/owner-branches";
 
 function navLinkClass(pathname: string, href: string, collapsed: boolean) {
   const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -39,6 +41,8 @@ export function AdminSidebar({
   onToggleSidebar,
   mobileOpen = false,
   onMobileClose,
+  currentSlug,
+  branches = [],
 }: {
   restaurantName: string;
   subscriptionTier: string;
@@ -46,9 +50,11 @@ export function AdminSidebar({
   onToggleSidebar: () => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  currentSlug?: string;
+  branches?: OwnerBranch[];
 }) {
   const pathname = usePathname();
-  const slug = pathname.split("/")[2];
+  const slug = currentSlug ?? pathname.split("/")[2];
   const supabase = createClient();
 
   async function handleLogout() {
@@ -102,6 +108,12 @@ export function AdminSidebar({
           )}
         </div>
       </div>
+
+      <BranchSelector
+        branches={branches}
+        currentSlug={slug}
+        collapsed={!isSidebarOpen}
+      />
 
       <div className={cn("shrink-0 border-b border-hilaac-dark px-5 py-4", !isSidebarOpen && "md:hidden")}>
         <p className="truncate text-sm font-semibold text-white">{restaurantName}</p>

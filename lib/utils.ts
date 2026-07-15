@@ -30,6 +30,9 @@ export function slugify(text: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Alias used when creating branch slugs from a display name. */
+export const generateSlug = slugify;
+
 export function daysUntil(date: string | Date) {
   const diff = new Date(date).getTime() - Date.now();
   return Math.ceil(diff / (1000 * 60 * 60 * 24));

@@ -52,6 +52,7 @@ create table if not exists public.restaurants (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text not null unique,
+  branch_name text,
   owner_id uuid references auth.users (id) on delete set null,
   logo_url text,
   address text,
@@ -374,9 +375,21 @@ drop policy if exists "staff can update own restaurant" on public.restaurants;
 create policy "staff can update own restaurant" on public.restaurants
   for update using (id = public.get_my_restaurant_id() and public.is_manager_or_owner());
 
+drop policy if exists "owners can view own restaurants" on public.restaurants;
+create policy "owners can view own restaurants" on public.restaurants
+  for select using (owner_id = auth.uid());
+
+drop policy if exists "owners can insert own restaurants" on public.restaurants;
+create policy "owners can insert own restaurants" on public.restaurants
+  for insert with check (owner_id = auth.uid() and public.get_my_role() = 'owner');
+
+drop policy if exists "owners can update own restaurants" on public.restaurants;
+create policy "owners can update own restaurants" on public.restaurants
+  for update using (owner_id = auth.uid() and public.get_my_role() = 'owner');
+
 revoke all on public.restaurants from anon, authenticated;
 grant select (
-  id, name, slug, logo_url, address, phone, payment_mode, subscription_tier,
+  id, name, slug, branch_name, owner_id, logo_url, address, phone, payment_mode, subscription_tier,
   subscription_status, subscription_end_date, evc_ussd_code, edahab_ussd_code,
   dine_in_enabled, takeaway_enabled, is_active, is_demo, demo_expires_at, created_at
 ) on public.restaurants to anon, authenticated;

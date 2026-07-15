@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/database";
+import { ownerCanAccessSlug } from "@/lib/admin/owner-branches";
 
 export type UserRestaurantContext = {
   profile: Pick<Profile, "role" | "restaurant_id">;
@@ -98,6 +99,7 @@ export async function getPostLoginPath(supabase: SupabaseClient, userId: string)
 /**
  * When the URL slug does not match the user's restaurant (e.g. stale demo slug),
  * returns the correct admin base path, or null if no redirect is needed.
+ * Owners may access any branch they own without redirect.
  */
 export async function getAdminSlugRedirect(
   supabase: SupabaseClient,
@@ -107,9 +109,11 @@ export async function getAdminSlugRedirect(
   const ctx = await getUserRestaurantContext(supabase, userId);
   if (!ctx) return null;
 
-  if (urlSlug !== ctx.slug) {
-    return `/admin/${ctx.slug}/dashboard`;
+  if (urlSlug === ctx.slug) return null;
+
+  if (await ownerCanAccessSlug(supabase, userId, urlSlug)) {
+    return null;
   }
 
-  return null;
+  return `/admin/${ctx.slug}/dashboard`;
 }

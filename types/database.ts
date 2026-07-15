@@ -11,6 +11,7 @@ export interface Restaurant {
   id: string;
   name: string;
   slug: string;
+  branch_name: string | null;
   owner_id: string | null;
   logo_url: string | null;
   address: string | null;
