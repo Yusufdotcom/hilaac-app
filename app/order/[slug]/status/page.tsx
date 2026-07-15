@@ -2,16 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, WifiOff } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useOnlineStatus } from "@/lib/hooks/useOnlineStatus";
 import {
   getQueue,
   isOrderPendingSync,
   removeQueuedOrderByOrderId,
+  syncOfflineOrders,
 } from "@/lib/offline-queue";
 import { OrderConfirmation } from "@/components/order/order-confirmation";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { PaymentStatus } from "@/types/database";
 
 interface TrackedOrderRow {
@@ -35,6 +39,64 @@ export default function OrderStatusPage({
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
   const [waitingForSync, setWaitingForSync] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState(false);
+
+  const pendingSync = isOrderPendingSync(orderId);
+  const showRetrySync = pendingSync || !isOnline;
+
+  async function handleRetrySync() {
+    setRetrying(true);
+    try {
+      const { synced, failed } = await syncOfflineOrders();
+
+      if (synced > 0) {
+        toast.success(
+          synced === 1
+            ? "Dalabkaaga waa la diray!"
+            : `${synced} dalabyo waa la diray!`
+        );
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("orders")
+          .select("id, status, payment_status")
+          .eq("id", orderId)
+          .maybeSingle();
+        if (data) setOrder(data);
+      } else if (failed > 0) {
+        toast.error("Isku daygu ma guuleysan. Fadlan isku day mar kale.");
+      } else {
+        toast.message("Ma jiro dalab sugaya in la dirayo.");
+      }
+    } finally {
+      setRetrying(false);
+    }
+  }
+
+  function OrderStatusExtras() {
+    return (
+      <div className="flex w-full max-w-sm flex-col items-center gap-2 px-4">
+        {!isOnline && (
+          <Badge className="gap-1.5 border-amber-200 bg-amber-100 px-3 py-1.5 text-amber-900 hover:bg-amber-100">
+            <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
+            Mode Offline - Dalabka waa la keydiyay
+          </Badge>
+        )}
+        {showRetrySync && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={retrying}
+            onClick={() => void handleRetrySync()}
+            className="border-amber-200 text-amber-900 hover:bg-amber-50"
+          >
+            {retrying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+            Isku day mar kale
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   // Load restaurant name for the status UI.
   useEffect(() => {
@@ -134,7 +196,8 @@ export default function OrderStatusPage({
   if (loading || waitingForSync || !restaurantName) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-6 py-12 text-center">
-        <Loader2 className="mb-4 h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
+        <OrderStatusExtras />
+        <Loader2 className="mb-4 mt-4 h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
         <p className="text-lg font-medium text-[#0F172A]">
           {waitingForSync || !isOnline
             ? "Waiting for connection to sync your order..."
@@ -151,10 +214,15 @@ export default function OrderStatusPage({
   }
 
   return (
-    <OrderConfirmation
-      orderId={orderId}
-      restaurant={{ name: restaurantName }}
-      newOrderHref={`/order/${params.slug}`}
-    />
+    <div className="flex min-h-screen flex-col">
+      <div className="flex justify-center pt-4">
+        <OrderStatusExtras />
+      </div>
+      <OrderConfirmation
+        orderId={orderId}
+        restaurant={{ name: restaurantName }}
+        newOrderHref={`/order/${params.slug}`}
+      />
+    </div>
   );
 }
