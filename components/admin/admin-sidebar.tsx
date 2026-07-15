@@ -69,7 +69,7 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "pointer-events-auto fixed inset-y-0 left-0 z-50 flex h-screen shrink-0 flex-col border-r border-hilaac-dark bg-hilaac-navy text-white transition-all duration-300 ease-in-out md:z-[200] md:translate-x-0",
+        "pointer-events-auto fixed inset-y-0 left-0 z-50 flex h-screen shrink-0 flex-col overflow-hidden border-r border-hilaac-dark bg-hilaac-navy text-white transition-all duration-300 ease-in-out md:z-[200] md:translate-x-0",
         mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         isSidebarOpen ? "w-64 md:w-64" : "w-64 md:w-16"
       )}
