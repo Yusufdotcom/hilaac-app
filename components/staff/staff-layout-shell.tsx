@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { Menu } from "lucide-react";
+import { useEffect } from "react";
 import { StaffSidebar } from "@/components/staff/staff-sidebar";
-import { HilaacLogo } from "@/components/brand/hilaac-logo";
+import {
+  MobileSidebarBackdrop,
+  MobileSidebarGrip,
+} from "@/components/layout/mobile-sidebar-grip";
+import { useSlideOutSidebar } from "@/lib/hooks/use-slide-out-sidebar";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
+import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
+
+const SIDEBAR_WIDTH = 256;
 
 export function StaffLayoutShell({
   children,
@@ -18,51 +24,57 @@ export function StaffLayoutShell({
   role: Profile["role"];
   slug: string;
 }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const {
+    mobileOpen,
+    translateX,
+    isDragging,
+    progress,
+    close: closeMobileSidebar,
+    onEdgeTouchStart,
+    onSidebarTouchStart,
+    tryOpenFromEdge,
+  } = useSlideOutSidebar(SIDEBAR_WIDTH);
 
-  function closeMobileMenu() {
-    setMobileOpen(false);
-  }
+  useEffect(() => {
+    function handleTouchStart(e: TouchEvent) {
+      if (window.innerWidth >= 768) return;
+      const touch = e.touches[0];
+      tryOpenFromEdge(touch.clientX, touch.clientY);
+    }
+
+    document.addEventListener("touchstart", handleTouchStart, { passive: true });
+    return () => document.removeEventListener("touchstart", handleTouchStart);
+  }, [tryOpenFromEdge]);
+
+  const showMobileOverlay = mobileOpen || (isDragging && progress > 0);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-hilaac-dark bg-hilaac-navy px-4 md:hidden">
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/10"
-          aria-label="Open menu"
-        >
-          <Menu className="h-6 w-6" aria-hidden="true" />
-        </button>
-        <HilaacLogo
-          href="/"
-          variant="light"
-          showWordmark
-          src="/logo-icon.png"
-          wordmarkClassName="text-white text-base"
-          className="min-w-0"
-        />
-      </header>
+      <MobileSidebarGrip visible={progress < 0.01 && !isDragging} onTouchStart={onEdgeTouchStart} />
 
-      {mobileOpen && (
-        <button
-          type="button"
-          aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={closeMobileMenu}
-        />
-      )}
+      <MobileSidebarBackdrop
+        visible={showMobileOverlay}
+        progress={progress}
+        onClose={closeMobileSidebar}
+      />
 
-      <div className="flex min-h-[calc(100vh-3.5rem)] md:min-h-screen">
+      <div className="flex min-h-screen">
         <StaffSidebar
           restaurantName={restaurantName}
           role={role}
           slug={slug}
-          mobileOpen={mobileOpen}
-          onMobileClose={closeMobileMenu}
+          onMobileClose={closeMobileSidebar}
+          mobileTranslateX={translateX}
+          mobileIsDragging={isDragging}
+          onSidebarTouchStart={onSidebarTouchStart}
         />
-        <main className="app-light-surface relative z-0 flex min-w-0 flex-1 flex-col overflow-y-auto p-4 text-[#0F172A] sm:p-6 md:min-h-screen">
+        <main
+          className={cn(
+            "app-light-surface relative z-0 flex min-w-0 flex-1 flex-col overflow-y-auto p-4 text-[#0F172A] transition-[filter,transform] duration-300 ease-out sm:p-6",
+            showMobileOverlay &&
+              "pointer-events-none scale-[0.985] backdrop-blur-sm md:pointer-events-auto md:scale-100 md:backdrop-blur-none"
+          )}
+        >
           <div className="flex-1">{children}</div>
           <PoweredByHilaac className="pb-2 pt-6" />
         </main>

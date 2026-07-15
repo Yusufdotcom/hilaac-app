@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { OrderWithItems } from "@/types/database";
+
+const ACTIVE_KITCHEN_STATUSES = ["new", "preparing", "ready"] as const;
 
 /**
  * Subscribes to realtime order + order_item changes for a restaurant and
@@ -14,14 +16,16 @@ export function useRealtimeOrders(
   initialOrders: OrderWithItems[],
   options?: {
     activeOnly?: boolean;
+    channelName?: string;
     onOrderRemoved?: (order: OrderWithItems, newStatus: string) => void;
     pinReadyToTop?: boolean;
   }
 ) {
   const activeOnly = options?.activeOnly ?? true;
+  const channelName = options?.channelName ?? `orders-${restaurantId}`;
   const onOrderRemoved = options?.onOrderRemoved;
   const pinReadyToTop = options?.pinReadyToTop ?? false;
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [orders, setOrders] = useState<OrderWithItems[]>(initialOrders);
 
   const fetchOrder = useCallback(
@@ -38,7 +42,7 @@ export function useRealtimeOrders(
 
   useEffect(() => {
     const channel = supabase
-      .channel(`orders-${restaurantId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
@@ -50,21 +54,34 @@ export function useRealtimeOrders(
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
-        (payload) => {
+        async (payload) => {
           const updated = payload.new as { id: string; status?: string; updated_at?: string };
-          setOrders((prev) => {
-            const previous = prev.find((o) => o.id === updated.id);
-            if (
-              activeOnly &&
-              updated.status &&
-              !["new", "preparing", "ready"].includes(updated.status)
-            ) {
-              if (previous) {
-                onOrderRemoved?.(previous, updated.status);
-              }
-              return prev.filter((o) => o.id !== updated.id);
-            }
+          const isRemovedFromActive =
+            activeOnly &&
+            updated.status &&
+            !ACTIVE_KITCHEN_STATUSES.includes(updated.status as (typeof ACTIVE_KITCHEN_STATUSES)[number]);
 
+          if (isRemovedFromActive) {
+            let removedOrder: OrderWithItems | undefined;
+
+            setOrders((prev) => {
+              removedOrder = prev.find((o) => o.id === updated.id);
+              return prev.filter((o) => o.id !== updated.id);
+            });
+
+            const orderForCallback =
+              removedOrder ?? (updated.status ? await fetchOrder(updated.id) : null);
+
+            if (orderForCallback && updated.status) {
+              onOrderRemoved?.(
+                { ...orderForCallback, status: updated.status as OrderWithItems["status"] },
+                updated.status
+              );
+            }
+            return;
+          }
+
+          setOrders((prev) => {
             const next = prev.map((o) =>
               o.id === updated.id ? { ...o, ...(payload.new as object) } : o
             );
@@ -98,7 +115,7 @@ export function useRealtimeOrders(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [restaurantId, supabase, fetchOrder, activeOnly, onOrderRemoved, pinReadyToTop]);
+  }, [restaurantId, supabase, fetchOrder, activeOnly, onOrderRemoved, pinReadyToTop, channelName]);
 
   function removeOrder(orderId: string) {
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
@@ -112,16 +129,38 @@ export function useRealtimeOrders(
   }
 
   async function updateOrderStatus(orderId: string, status: string) {
-    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: status as any } : o)));
+    let previous: OrderWithItems | undefined;
+
+    setOrders((prev) => {
+      previous = prev.find((o) => o.id === orderId);
+      return prev.map((o) => (o.id === orderId ? { ...o, status: status as OrderWithItems["status"] } : o));
+    });
+
     const { error } = await supabase.from("orders").update({ status }).eq("id", orderId);
+
+    if (error && previous) {
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? previous! : o)));
+    }
+
     return error;
   }
 
   async function updatePaymentStatus(orderId: string, payment_status: string) {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, payment_status: payment_status as any } : o))
-    );
+    let previous: OrderWithItems | undefined;
+
+    setOrders((prev) => {
+      previous = prev.find((o) => o.id === orderId);
+      return prev.map((o) =>
+        o.id === orderId ? { ...o, payment_status: payment_status as OrderWithItems["payment_status"] } : o
+      );
+    });
+
     const { error } = await supabase.from("orders").update({ payment_status }).eq("id", orderId);
+
+    if (error && previous) {
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? previous! : o)));
+    }
+
     return error;
   }
 
@@ -129,13 +168,15 @@ export function useRealtimeOrders(
     orderId: string,
     fields: { status?: string; payment_status?: string; delivered_by?: string }
   ) {
+    let previous: OrderWithItems | undefined;
+
     setOrders((prev) => {
-      const previous = prev.find((o) => o.id === orderId);
+      previous = prev.find((o) => o.id === orderId);
       const updated = prev.map((o) => (o.id === orderId ? { ...o, ...(fields as object) } : o));
       if (
         activeOnly &&
         fields.status &&
-        !["new", "preparing", "ready"].includes(fields.status)
+        !ACTIVE_KITCHEN_STATUSES.includes(fields.status as (typeof ACTIVE_KITCHEN_STATUSES)[number])
       ) {
         if (previous) {
           onOrderRemoved?.(previous, fields.status);
@@ -144,7 +185,18 @@ export function useRealtimeOrders(
       }
       return updated;
     });
+
     const { error } = await supabase.from("orders").update(fields).eq("id", orderId);
+
+    if (error && previous) {
+      setOrders((prev) => {
+        if (prev.some((o) => o.id === orderId)) {
+          return prev.map((o) => (o.id === orderId ? previous! : o));
+        }
+        return [previous!, ...prev];
+      });
+    }
+
     return error;
   }
 

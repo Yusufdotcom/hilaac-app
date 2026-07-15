@@ -21,6 +21,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { HilaacLogo } from "@/components/brand/hilaac-logo";
 import { BranchSelector } from "@/components/admin/branch-selector";
+import { getMobileSidebarStyle, useIsMobile } from "@/lib/hooks/use-slide-out-sidebar";
 import type { OwnerBranch } from "@/lib/admin/owner-branches";
 
 function navLinkClass(pathname: string, href: string, collapsed: boolean) {
@@ -39,10 +40,12 @@ export function AdminSidebar({
   subscriptionTier,
   isSidebarOpen,
   onToggleSidebar,
-  mobileOpen = false,
   onMobileClose,
   currentSlug,
   branches = [],
+  mobileTranslateX,
+  mobileIsDragging = false,
+  onSidebarTouchStart,
 }: {
   restaurantName: string;
   subscriptionTier: string;
@@ -52,10 +55,14 @@ export function AdminSidebar({
   onMobileClose?: () => void;
   currentSlug?: string;
   branches?: OwnerBranch[];
+  mobileTranslateX?: number;
+  mobileIsDragging?: boolean;
+  onSidebarTouchStart?: (e: React.TouchEvent) => void;
 }) {
   const pathname = usePathname();
   const slug = currentSlug ?? pathname.split("/")[2];
   const supabase = createClient();
+  const isMobile = useIsMobile();
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -69,10 +76,15 @@ export function AdminSidebar({
   return (
     <aside
       className={cn(
-        "pointer-events-auto fixed inset-y-0 left-0 z-50 flex h-screen shrink-0 flex-col overflow-hidden border-r border-hilaac-dark bg-hilaac-navy text-white transition-all duration-300 ease-in-out md:z-[200] md:translate-x-0",
-        mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-        isSidebarOpen ? "w-64 md:w-64" : "w-64 md:w-16"
+        "pointer-events-auto fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col overflow-hidden border-r border-hilaac-dark bg-hilaac-navy text-white md:relative md:z-[200] md:translate-x-0 md:transition-all md:duration-300 md:ease-in-out",
+        isSidebarOpen ? "md:w-64" : "md:w-16"
       )}
+      style={
+        isMobile && typeof mobileTranslateX === "number"
+          ? getMobileSidebarStyle(mobileTranslateX, mobileIsDragging, 256)
+          : undefined
+      }
+      onTouchStart={onSidebarTouchStart}
     >
       <div
         className={cn(

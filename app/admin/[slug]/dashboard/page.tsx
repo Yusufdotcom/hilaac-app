@@ -27,16 +27,12 @@ export default async function DashboardPage({ params }: { params: { slug: string
     activeTablesResult,
     openOrdersResult,
   ] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("*", { count: "exact", head: true })
-      .eq("restaurant_id", restaurant.id)
-      .gte("created_at", startOfDayIso),
-    supabase
-      .from("orders")
-      .select("total.sum()")
-      .eq("restaurant_id", restaurant.id)
-      .gte("created_at", startOfDayIso),
+    supabase.rpc("get_dashboard_orders_today", {
+      p_restaurant_id: restaurant.id,
+    }),
+    supabase.rpc("get_dashboard_revenue_today", {
+      p_restaurant_id: restaurant.id,
+    }),
     supabase
       .from("orders")
       .select("id, order_type, status, payment_status, total, created_at")
@@ -72,10 +68,9 @@ export default async function DashboardPage({ params }: { params: { slug: string
     fetchErrors.push({ label: "Open orders", message: openOrdersResult.error.message });
   }
 
-  const ordersToday = ordersTodayResult.count ?? 0;
+  const ordersToday = Number(ordersTodayResult.data ?? 0);
 
-  const revenueAggregate = revenueTodayResult.data?.[0] as { sum: number | null } | undefined;
-  const revenueToday = Number(revenueAggregate?.sum ?? 0);
+  const revenueToday = Number(revenueTodayResult.data ?? 0);
 
   const recentOrders = recentOrdersResult.data ?? [];
   const activeTables = activeTablesResult.count ?? 0;

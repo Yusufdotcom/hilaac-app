@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { CheckCircle2, ChefHat, Clock, ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { CheckCircle2, ChefHat, Clock, Loader2, ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatDate } from "@/lib/utils";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import { KitchenMenuAvailability } from "@/components/staff/kitchen/kitchen-menu-availability";
 import type { OrderStatus, OrderWithItems, MenuItem } from "@/types/database";
+import type { PostgrestError } from "@supabase/supabase-js";
 
 const ACTIVE_STATUSES: OrderStatus[] = ["new", "preparing", "ready"];
 const DELIVERED_STATUSES: OrderStatus[] = ["delivered", "completed"];
@@ -35,9 +37,34 @@ function KitchenOrderCard({
   onStatusChange,
 }: {
   order: OrderWithItems;
-  onStatusChange: (orderId: string, status: OrderStatus) => void;
+  onStatusChange: (orderId: string, status: OrderStatus) => Promise<PostgrestError | null>;
 }) {
+  const [pendingAction, setPendingAction] = useState<"preparing" | "ready" | null>(null);
+  const [completedAction, setCompletedAction] = useState<"preparing" | "ready" | null>(null);
+
   const badge = statusBadge(order.status);
+  const isBusy = pendingAction !== null;
+
+  const preparingDone = order.status === "preparing" || order.status === "ready" || completedAction === "preparing";
+  const readyDone = order.status === "ready" || completedAction === "ready";
+
+  async function handleStatusChange(status: "preparing" | "ready") {
+    if (isBusy) return;
+
+    setPendingAction(status);
+    setCompletedAction(null);
+
+    const error = await onStatusChange(order.id, status);
+
+    setPendingAction(null);
+
+    if (error) {
+      toast.error(error.message ?? "Could not update order status.");
+      return;
+    }
+
+    setCompletedAction(status);
+  }
 
   return (
     <article
@@ -94,19 +121,37 @@ function KitchenOrderCard({
       <div className="grid grid-cols-2 gap-3 border-t bg-[#F8FAFC] p-4">
         <Button
           type="button"
-          className="h-11 rounded-xl bg-amber-400 font-semibold text-[#0F172A] hover:bg-amber-500"
-          disabled={order.status === "preparing"}
-          onClick={() => onStatusChange(order.id, "preparing")}
+          className="h-11 rounded-xl bg-amber-400 font-semibold text-[#0F172A] hover:bg-amber-500 disabled:opacity-70"
+          disabled={isBusy || preparingDone}
+          onClick={() => handleStatusChange("preparing")}
         >
-          Preparing
+          {pendingAction === "preparing" ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : preparingDone ? (
+            <>
+              <CheckCircle2 className="h-4 w-4 text-emerald-700" aria-hidden="true" />
+              Preparing
+            </>
+          ) : (
+            "Preparing"
+          )}
         </Button>
         <Button
           type="button"
-          className="h-11 rounded-xl bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
-          disabled={order.status === "ready"}
-          onClick={() => onStatusChange(order.id, "ready")}
+          className="h-11 rounded-xl bg-emerald-600 font-semibold text-white hover:bg-emerald-700 disabled:opacity-70"
+          disabled={isBusy || readyDone}
+          onClick={() => handleStatusChange("ready")}
         >
-          Ready
+          {pendingAction === "ready" ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : readyDone ? (
+            <>
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              Ready
+            </>
+          ) : (
+            "Ready"
+          )}
         </Button>
       </div>
     </article>
@@ -173,6 +218,7 @@ export function KitchenBoard({
 
   const { orders, updateOrderStatus } = useRealtimeOrders(restaurantId, initialOrders, {
     activeOnly: true,
+    channelName: `kitchen-orders-${restaurantId}`,
     onOrderRemoved: handleOrderDelivered,
   });
 

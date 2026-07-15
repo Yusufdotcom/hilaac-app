@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { HilaacLogo } from "@/components/brand/hilaac-logo";
 import { ROLE_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { getMobileSidebarStyle, useIsMobile } from "@/lib/hooks/use-slide-out-sidebar";
 import type { Profile } from "@/types/database";
 
 const STAFF_NAV = [
@@ -44,17 +45,23 @@ export function StaffSidebar({
   restaurantName,
   role,
   slug,
-  mobileOpen = false,
   onMobileClose,
+  mobileTranslateX,
+  mobileIsDragging = false,
+  onSidebarTouchStart,
 }: {
   restaurantName: string;
   role: Profile["role"];
   slug: string;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  mobileTranslateX?: number;
+  mobileIsDragging?: boolean;
+  onSidebarTouchStart?: (e: React.TouchEvent) => void;
 }) {
   const pathname = usePathname();
   const supabase = createClient();
+  const isMobile = useIsMobile();
 
   const visibleNav = STAFF_NAV.filter((item) => item.roles.includes(role));
 
@@ -70,9 +77,14 @@ export function StaffSidebar({
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-hilaac-dark bg-hilaac-navy text-white transition-transform duration-300 ease-in-out md:relative md:z-auto md:translate-x-0",
-        mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        "fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-hilaac-dark bg-hilaac-navy text-white md:relative md:z-auto md:translate-x-0"
       )}
+      style={
+        isMobile && typeof mobileTranslateX === "number"
+          ? getMobileSidebarStyle(mobileTranslateX, mobileIsDragging, 256)
+          : undefined
+      }
+      onTouchStart={onSidebarTouchStart}
     >
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-hilaac-dark px-5">
         <HilaacLogo href="/" variant="light" src="/logo-icon.png" />

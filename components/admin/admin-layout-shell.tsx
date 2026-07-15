@@ -6,10 +6,16 @@ import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminUserMenu } from "@/components/admin/admin-user-menu";
 import { HilaacLogo } from "@/components/brand/hilaac-logo";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
+import {
+  MobileSidebarBackdrop,
+  MobileSidebarGrip,
+} from "@/components/layout/mobile-sidebar-grip";
+import { useSlideOutSidebar } from "@/lib/hooks/use-slide-out-sidebar";
 import { cn } from "@/lib/utils";
 import type { OwnerBranch } from "@/lib/admin/owner-branches";
 
 const SIDEBAR_STORAGE_KEY = "hilaac-admin-sidebar-open";
+const SIDEBAR_WIDTH = 256;
 
 export function AdminLayoutShell({
   children,
@@ -26,9 +32,19 @@ export function AdminLayoutShell({
   currentSlug: string;
   branches?: OwnerBranch[];
 }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [hydrated, setHydrated] = useState(false);
+
+  const {
+    mobileOpen,
+    translateX,
+    isDragging,
+    progress,
+    close: closeMobileSidebar,
+    onEdgeTouchStart,
+    onSidebarTouchStart,
+    tryOpenFromEdge,
+  } = useSlideOutSidebar(SIDEBAR_WIDTH);
 
   useEffect(() => {
     const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
@@ -43,9 +59,22 @@ export function AdminLayoutShell({
     localStorage.setItem(SIDEBAR_STORAGE_KEY, String(isSidebarOpen));
   }, [isSidebarOpen, hydrated]);
 
+  useEffect(() => {
+    function handleTouchStart(e: TouchEvent) {
+      if (window.innerWidth >= 768) return;
+      const touch = e.touches[0];
+      tryOpenFromEdge(touch.clientX, touch.clientY);
+    }
+
+    document.addEventListener("touchstart", handleTouchStart, { passive: true });
+    return () => document.removeEventListener("touchstart", handleTouchStart);
+  }, [tryOpenFromEdge]);
+
   function toggleSidebar() {
     setIsSidebarOpen((open) => !open);
   }
+
+  const showMobileOverlay = mobileOpen || (isDragging && progress > 0);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -55,14 +84,6 @@ export function AdminLayoutShell({
           isSidebarOpen ? "md:left-64" : "md:left-16"
         )}
       >
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/10 md:hidden"
-          aria-label="Open menu"
-        >
-          <Menu className="h-6 w-6" aria-hidden="true" />
-        </button>
         <button
           type="button"
           onClick={toggleSidebar}
@@ -81,7 +102,7 @@ export function AdminLayoutShell({
           variant="light"
           showWordmark
           src="/logo-icon.png"
-          wordmarkClassName="text-white text-base sm:text-lg"
+          wordmarkClassName="text-white text-base sm:text-lg md:text-inherit"
           className="min-w-0 md:hidden"
         />
         <div className="ml-auto">
@@ -89,30 +110,32 @@ export function AdminLayoutShell({
         </div>
       </header>
 
-      {mobileOpen && (
-        <button
-          type="button"
-          aria-label="Close menu"
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      <MobileSidebarGrip visible={progress < 0.01 && !isDragging} onTouchStart={onEdgeTouchStart} />
+
+      <MobileSidebarBackdrop
+        visible={showMobileOverlay}
+        progress={progress}
+        onClose={closeMobileSidebar}
+      />
 
       <AdminSidebar
         restaurantName={restaurantName}
         subscriptionTier={subscriptionTier}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={toggleSidebar}
-        mobileOpen={mobileOpen}
-        onMobileClose={() => setMobileOpen(false)}
+        onMobileClose={closeMobileSidebar}
         currentSlug={currentSlug}
         branches={branches}
+        mobileTranslateX={translateX}
+        mobileIsDragging={isDragging}
+        onSidebarTouchStart={onSidebarTouchStart}
       />
 
       <main
         className={cn(
-          "app-light-surface relative z-0 flex min-h-screen min-w-0 flex-col overflow-y-auto pt-14 text-[#0F172A] transition-[margin] duration-300 ease-in-out",
-          isSidebarOpen ? "md:ml-64" : "md:ml-16"
+          "app-light-surface relative z-0 flex min-h-screen min-w-0 flex-col overflow-y-auto pt-14 text-[#0F172A] transition-[margin,filter,transform] duration-300 ease-out",
+          isSidebarOpen ? "md:ml-64" : "md:ml-16",
+          showMobileOverlay && "pointer-events-none scale-[0.985] backdrop-blur-sm md:pointer-events-auto md:scale-100 md:backdrop-blur-none"
         )}
       >
         <div className="flex-1 p-4 sm:p-6 md:p-8">{children}</div>
