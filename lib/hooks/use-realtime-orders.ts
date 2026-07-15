@@ -12,9 +12,15 @@ import type { OrderWithItems } from "@/types/database";
 export function useRealtimeOrders(
   restaurantId: string,
   initialOrders: OrderWithItems[],
-  options?: { activeOnly?: boolean }
+  options?: {
+    activeOnly?: boolean;
+    onOrderRemoved?: (order: OrderWithItems, newStatus: string) => void;
+    pinReadyToTop?: boolean;
+  }
 ) {
   const activeOnly = options?.activeOnly ?? true;
+  const onOrderRemoved = options?.onOrderRemoved;
+  const pinReadyToTop = options?.pinReadyToTop ?? false;
   const supabase = createClient();
   const [orders, setOrders] = useState<OrderWithItems[]>(initialOrders);
 
@@ -45,12 +51,33 @@ export function useRealtimeOrders(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
         (payload) => {
-          const updated = payload.new as { id: string; status?: string };
-          if (activeOnly && updated.status && !["new", "preparing", "ready"].includes(updated.status)) {
-            setOrders((prev) => prev.filter((o) => o.id !== updated.id));
-            return;
-          }
-          setOrders((prev) => prev.map((o) => (o.id === updated.id ? { ...o, ...(payload.new as object) } : o)));
+          const updated = payload.new as { id: string; status?: string; updated_at?: string };
+          setOrders((prev) => {
+            const previous = prev.find((o) => o.id === updated.id);
+            if (
+              activeOnly &&
+              updated.status &&
+              !["new", "preparing", "ready"].includes(updated.status)
+            ) {
+              if (previous) {
+                onOrderRemoved?.(previous, updated.status);
+              }
+              return prev.filter((o) => o.id !== updated.id);
+            }
+
+            const next = prev.map((o) =>
+              o.id === updated.id ? { ...o, ...(payload.new as object) } : o
+            );
+
+            if (pinReadyToTop && updated.status === "ready") {
+              const readyOrder = next.find((o) => o.id === updated.id);
+              if (readyOrder) {
+                return [readyOrder, ...next.filter((o) => o.id !== updated.id)];
+              }
+            }
+
+            return next;
+          });
         }
       )
       .on(
@@ -71,7 +98,18 @@ export function useRealtimeOrders(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [restaurantId, supabase, fetchOrder, activeOnly]);
+  }, [restaurantId, supabase, fetchOrder, activeOnly, onOrderRemoved, pinReadyToTop]);
+
+  function removeOrder(orderId: string) {
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+  }
+
+  function restoreOrder(order: OrderWithItems) {
+    setOrders((prev) => {
+      if (prev.some((o) => o.id === order.id)) return prev;
+      return [order, ...prev];
+    });
+  }
 
   async function updateOrderStatus(orderId: string, status: string) {
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: status as any } : o)));
@@ -92,12 +130,16 @@ export function useRealtimeOrders(
     fields: { status?: string; payment_status?: string; delivered_by?: string }
   ) {
     setOrders((prev) => {
+      const previous = prev.find((o) => o.id === orderId);
       const updated = prev.map((o) => (o.id === orderId ? { ...o, ...(fields as object) } : o));
       if (
         activeOnly &&
         fields.status &&
         !["new", "preparing", "ready"].includes(fields.status)
       ) {
+        if (previous) {
+          onOrderRemoved?.(previous, fields.status);
+        }
         return updated.filter((o) => o.id !== orderId);
       }
       return updated;
@@ -106,5 +148,5 @@ export function useRealtimeOrders(
     return error;
   }
 
-  return { orders, updateOrderStatus, updatePaymentStatus, updateOrderFields };
+  return { orders, removeOrder, restoreOrder, updateOrderStatus, updatePaymentStatus, updateOrderFields };
 }

@@ -1,14 +1,20 @@
 "use client";
 
-import { useMemo } from "react";
-import { ChefHat, Clock, ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { CheckCircle2, ChefHat, Clock, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatDate } from "@/lib/utils";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
-import type { OrderStatus, OrderWithItems } from "@/types/database";
+import { KitchenMenuAvailability } from "@/components/staff/kitchen/kitchen-menu-availability";
+import type { OrderStatus, OrderWithItems, MenuItem } from "@/types/database";
 
 const ACTIVE_STATUSES: OrderStatus[] = ["new", "preparing", "ready"];
+const DELIVERED_STATUSES: OrderStatus[] = ["delivered", "completed"];
+
+function isDeliveredStatus(status: string) {
+  return DELIVERED_STATUSES.includes(status as OrderStatus);
+}
 
 function orderLabel(order: OrderWithItems) {
   if (order.order_type === "dine-in") {
@@ -107,16 +113,68 @@ function KitchenOrderCard({
   );
 }
 
+function DeliveredOrderCard({ order }: { order: OrderWithItems }) {
+  return (
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white opacity-90 shadow-sm">
+      <div className="flex items-start justify-between gap-3 border-b bg-[#F8FAFC] px-4 py-3">
+        <div className="flex items-center gap-2">
+          {order.order_type === "dine-in" ? (
+            <UtensilsCrossed className="h-5 w-5 text-[#64748B]" aria-hidden="true" />
+          ) : (
+            <ShoppingBag className="h-5 w-5 text-[#64748B]" aria-hidden="true" />
+          )}
+          <div>
+            <h3 className="font-semibold text-[#0F172A]">{orderLabel(order)}</h3>
+            <p className="flex items-center gap-1 text-xs text-[#64748B]">
+              <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+              {formatDate(order.created_at)}
+            </p>
+          </div>
+        </div>
+        <Badge className="shrink-0 border-0 bg-blue-100 text-blue-900">Delivered</Badge>
+      </div>
+      <ul className="space-y-1 px-4 py-3 text-sm text-[#64748B]">
+        {order.order_items.map((item) => (
+          <li key={item.id}>
+            {item.quantity}× {item.menu_item?.name ?? "Item"}
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
 export function KitchenBoard({
   restaurantId,
   restaurantName,
   initialOrders,
+  initialDeliveredCount = 0,
+  initialDeliveredOrders = [],
+  initialMenuItems = [],
 }: {
   restaurantId: string;
   restaurantName: string;
   initialOrders: OrderWithItems[];
+  initialDeliveredCount?: number;
+  initialDeliveredOrders?: OrderWithItems[];
+  initialMenuItems?: MenuItem[];
 }) {
-  const { orders, updateOrderStatus } = useRealtimeOrders(restaurantId, initialOrders);
+  const [deliveredCount, setDeliveredCount] = useState(initialDeliveredCount);
+  const [deliveredOrders, setDeliveredOrders] = useState<OrderWithItems[]>(initialDeliveredOrders);
+
+  const handleOrderDelivered = useCallback((order: OrderWithItems, newStatus: string) => {
+    if (!isDeliveredStatus(newStatus)) return;
+    setDeliveredCount((count) => count + 1);
+    setDeliveredOrders((prev) => {
+      const next = [{ ...order, status: newStatus as OrderStatus }, ...prev.filter((o) => o.id !== order.id)];
+      return next.slice(0, 12);
+    });
+  }, []);
+
+  const { orders, updateOrderStatus } = useRealtimeOrders(restaurantId, initialOrders, {
+    activeOnly: true,
+    onOrderRemoved: handleOrderDelivered,
+  });
 
   const activeOrders = useMemo(
     () =>
@@ -157,6 +215,9 @@ export function KitchenBoard({
           <Badge className="border-0 bg-emerald-100 px-3 py-1 text-sm text-emerald-900">
             Ready: {counts.ready}
           </Badge>
+          <Badge className="border-0 bg-blue-100 px-3 py-1 text-sm text-blue-900">
+            Delivered: {deliveredCount}
+          </Badge>
         </div>
       </header>
 
@@ -176,6 +237,32 @@ export function KitchenBoard({
             />
           ))}
         </div>
+      )}
+
+      <KitchenMenuAvailability
+        restaurantId={restaurantId}
+        initialMenuItems={initialMenuItems}
+      />
+
+      {deliveredCount > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-blue-600" aria-hidden="true" />
+            <h2 className="text-lg font-semibold text-[#0F172A]">Orders Delivered</h2>
+            <Badge className="border-0 bg-blue-100 text-blue-900">{deliveredCount} today</Badge>
+          </div>
+          {deliveredOrders.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {deliveredOrders.map((order) => (
+                <DeliveredOrderCard key={order.id} order={order} />
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-xl border border-dashed border-[#CBD5E1] bg-white px-4 py-6 text-center text-sm text-[#64748B]">
+              Delivered orders will appear here in real time.
+            </p>
+          )}
+        </section>
       )}
     </div>
   );

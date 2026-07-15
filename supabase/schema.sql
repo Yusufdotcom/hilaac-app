@@ -432,8 +432,17 @@ create policy "staff can manage own categories" on public.categories
 
 -- ---- menu_items -------------------------------------------------------------
 drop policy if exists "public can view available menu items" on public.menu_items;
-create policy "public can view available menu items" on public.menu_items
-  for select using (is_available = true);
+drop policy if exists "public can view menu items for active restaurants" on public.menu_items;
+create policy "public can view menu items for active restaurants"
+  on public.menu_items
+  for select
+  using (
+    exists (
+      select 1
+      from public.restaurants r
+      where r.id = restaurant_id and r.is_active = true
+    )
+  );
 
 drop policy if exists "staff can view all own menu items" on public.menu_items;
 create policy "staff can view all own menu items" on public.menu_items
@@ -579,3 +588,4 @@ create policy "staff update restaurant-logos" on storage.objects
 -- ----------------------------------------------------------------------------
 alter publication supabase_realtime add table public.orders;
 alter publication supabase_realtime add table public.order_items;
+alter publication supabase_realtime add table public.menu_items;

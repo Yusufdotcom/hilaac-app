@@ -4,40 +4,74 @@ import Image from "next/image";
 import { ArrowLeft, ShoppingBasket, Star, UtensilsCrossed, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import type { Category, MenuItem } from "@/types/database";
 
 function ItemCard({ item, onSelect }: { item: MenuItem; onSelect: (item: MenuItem) => void }) {
+  const unavailable = !item.is_available;
+
   return (
-    <button
-      onClick={() => onSelect(item)}
-      className="flex w-40 shrink-0 flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-transform active:scale-[0.97]"
+    <div
+      className={cn(
+        "relative flex w-40 shrink-0 flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-sm",
+        unavailable ? "pointer-events-none cursor-not-allowed opacity-60" : "transition-transform active:scale-[0.97]"
+      )}
     >
+      {!unavailable ? (
+        <button type="button" onClick={() => onSelect(item)} className="flex flex-1 flex-col text-left">
+          <ItemCardContent item={item} unavailable={false} />
+        </button>
+      ) : (
+        <ItemCardContent item={item} unavailable />
+      )}
+    </div>
+  );
+}
+
+function ItemCardContent({ item, unavailable }: { item: MenuItem; unavailable: boolean }) {
+  return (
+    <>
       <div className="relative h-28 w-full bg-muted">
         {item.image_url ? (
-          <Image src={item.image_url} alt={item.name} fill className="object-cover" />
+          <Image
+            src={item.image_url}
+            alt={item.name}
+            fill
+            className={cn("object-cover", unavailable && "grayscale")}
+          />
         ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground">
+          <div className={cn("flex h-full items-center justify-center text-muted-foreground", unavailable && "grayscale")}>
             <UtensilsCrossed className="h-7 w-7" />
           </div>
         )}
-        {item.is_top_pick && (
-          <Badge className="absolute left-1.5 top-1.5 gap-1 px-1.5 py-0.5 text-[10px]">
+        {item.is_top_pick && !unavailable && (
+          <Badge className="absolute left-1.5 top-1.5 z-10 gap-1 px-1.5 py-0.5 text-[10px]">
             <Star className="h-2.5 w-2.5 fill-current" /> Top
           </Badge>
+        )}
+        {unavailable && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20">
+            <span className="rounded-full bg-black/75 px-3 py-1 text-xs font-semibold text-white">
+              Ma Jiro
+            </span>
+          </div>
         )}
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3">
         <p className="line-clamp-1 text-sm font-semibold">{item.name}</p>
-        {item.description && <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p>}
+        {item.description && (
+          <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
+        )}
         <div className="mt-auto flex items-center justify-between pt-1">
           <span className="font-bold text-primary">{formatCurrency(Number(item.price))}</span>
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <Plus className="h-4 w-4" />
-          </span>
+          {!unavailable && (
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <Plus className="h-4 w-4" />
+            </span>
+          )}
         </div>
       </div>
-    </button>
+    </>
   );
 }
 

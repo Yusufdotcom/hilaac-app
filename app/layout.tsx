@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { OfflineSyncProvider } from "@/components/offline-sync-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -17,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
+          <OfflineSyncProvider>{children}</OfflineSyncProvider>
           <Toaster richColors position="top-center" />
         </ThemeProvider>
       </body>

@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import type { AddOn, Category, MenuItem, RestaurantTable } from "@/types/database";
 import type { CartItem } from "@/lib/order/cart-types";
+import type { CreateOrderApiPayload } from "@/lib/offline-queue";
+import { useRealtimeMenuItems } from "@/lib/hooks/use-realtime-menu-items";
 import { LandingStep } from "@/components/order/landing-step";
 import { TableStep } from "@/components/order/table-step";
 import { MenuStep } from "@/components/order/menu-step";
@@ -47,9 +49,23 @@ export function OrderingApp({
   const [cartOpen, setCartOpen] = useState(false);
   const [customizeItem, setCustomizeItem] = useState<MenuItem | null>(null);
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
-  const [ussdPayment, setUssdPayment] = useState<{ orderId: string; code: string } | null>(null);
+  const [ussdPayment, setUssdPayment] = useState<{
+    orderId: string;
+    code: string;
+    createPayload: CreateOrderApiPayload;
+  } | null>(null);
 
-  const topPicks = useMemo(() => menuItems.filter((m) => m.is_top_pick), [menuItems]);
+  const { menuItems: liveMenuItems } = useRealtimeMenuItems(restaurant.id, menuItems);
+
+  const topPicks = useMemo(
+    () => liveMenuItems.filter((m) => m.is_top_pick),
+    [liveMenuItems]
+  );
+
+  const unavailableMenuIds = useMemo(
+    () => new Set(liveMenuItems.filter((m) => !m.is_available).map((m) => m.id)),
+    [liveMenuItems]
+  );
 
   function handleSelectOrderType(type: OrderType) {
     setOrderType(type);
@@ -85,7 +101,11 @@ export function OrderingApp({
     setStep("confirmation");
   }
 
-  function handleUssdPaymentStarted(payload: { orderId: string; code: string }) {
+  function handleUssdPaymentStarted(payload: {
+    orderId: string;
+    code: string;
+    createPayload: CreateOrderApiPayload;
+  }) {
     setUssdPayment(payload);
     setCart([]);
     setCartOpen(false);
@@ -127,7 +147,7 @@ export function OrderingApp({
         <MenuStep
           restaurant={restaurant}
           categories={categories}
-          menuItems={menuItems}
+          menuItems={liveMenuItems}
           topPicks={topPicks}
           orderType={orderType}
           tableNumber={tableNumber}
@@ -152,6 +172,7 @@ export function OrderingApp({
         onOpenChange={setCartOpen}
         restaurant={restaurant}
         cart={cart}
+        unavailableMenuIds={unavailableMenuIds}
         tables={tables}
         orderType={orderType}
         tableNumber={tableNumber}
@@ -167,13 +188,16 @@ export function OrderingApp({
       <PoweredByHilaac className="pb-6 pt-2" />
     </div>
 
-    <PaymentConfirmationModal
-      open={!!ussdPayment}
-      orderId={ussdPayment?.orderId ?? ""}
-      slug={restaurant.slug}
-      ussdCode={ussdPayment?.code ?? ""}
-      onClose={() => setUssdPayment(null)}
-    />
+    {ussdPayment && (
+      <PaymentConfirmationModal
+        open
+        orderId={ussdPayment.orderId}
+        slug={restaurant.slug}
+        ussdCode={ussdPayment.code}
+        createPayload={ussdPayment.createPayload}
+        onClose={() => setUssdPayment(null)}
+      />
+    )}
     </>
   );
 }

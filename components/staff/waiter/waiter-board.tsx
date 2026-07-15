@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   CheckCircle2,
   Loader2,
+  PackageCheck,
   ShoppingBag,
   UtensilsCrossed,
   UserRound,
@@ -24,6 +25,10 @@ import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import type { OrderStatus, OrderWithItems, RestaurantTable, Waiter } from "@/types/database";
 
 const ACTIVE_STATUSES: OrderStatus[] = ["new", "preparing", "ready"];
+
+function orderRecency(order: OrderWithItems) {
+  return new Date(order.updated_at).getTime();
+}
 
 function statusMeta(status: OrderStatus | "free") {
   switch (status) {
@@ -79,16 +84,25 @@ export function WaiterBoard({
   tables,
   initialOrders,
   waiters,
+  initialDeliveryCounts = {},
 }: {
   restaurantId: string;
   restaurantName: string;
   tables: RestaurantTable[];
   initialOrders: OrderWithItems[];
   waiters: Waiter[];
+  initialDeliveryCounts?: Record<string, number>;
 }) {
-  const { orders, updateOrderFields } = useRealtimeOrders(restaurantId, initialOrders);
+  const { orders, removeOrder, restoreOrder, updateOrderFields } = useRealtimeOrders(
+    restaurantId,
+    initialOrders,
+    { activeOnly: true, pinReadyToTop: true }
+  );
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [selectedWaiter, setSelectedWaiter] = useState("");
+  const [deliveryCounts, setDeliveryCounts] = useState<Record<string, number>>(initialDeliveryCounts);
+
+  const deliveriesToday = selectedWaiter ? (deliveryCounts[selectedWaiter] ?? 0) : 0;
 
   const activeDineIn = useMemo(
     () => orders.filter((o) => o.order_type === "dine-in" && ACTIVE_STATUSES.includes(o.status)),
@@ -99,19 +113,31 @@ export function WaiterBoard({
     () =>
       orders
         .filter((o) => o.order_type === "takeaway" && o.status === "ready")
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+        .sort((a, b) => orderRecency(b) - orderRecency(a)),
     [orders]
   );
 
   const tableRows = useMemo(() => {
-    return sortTables(tables).map((table) => {
+    const rows = sortTables(tables).map((table) => {
       const order =
         activeDineIn
           .filter((o) => o.table_id === table.id)
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] ?? null;
+          .sort((a, b) => orderRecency(b) - orderRecency(a))[0] ?? null;
 
       const status = order?.status ?? "free";
       return { table, order, status: status as OrderStatus | "free" };
+    });
+
+    return rows.sort((a, b) => {
+      const aReady = a.status === "ready" ? 1 : 0;
+      const bReady = b.status === "ready" ? 1 : 0;
+      if (aReady !== bReady) return bReady - aReady;
+
+      if (a.status === "ready" && b.status === "ready" && a.order && b.order) {
+        return orderRecency(b.order) - orderRecency(a.order);
+      }
+
+      return 0;
     });
   }, [tables, activeDineIn]);
 
@@ -122,22 +148,32 @@ export function WaiterBoard({
     }
 
     const order = orders.find((o) => o.id === orderId);
+    if (!order) return;
+
+    removeOrder(orderId);
     setBusyOrderId(orderId);
+
     try {
       const fields: {
         status: "completed";
         payment_status?: "paid";
         delivered_by: string;
       } = { status: "completed", delivered_by: selectedWaiter };
-      if (order?.payment_status !== "paid") {
+      if (order.payment_status !== "paid") {
         fields.payment_status = "paid";
       }
 
       const error = await updateOrderFields(orderId, fields);
       if (error) {
+        restoreOrder(order);
         toast.error(error.message);
         return;
       }
+
+      setDeliveryCounts((prev) => ({
+        ...prev,
+        [selectedWaiter]: (prev[selectedWaiter] ?? 0) + 1,
+      }));
       toast.success("Order completed successfully.");
     } finally {
       setBusyOrderId(null);
@@ -146,13 +182,27 @@ export function WaiterBoard({
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
-      <header className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F172A] text-[#D4A373]">
-          <UserRound className="h-6 w-6" aria-hidden="true" />
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F172A] text-[#D4A373]">
+            <UserRound className="h-6 w-6" aria-hidden="true" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[#0F172A]">Waiter Dashboard</h1>
+            <p className="text-sm text-[#64748B]">{restaurantName}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-[#0F172A]">Waiter Dashboard</h1>
-          <p className="text-sm text-[#64748B]">{restaurantName}</p>
+
+        <div className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+            <PackageCheck className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-[#64748B]">My deliveries</p>
+            <p className="text-lg font-bold text-[#0F172A]">
+              Deliveries today: {deliveriesToday}
+            </p>
+          </div>
         </div>
       </header>
 
@@ -184,6 +234,9 @@ export function WaiterBoard({
         <div className="flex items-center gap-2">
           <UtensilsCrossed className="h-5 w-5 text-[#0F172A]" aria-hidden="true" />
           <h2 className="text-lg font-semibold text-[#0F172A]">Tables</h2>
+          <Badge variant="secondary" className="text-xs">
+            Ready orders shown first
+          </Badge>
         </div>
 
         {tableRows.length === 0 ? (
@@ -198,7 +251,7 @@ export function WaiterBoard({
                 <article
                   key={table.id}
                   className={cn(
-                    "flex flex-col rounded-2xl border bg-white p-4 shadow-sm",
+                    "flex flex-col rounded-2xl border bg-white p-4 shadow-sm transition-opacity duration-200",
                     status === "ready" && "border-emerald-300 ring-1 ring-emerald-200",
                     status === "free" && "border-[#E2E8F0]"
                   )}

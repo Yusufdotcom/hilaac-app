@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cartItemTotal, cartTotal } from "@/lib/order/cart-types";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import type { CartItem } from "@/lib/order/cart-types";
+import type { CreateOrderApiPayload } from "@/lib/offline-queue";
 import type { RestaurantTable } from "@/types/database";
 
 interface MinimalRestaurant {
@@ -30,6 +31,7 @@ export function CartSheet({
   onOpenChange,
   restaurant,
   cart,
+  unavailableMenuIds,
   tables,
   orderType,
   tableNumber,
@@ -44,6 +46,7 @@ export function CartSheet({
   onOpenChange: (open: boolean) => void;
   restaurant: MinimalRestaurant;
   cart: CartItem[];
+  unavailableMenuIds: Set<string>;
   tables: RestaurantTable[];
   orderType: "dine-in" | "takeaway";
   tableNumber: string;
@@ -52,13 +55,22 @@ export function CartSheet({
   onUpdateItem: (cartId: string, updates: Partial<CartItem>) => void;
   onRemoveItem: (cartId: string) => void;
   onOrderPlaced: (orderId: string) => void;
-  onUssdPaymentStarted: (payload: { orderId: string; code: string }) => void;
+  onUssdPaymentStarted: (payload: {
+    orderId: string;
+    code: string;
+    createPayload: CreateOrderApiPayload;
+  }) => void;
 }) {
   const [notes, setNotes] = useState("");
   const [phone, setPhone] = useState("");
   const [placing, setPlacing] = useState<"evc" | "edahab" | null>(null);
 
   const total = useMemo(() => cartTotal(cart), [cart]);
+
+  const hasUnavailableItems = useMemo(
+    () => cart.some((item) => unavailableMenuIds.has(item.menuItem.id)),
+    [cart, unavailableMenuIds]
+  );
 
   function adjustQuantity(item: CartItem, delta: number) {
     const next = item.quantity + delta;
@@ -74,6 +86,28 @@ export function CartSheet({
     return `${trimmed}${Math.round(amount)}#`;
   }
 
+  function buildCreatePayload(method: "evc" | "edahab"): CreateOrderApiPayload | null {
+    if (cart.length === 0) return null;
+    if (orderType === "dine-in" && !tableNumber) return null;
+
+    const table = tables.find((t) => t.table_number === tableNumber);
+
+    return {
+      restaurantId: restaurant.id,
+      tableId: orderType === "dine-in" ? table?.id ?? null : null,
+      orderType,
+      paymentMethod: method,
+      customerPhone: phone || null,
+      notes: notes || null,
+      items: cart.map((item) => ({
+        menuItemId: item.menuItem.id,
+        quantity: item.quantity,
+        addOnIds: item.selectedAddOns.map((a) => a.id),
+        notes: item.notes || undefined,
+      })),
+    };
+  }
+
   async function createOrder(method: "evc" | "edahab") {
     if (cart.length === 0) {
       toast.error("Your cart is empty");
@@ -84,25 +118,13 @@ export function CartSheet({
       return null;
     }
 
-    const table = tables.find((t) => t.table_number === tableNumber);
+    const payload = buildCreatePayload(method);
+    if (!payload) return null;
 
-    const res = await fetch("/api/orders", {
+    const res = await fetch("/api/orders/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        restaurantId: restaurant.id,
-        tableId: orderType === "dine-in" ? table?.id ?? null : null,
-        orderType,
-        paymentMethod: method,
-        customerPhone: phone || null,
-        notes: notes || null,
-        items: cart.map((item) => ({
-          menuItemId: item.menuItem.id,
-          quantity: item.quantity,
-          addOnIds: item.selectedAddOns.map((a) => a.id),
-          notes: item.notes || undefined,
-        })),
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await res.json();
@@ -111,14 +133,24 @@ export function CartSheet({
       return null;
     }
 
-    return data.orderId as string;
+    return {
+      orderId: data.orderId as string,
+      createPayload: payload,
+    };
   }
 
   async function handlePay(method: "evc" | "edahab") {
+    if (hasUnavailableItems) {
+      toast.error("Ka saar alaabta aan la heli karin si aad u sii wadato.");
+      return;
+    }
+
     setPlacing(method);
     try {
-      const orderId = await createOrder(method);
-      if (!orderId) return;
+      const result = await createOrder(method);
+      if (!result) return;
+
+      const { orderId, createPayload } = result;
 
       if (restaurant.payment_mode === "ussd") {
         const code = method === "evc" ? restaurant.evc_ussd_code : restaurant.edahab_ussd_code;
@@ -126,7 +158,7 @@ export function CartSheet({
           const dialString = ussdDialString(code, total);
           window.location.href = `tel:${encodeURIComponent(dialString)}`;
           onOpenChange(false);
-          onUssdPaymentStarted({ orderId, code: dialString });
+          onUssdPaymentStarted({ orderId, code: dialString, createPayload });
         } else {
           onOrderPlaced(orderId);
         }
@@ -165,15 +197,25 @@ export function CartSheet({
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex-1 overflow-y-auto px-6 pb-4">
               {cart.length === 0 ? (
-                <p className="py-12 text-center text-muted-foreground">Salaadu waa madhan tahay.</p>
+                <p className="py-12 text-center text-muted-foreground">Salaadu waxba kuma jiran.</p>
               ) : (
                 <div className="space-y-6">
                   <div className="space-y-3">
-                    {cart.map((item) => (
-                      <div key={item.cartId} className="rounded-xl border p-3">
+                    {cart.map((item) => {
+                      const isUnavailable = unavailableMenuIds.has(item.menuItem.id);
+                      return (
+                      <div
+                        key={item.cartId}
+                        className={cn("rounded-xl border p-3", isUnavailable && "border-amber-300 bg-amber-50/50")}
+                      >
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className="font-semibold">{item.menuItem.name}</p>
+                            {isUnavailable && (
+                              <p className="mt-1 text-xs font-medium text-amber-800">
+                                This item is out of stock. Please remove it from your cart to continue.
+                              </p>
+                            )}
                             {item.selectedAddOns.length > 0 && (
                               <p className="text-xs text-muted-foreground">
                                 + {item.selectedAddOns.map((a) => a.name).join(", ")}
@@ -210,7 +252,8 @@ export function CartSheet({
                           </Button>
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
 
                   <div className="space-y-2">
@@ -225,7 +268,7 @@ export function CartSheet({
                       />
                       <Textarea
                         id="cart-notes"
-                        placeholder="Special instructions for your whole order"
+                        placeholder="wax gaara ku darsaneysid?"
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         className="min-h-[88px] pl-10"
@@ -245,7 +288,7 @@ export function CartSheet({
                       />
                       <Input
                         id="cart-phone"
-                        placeholder="+252..."
+                        placeholder="061..."
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         className="pl-10"
@@ -295,7 +338,7 @@ export function CartSheet({
               <Button
                 type="button"
                 size="lg"
-                disabled={!!placing || cart.length === 0}
+                disabled={!!placing || cart.length === 0 || hasUnavailableItems}
                 onClick={() => handlePay("evc")}
                 className="h-12 w-full rounded-xl bg-emerald-600 text-base font-semibold text-white hover:bg-emerald-700"
               >
@@ -306,7 +349,7 @@ export function CartSheet({
               <Button
                 type="button"
                 size="lg"
-                disabled={!!placing || cart.length === 0}
+                disabled={!!placing || cart.length === 0 || hasUnavailableItems}
                 onClick={() => handlePay("edahab")}
                 className="h-12 w-full rounded-xl bg-amber-500 text-base font-semibold text-white hover:bg-amber-600"
               >

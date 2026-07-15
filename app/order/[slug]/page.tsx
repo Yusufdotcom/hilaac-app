@@ -21,7 +21,6 @@ export default async function OrderPage({ params }: { params: { slug: string } }
       .from("menu_items")
       .select("*")
       .eq("restaurant_id", restaurant.id)
-      .eq("is_available", true)
       .order("created_at"),
     supabase.from("add_ons").select("*").eq("restaurant_id", restaurant.id),
     supabase.from("tables").select("*").eq("restaurant_id", restaurant.id).eq("is_active", true).order("table_number"),

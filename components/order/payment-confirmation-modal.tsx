@@ -5,7 +5,12 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
+import { useOnlineStatus } from "@/lib/hooks/useOnlineStatus";
+import {
+  createQueueId,
+  queueOrder,
+  type CreateOrderApiPayload,
+} from "@/lib/offline-queue";
 import { Button } from "@/components/ui/button";
 
 export function PaymentConfirmationModal({
@@ -13,15 +18,18 @@ export function PaymentConfirmationModal({
   orderId,
   slug,
   ussdCode,
+  createPayload,
   onClose,
 }: {
   open: boolean;
   orderId: string;
   slug: string;
   ussdCode: string;
+  createPayload: CreateOrderApiPayload;
   onClose: () => void;
 }) {
   const router = useRouter();
+  const isOnline = useOnlineStatus();
   const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -35,19 +43,30 @@ export function PaymentConfirmationModal({
     setSubmitting(true);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("orders")
-        .update({ payment_status: "paid" })
-        .eq("id", orderId);
+      if (!isOnline) {
+        queueOrder({
+          id: createQueueId(),
+          slug,
+          payload: createPayload,
+          localOrderId: orderId,
+          serverOrderId: orderId,
+          confirmPayment: true,
+        });
+        toast.message("Order saved locally. Will sync when connection returns.");
+        onClose();
+        router.push(`/order/${slug}/status?orderId=${orderId}`);
+        return;
+      }
 
-      if (error) {
-        const res = await fetch(`/api/orders/${orderId}/confirm-payment`, { method: "POST" });
-        if (!res.ok) {
-          const data = await res.json();
-          toast.error(data.error ?? "Lacag bixinta lama xaqiijin karin");
-          return;
-        }
+      // Order already exists server-side — confirm payment through the API (RLS-safe).
+      const confirmRes = await fetch(`/api/orders/${orderId}/confirm-payment`, {
+        method: "POST",
+      });
+
+      if (!confirmRes.ok) {
+        const data = await confirmRes.json().catch(() => ({}));
+        toast.error(data.error ?? "Lacag bixinta lama xaqiijin karin");
+        return;
       }
 
       toast.success("Lacag bixinta waa la xaqiijiyay! Dalabkaaga waa la diyaarinayaa.");
@@ -81,6 +100,11 @@ export function PaymentConfirmationModal({
           siyad u aragto dalabkaga halku marayo. Mahadsanid!
         </p>
         <p className="mt-2 font-mono text-xs text-muted-foreground">{ussdCode}</p>
+        {!isOnline && (
+          <p className="mt-2 text-xs font-medium text-amber-700">
+            Offline mode — order will sync when you reconnect.
+          </p>
+        )}
         <Button
           type="button"
           size="lg"
