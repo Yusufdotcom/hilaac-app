@@ -1,23 +1,48 @@
-import { ShoppingBag, DollarSign, Table2, Clock } from "lucide-react";
+import { ShoppingBag, DollarSign, Table2, Clock, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { formatCurrency, formatDate, daysUntil } from "@/lib/utils";
 
+type DashboardFetchError = {
+  label: string;
+  message: string;
+};
+
 export default async function DashboardPage({ params }: { params: { slug: string } }) {
   const { restaurant } = await getRestaurantContext(params.slug);
   const supabase = createClient();
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const startOfDayIso = startOfDay.toISOString();
 
-  const [{ data: todayOrders }, { count: activeTables }, { data: recentOrders }] = await Promise.all([
+  const fetchErrors: DashboardFetchError[] = [];
+
+  const [
+    ordersTodayResult,
+    revenueTodayResult,
+    recentOrdersResult,
+    activeTablesResult,
+    openOrdersResult,
+  ] = await Promise.all([
     supabase
       .from("orders")
-      .select("total, status")
+      .select("*", { count: "exact", head: true })
       .eq("restaurant_id", restaurant.id)
-      .gte("created_at", startOfToday.toISOString()),
+      .gte("created_at", startOfDayIso),
+    supabase
+      .from("orders")
+      .select("total.sum()")
+      .eq("restaurant_id", restaurant.id)
+      .gte("created_at", startOfDayIso),
+    supabase
+      .from("orders")
+      .select("id, order_type, status, payment_status, total, created_at")
+      .eq("restaurant_id", restaurant.id)
+      .order("created_at", { ascending: false })
+      .limit(5),
     supabase
       .from("tables")
       .select("*", { count: "exact", head: true })
@@ -25,23 +50,44 @@ export default async function DashboardPage({ params }: { params: { slug: string
       .eq("is_active", true),
     supabase
       .from("orders")
-      .select("id, order_type, status, payment_status, total, created_at")
+      .select("*", { count: "exact", head: true })
       .eq("restaurant_id", restaurant.id)
-      .order("created_at", { ascending: false })
-      .limit(8),
+      .gte("created_at", startOfDayIso)
+      .neq("status", "completed"),
   ]);
 
-  const ordersToday = todayOrders?.length ?? 0;
-  const revenueToday = (todayOrders ?? []).reduce((sum, o) => sum + Number(o.total), 0);
-  const activeOrders = (todayOrders ?? []).filter((o) => !["completed"].includes(o.status)).length;
+  if (ordersTodayResult.error) {
+    fetchErrors.push({ label: "Orders today", message: ordersTodayResult.error.message });
+  }
+  if (revenueTodayResult.error) {
+    fetchErrors.push({ label: "Revenue today", message: revenueTodayResult.error.message });
+  }
+  if (recentOrdersResult.error) {
+    fetchErrors.push({ label: "Recent orders", message: recentOrdersResult.error.message });
+  }
+  if (activeTablesResult.error) {
+    fetchErrors.push({ label: "Active tables", message: activeTablesResult.error.message });
+  }
+  if (openOrdersResult.error) {
+    fetchErrors.push({ label: "Open orders", message: openOrdersResult.error.message });
+  }
+
+  const ordersToday = ordersTodayResult.count ?? 0;
+
+  const revenueAggregate = revenueTodayResult.data?.[0] as { sum: number | null } | undefined;
+  const revenueToday = Number(revenueAggregate?.sum ?? 0);
+
+  const recentOrders = recentOrdersResult.data ?? [];
+  const activeTables = activeTablesResult.count ?? 0;
+  const openOrders = openOrdersResult.count ?? 0;
 
   const trialDaysLeft = daysUntil(restaurant.subscription_end_date);
 
   const stats = [
     { label: "Orders Today", value: ordersToday, icon: ShoppingBag },
     { label: "Revenue Today", value: formatCurrency(revenueToday), icon: DollarSign },
-    { label: "Active Tables", value: activeTables ?? 0, icon: Table2 },
-    { label: "Open Orders", value: activeOrders, icon: Clock },
+    { label: "Active Tables", value: activeTables, icon: Table2 },
+    { label: "Open Orders", value: openOrders, icon: Clock },
   ];
 
   return (
@@ -57,6 +103,22 @@ export default async function DashboardPage({ params }: { params: { slug: string
           </Badge>
         )}
       </div>
+
+      {fetchErrors.length > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+          <div>
+            <p className="font-semibold">Some dashboard data could not be loaded</p>
+            <ul className="mt-1 list-inside list-disc space-y-0.5">
+              {fetchErrors.map((err) => (
+                <li key={err.label}>
+                  {err.label}: {err.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
@@ -79,7 +141,7 @@ export default async function DashboardPage({ params }: { params: { slug: string
           <CardTitle className="text-lg">Recent Orders</CardTitle>
         </CardHeader>
         <CardContent>
-          {recentOrders && recentOrders.length > 0 ? (
+          {recentOrders.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -107,7 +169,11 @@ export default async function DashboardPage({ params }: { params: { slug: string
               </table>
             </div>
           ) : (
-            <p className="py-8 text-center text-muted-foreground">No orders yet today.</p>
+            <p className="py-8 text-center text-muted-foreground">
+              {fetchErrors.some((e) => e.label === "Recent orders")
+                ? "Could not load recent orders."
+                : "No orders yet."}
+            </p>
           )}
         </CardContent>
       </Card>

@@ -547,6 +547,9 @@ drop policy if exists "service role can update orders" on public.orders;
 create policy "service role can update orders" on public.orders
   for update using (auth.role() = 'service_role');
 
+grant select, update on public.orders to authenticated;
+grant select on public.order_items to authenticated;
+
 -- ---- order_items ------------------------------------------------------------
 -- Same reasoning as orders: no anon policies at all, only staff SELECT.
 drop policy if exists "public can create order_items" on public.order_items;
