@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { ArrowLeft, ShoppingBasket, Star, UtensilsCrossed, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Category, MenuItem } from "@/types/database";
+import type { SessionSelection } from "@/lib/order/cart-types";
 
 function ItemCard({ item, onSelect }: { item: MenuItem; onSelect: (item: MenuItem) => void }) {
   const unavailable = !item.is_available;
@@ -86,7 +87,7 @@ export function MenuStep({
   categories,
   menuItems,
   topPicks,
-  orderType,
+  sessionSelection,
   tableNumber,
   cartCount,
   onBack,
@@ -97,7 +98,7 @@ export function MenuStep({
   categories: Category[];
   menuItems: MenuItem[];
   topPicks: MenuItem[];
-  orderType: "dine-in" | "takeaway";
+  sessionSelection: SessionSelection;
   tableNumber: string;
   cartCount: number;
   onBack: () => void;
@@ -105,6 +106,17 @@ export function MenuStep({
   onOpenCart: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const sessionLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (sessionSelection.dineIn) {
+      parts.push(tableNumber ? `Fadhi · Miiska ${tableNumber}` : "Fadhi");
+    }
+    if (sessionSelection.takeaway) {
+      parts.push("Qaadasho");
+    }
+    return parts.join(" & ");
+  }, [sessionSelection, tableNumber]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo(0, 0);
@@ -120,9 +132,7 @@ export function MenuStep({
           </button>
           <div className="text-center">
             <p className="text-sm font-semibold">{restaurant.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {orderType === "dine-in" ? `Fadhi · Miiska ${tableNumber}` : "Qaadasho"}
-            </p>
+            <p className="text-xs text-muted-foreground">{sessionLabel}</p>
           </div>
           <div className="w-10" />
         </div>

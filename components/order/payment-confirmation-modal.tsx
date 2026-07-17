@@ -15,17 +15,17 @@ import { Button } from "@/components/ui/button";
 
 export function PaymentConfirmationModal({
   open,
-  orderId,
+  orderIds,
   slug,
   ussdCode,
-  createPayload,
+  createPayloads,
   onClose,
 }: {
   open: boolean;
-  orderId: string;
+  orderIds: string[];
   slug: string;
   ussdCode: string;
-  createPayload: CreateOrderApiPayload;
+  createPayloads: CreateOrderApiPayload[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -33,6 +33,8 @@ export function PaymentConfirmationModal({
   const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
+
+  const primaryOrderId = orderIds[0];
 
   useEffect(() => setMounted(true), []);
 
@@ -44,34 +46,41 @@ export function PaymentConfirmationModal({
 
     try {
       if (!isOnline) {
-        queueOrder({
-          id: createQueueId(),
-          slug,
-          payload: createPayload,
-          localOrderId: orderId,
-          serverOrderId: orderId,
-          confirmPayment: true,
+        createPayloads.forEach((payload, index) => {
+          queueOrder({
+            id: createQueueId(),
+            slug,
+            payload,
+            localOrderId: orderIds[index] ?? primaryOrderId,
+            serverOrderId: orderIds[index],
+            confirmPayment: true,
+          });
         });
         toast.message("Order saved locally. Will sync when connection returns.");
         onClose();
-        router.push(`/order/${slug}/status?orderId=${orderId}`);
+        router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
         return;
       }
 
-      // Order already exists server-side — confirm payment through the API (RLS-safe).
-      const confirmRes = await fetch(`/api/orders/${orderId}/confirm-payment`, {
-        method: "POST",
-      });
+      for (const orderId of orderIds) {
+        const confirmRes = await fetch(`/api/orders/${orderId}/confirm-payment`, {
+          method: "POST",
+        });
 
-      if (!confirmRes.ok) {
-        const data = await confirmRes.json().catch(() => ({}));
-        toast.error(data.error ?? "Lacag bixinta lama xaqiijin karin");
-        return;
+        if (!confirmRes.ok) {
+          const data = await confirmRes.json().catch(() => ({}));
+          toast.error(data.error ?? "Lacag bixinta lama xaqiijin karin");
+          return;
+        }
       }
 
-      toast.success("Lacag bixinta waa la xaqiijiyay! Dalabkaaga waa la diyaarinayaa.");
+      toast.success(
+        orderIds.length > 1
+          ? "Lacag bixinta waa la xaqiijiyay! Labada dalab waa la diyaarinayaa."
+          : "Lacag bixinta waa la xaqiijiyay! Dalabkaaga waa la diyaarinayaa."
+      );
       onClose();
-      router.push(`/order/${slug}/status?orderId=${orderId}`);
+      router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -99,6 +108,11 @@ export function PaymentConfirmationModal({
           Merchant gaan &apos;USSD code&apos; ku bixi. Haddii aad lacagta bixisay, taabo &apos;Haa, waan bixiyay&apos;
           siyad u aragto dalabkaga halku marayo. Mahadsanid!
         </p>
+        {orderIds.length > 1 && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Lacagta hal mar ayaa loo bixiyaa labada dalab (miiska iyo qaadasho).
+          </p>
+        )}
         <p className="mt-2 font-mono text-xs text-muted-foreground">{ussdCode}</p>
         {!isOnline && (
           <p className="mt-2 text-xs font-medium text-amber-700">

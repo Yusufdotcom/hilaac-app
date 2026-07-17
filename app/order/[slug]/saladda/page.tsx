@@ -81,10 +81,10 @@ export default function SaladdaPaymentPage({ params }: { params: { slug: string 
   return (
     <PaymentConfirmationModal
       open
-      orderId={orderId}
+      orderIds={[orderId]}
       slug={params.slug}
       ussdCode={ussdCode}
-      createPayload={createPayload}
+      createPayloads={[createPayload]}
       onClose={() => router.push(`/order/${params.slug}/status?orderId=${orderId}`)}
     />
   );

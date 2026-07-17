@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import type { AddOn, Category, MenuItem, RestaurantTable } from "@/types/database";
-import type { CartItem } from "@/lib/order/cart-types";
+import type { CartItem, SessionSelection } from "@/lib/order/cart-types";
+import { defaultOrderTypeForSession } from "@/lib/order/cart-types";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
 import { useRealtimeMenuItems } from "@/lib/hooks/use-realtime-menu-items";
 import { LandingStep } from "@/components/order/landing-step";
@@ -13,10 +14,8 @@ import { ItemCustomizeSheet } from "@/components/order/item-customize-sheet";
 import { OrderConfirmation } from "@/components/order/order-confirmation";
 import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
-import { cn } from "@/lib/utils";
 
 type Step = "landing" | "table" | "menu" | "confirmation";
-type OrderType = "dine-in" | "takeaway";
 
 interface MinimalRestaurant {
   id: string;
@@ -44,16 +43,19 @@ export function OrderingApp({
   tables: RestaurantTable[];
 }) {
   const [step, setStep] = useState<Step>("landing");
-  const [orderType, setOrderType] = useState<OrderType>("dine-in");
+  const [sessionSelection, setSessionSelection] = useState<SessionSelection>({
+    dineIn: false,
+    takeaway: false,
+  });
   const [tableNumber, setTableNumber] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [customizeItem, setCustomizeItem] = useState<MenuItem | null>(null);
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [ussdPayment, setUssdPayment] = useState<{
-    orderId: string;
+    orderIds: string[];
     code: string;
-    createPayload: CreateOrderApiPayload;
+    createPayloads: CreateOrderApiPayload[];
   } | null>(null);
 
   const { menuItems: liveMenuItems } = useRealtimeMenuItems(restaurant.id, menuItems);
@@ -68,11 +70,16 @@ export function OrderingApp({
     [liveMenuItems]
   );
 
+  const defaultOrderType = useMemo(
+    () => defaultOrderTypeForSession(sessionSelection),
+    [sessionSelection]
+  );
+
   const isFullScreenStep = step === "landing" || step === "table";
 
-  function handleSelectOrderType(type: OrderType) {
-    setOrderType(type);
-    if (type === "dine-in") {
+  function handleLandingContinue(selection: SessionSelection) {
+    setSessionSelection(selection);
+    if (selection.dineIn) {
       setStep("table");
     } else {
       setStep("menu");
@@ -82,6 +89,14 @@ export function OrderingApp({
   function handleTableConfirmed(number: string) {
     setTableNumber(number);
     setStep("menu");
+  }
+
+  function handleMenuBack() {
+    if (sessionSelection.dineIn) {
+      setStep("table");
+    } else {
+      setStep("landing");
+    }
   }
 
   function handleAddToCart(item: CartItem) {
@@ -97,17 +112,20 @@ export function OrderingApp({
     setCart((prev) => prev.filter((i) => i.cartId !== cartId));
   }
 
-  function handleOrderPlaced(orderId: string) {
-    setPlacedOrderId(orderId);
+  function handleOrderPlaced(orderIds: string[]) {
+    const primary =
+      orderIds.find((id) => id) ??
+      orderIds[0];
+    setPlacedOrderId(primary);
     setCart([]);
     setCartOpen(false);
     setStep("confirmation");
   }
 
   function handleUssdPaymentStarted(payload: {
-    orderId: string;
+    orderIds: string[];
     code: string;
-    createPayload: CreateOrderApiPayload;
+    createPayloads: CreateOrderApiPayload[];
   }) {
     setUssdPayment(payload);
     setCart([]);
@@ -116,6 +134,8 @@ export function OrderingApp({
 
   function handleNewOrder() {
     setPlacedOrderId(null);
+    setSessionSelection({ dineIn: false, takeaway: false });
+    setTableNumber("");
     setStep("landing");
   }
 
@@ -131,13 +151,9 @@ export function OrderingApp({
 
   return (
     <>
-      <div
-        className={cn(
-          "flex h-[100dvh] flex-col overflow-hidden bg-muted/20",
-        )}
-      >
+      <div className="flex h-[100dvh] flex-col overflow-hidden bg-muted/20">
         {step === "landing" && (
-          <LandingStep restaurant={restaurant} onSelect={handleSelectOrderType} />
+          <LandingStep restaurant={restaurant} onContinue={handleLandingContinue} />
         )}
 
         {step === "table" && (
@@ -151,15 +167,15 @@ export function OrderingApp({
 
         {step === "menu" && (
           <MenuStep
-            key={`${orderType}-${tableNumber}`}
+            key={`${sessionSelection.dineIn}-${sessionSelection.takeaway}-${tableNumber}`}
             restaurant={restaurant}
             categories={categories}
             menuItems={liveMenuItems}
             topPicks={topPicks}
-            orderType={orderType}
+            sessionSelection={sessionSelection}
             tableNumber={tableNumber}
             cartCount={cart.reduce((sum, i) => sum + i.quantity, 0)}
-            onBack={() => setStep(orderType === "dine-in" ? "table" : "landing")}
+            onBack={handleMenuBack}
             onSelectItem={setCustomizeItem}
             onOpenCart={() => setCartOpen(true)}
           />
@@ -172,6 +188,7 @@ export function OrderingApp({
         <ItemCustomizeSheet
           item={customizeItem}
           addOns={addOns.filter((a) => a.restaurant_id === customizeItem.restaurant_id)}
+          defaultOrderType={defaultOrderType}
           onClose={() => setCustomizeItem(null)}
           onAdd={(cartItem) => handleAddToCart(cartItem)}
         />
@@ -184,9 +201,8 @@ export function OrderingApp({
         cart={cart}
         unavailableMenuIds={unavailableMenuIds}
         tables={tables}
-        orderType={orderType}
+        sessionSelection={sessionSelection}
         tableNumber={tableNumber}
-        onOrderTypeChange={setOrderType}
         onTableNumberChange={setTableNumber}
         onUpdateItem={handleUpdateCartItem}
         onRemoveItem={handleRemoveCartItem}
@@ -197,10 +213,10 @@ export function OrderingApp({
       {ussdPayment && (
         <PaymentConfirmationModal
           open
-          orderId={ussdPayment.orderId}
+          orderIds={ussdPayment.orderIds}
           slug={restaurant.slug}
           ussdCode={ussdPayment.code}
-          createPayload={ussdPayment.createPayload}
+          createPayloads={ussdPayment.createPayloads}
           onClose={() => setUssdPayment(null)}
         />
       )}

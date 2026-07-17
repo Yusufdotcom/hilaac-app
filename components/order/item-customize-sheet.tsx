@@ -14,11 +14,13 @@ import type { CartItem } from "@/lib/order/cart-types";
 export function ItemCustomizeSheet({
   item,
   addOns,
+  defaultOrderType,
   onClose,
   onAdd,
 }: {
   item: MenuItem;
   addOns: AddOn[];
+  defaultOrderType: "dine-in" | "takeaway";
   onClose: () => void;
   onAdd: (cartItem: CartItem) => void;
 }) {
@@ -42,6 +44,7 @@ export function ItemCustomizeSheet({
       quantity,
       selectedAddOns: selected,
       notes,
+      orderType: defaultOrderType,
     });
     onClose();
   }
