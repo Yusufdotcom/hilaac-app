@@ -93,6 +93,7 @@ export interface AddOn {
 
 export interface Order {
   id: string;
+  order_number: number | null;
   restaurant_id: string;
   table_id: string | null;
   order_type: OrderType;

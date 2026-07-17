@@ -5,7 +5,7 @@ import { CheckCircle2, ChefHat, Clock, Loader2, ShoppingBag, UtensilsCrossed } f
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatOrderLabel } from "@/lib/utils";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import { KitchenMenuAvailability } from "@/components/staff/kitchen/kitchen-menu-availability";
 import type { OrderStatus, OrderWithItems, MenuItem } from "@/types/database";
@@ -18,11 +18,11 @@ function isDeliveredStatus(status: string) {
   return DELIVERED_STATUSES.includes(status as OrderStatus);
 }
 
-function orderLabel(order: OrderWithItems) {
+function orderSubtitle(order: OrderWithItems) {
   if (order.order_type === "dine-in") {
     return `Table ${order.table?.table_number ?? "—"}`;
   }
-  return `Takeaway #${order.id.slice(0, 6).toUpperCase()}`;
+  return "Takeaway";
 }
 
 function statusBadge(status: OrderStatus) {
@@ -83,7 +83,8 @@ function KitchenOrderCard({
             <ShoppingBag className="h-5 w-5 text-[#0F172A]" aria-hidden="true" />
           )}
           <div>
-            <h3 className="text-lg font-bold text-[#0F172A]">{orderLabel(order)}</h3>
+            <h3 className="text-lg font-bold text-[#0F172A]">{formatOrderLabel(order)}</h3>
+            <p className="text-xs font-medium text-[#64748B]">{orderSubtitle(order)}</p>
             <p className="flex items-center gap-1 text-xs text-[#64748B]">
               <Clock className="h-3.5 w-3.5" aria-hidden="true" />
               {formatDate(order.created_at)}
@@ -169,7 +170,8 @@ function DeliveredOrderCard({ order }: { order: OrderWithItems }) {
             <ShoppingBag className="h-5 w-5 text-[#64748B]" aria-hidden="true" />
           )}
           <div>
-            <h3 className="font-semibold text-[#0F172A]">{orderLabel(order)}</h3>
+            <h3 className="font-semibold text-[#0F172A]">{formatOrderLabel(order)}</h3>
+            <p className="text-xs font-medium text-[#64748B]">{orderSubtitle(order)}</p>
             <p className="flex items-center gap-1 text-xs text-[#64748B]">
               <Clock className="h-3.5 w-3.5" aria-hidden="true" />
               {formatDate(order.created_at)}

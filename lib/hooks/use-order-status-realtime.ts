@@ -6,6 +6,7 @@ import type { OrderStatus, PaymentStatus } from "@/types/database";
 
 export interface TrackedOrder {
   id: string;
+  order_number: number | null;
   status: OrderStatus;
   payment_status: PaymentStatus;
 }
@@ -47,6 +48,7 @@ export function useOrderStatusRealtime(orderId: string) {
           const updated = payload.new as TrackedOrder;
           setOrder({
             id: updated.id,
+            order_number: updated.order_number ?? null,
             status: updated.status,
             payment_status: updated.payment_status,
           });

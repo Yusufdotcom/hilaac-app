@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { cn, formatOrderLabel } from "@/lib/utils";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import type { OrderStatus, OrderWithItems, RestaurantTable, Waiter } from "@/types/database";
 
@@ -265,7 +265,13 @@ export function WaiterBoard({
                   </div>
 
                   {order && (
-                    <p className="mt-3 line-clamp-2 text-sm text-[#64748B]">
+                    <p className="mt-2 text-sm font-semibold text-[#0F172A]">
+                      {formatOrderLabel(order)}
+                    </p>
+                  )}
+
+                  {order && (
+                    <p className="mt-1 line-clamp-2 text-sm text-[#64748B]">
                       {order.order_items
                         .map((item) => `${item.quantity}× ${item.menu_item?.name ?? "Item"}`)
                         .join(", ")}
@@ -309,10 +315,8 @@ export function WaiterBoard({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
+                    <p className="text-lg font-bold text-[#0F172A]">{formatOrderLabel(order)}</p>
                     <p className="text-sm font-medium text-[#64748B]">Takeaway</p>
-                    <p className="text-lg font-bold text-[#0F172A]">
-                      #{order.id.slice(0, 6).toUpperCase()}
-                    </p>
                   </div>
                   <Badge className="border-0 bg-emerald-100 text-emerald-900">Ready</Badge>
                 </div>

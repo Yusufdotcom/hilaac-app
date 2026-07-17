@@ -5,7 +5,7 @@ import { CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatOrderLabel } from "@/lib/utils";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import type { OrderStatus, OrderWithItems, PaymentStatus } from "@/types/database";
 
@@ -32,7 +32,7 @@ function formatItems(order: OrderWithItems) {
 
 function formatLocation(order: OrderWithItems) {
   if (order.order_type === "takeaway") {
-    return `Takeaway #${order.id.slice(0, 6).toUpperCase()}`;
+    return "Takeaway";
   }
   return order.table?.table_number ? `Table ${order.table.table_number}` : "Table —";
 }
@@ -156,7 +156,7 @@ export function CashierBoard({
           <table className="w-full min-w-[1024px] text-sm">
             <thead>
               <tr className="border-b bg-[#F8FAFC] text-left text-[#64748B]">
-                <th className="px-4 py-3 font-semibold">Order ID</th>
+                <th className="px-4 py-3 font-semibold">Order #</th>
                 <th className="px-4 py-3 font-semibold">Table / Takeaway</th>
                 <th className="px-4 py-3 font-semibold">Items</th>
                 <th className="px-4 py-3 font-semibold">Total</th>
@@ -168,8 +168,8 @@ export function CashierBoard({
             <tbody>
               {sortedOrders.map((order) => (
                 <tr key={order.id} className="border-b last:border-0 hover:bg-[#F8FAFC]/80">
-                  <td className="px-4 py-3 font-mono text-xs text-[#0F172A]">
-                    {order.id.slice(0, 8).toUpperCase()}
+                  <td className="px-4 py-3 font-semibold text-[#0F172A]">
+                    {formatOrderLabel(order, { prefix: false })}
                   </td>
                   <td className="px-4 py-3 font-medium text-[#0F172A]">{formatLocation(order)}</td>
                   <td className="max-w-xs px-4 py-3 text-[#64748B]">

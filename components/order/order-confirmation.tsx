@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { useOrderStatusRealtime } from "@/lib/hooks/use-order-status-realtime";
 import type { OrderStatus } from "@/types/database";
-import { cn } from "@/lib/utils";
+import { cn, formatOrderLabel } from "@/lib/utils";
 
 const STATUS_STEPS: { key: OrderStatus; label: string }[] = [
   { key: "new", label: "La helay" },
@@ -64,6 +64,12 @@ export function OrderConfirmation({
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-hilaac-gold/20 text-hilaac-gold">
         <CheckCircle2 className="h-8 w-8" />
       </div>
+      {order && (
+        <div className="mb-4 rounded-full bg-gray-100 px-5 py-2 text-lg font-semibold tracking-wide text-[#0F172A]">
+          {formatOrderLabel(order)}
+        </div>
+      )}
+
       <h1 className="text-2xl font-bold">Dalabkaagu wuu socdaa!</h1>
       <p className="mt-1 text-muted-foreground">{restaurant.name} ayaa diyaarinaya dalabkaaga.</p>
 

@@ -20,6 +20,7 @@ import type { PaymentStatus } from "@/types/database";
 
 interface TrackedOrderRow {
   id: string;
+  order_number: number | null;
   status: string;
   payment_status: PaymentStatus;
 }
@@ -58,7 +59,7 @@ export default function OrderStatusPage({
         const supabase = createClient();
         const { data } = await supabase
           .from("orders")
-          .select("id, status, payment_status")
+          .select("id, order_number, status, payment_status")
           .eq("id", orderId)
           .maybeSingle();
         if (data) setOrder(data);
@@ -123,7 +124,7 @@ export default function OrderStatusPage({
     async function fetchOrder() {
       const { data } = await supabase
         .from("orders")
-        .select("id, status, payment_status")
+        .select("id, order_number, status, payment_status")
         .eq("id", orderId)
         .maybeSingle();
 
@@ -156,7 +157,7 @@ export default function OrderStatusPage({
       const interval = window.setInterval(async () => {
         const { data } = await supabase
           .from("orders")
-          .select("id, status, payment_status")
+          .select("id, order_number, status, payment_status")
           .eq("id", orderId)
           .maybeSingle();
 

@@ -13,6 +13,16 @@ export function formatCurrency(amount: number) {
   }).format(amount);
 }
 
+/** Human-readable order label, e.g. "Order #102" or fallback to short id for legacy rows. */
+export function formatOrderLabel(
+  order: { id: string; order_number?: number | null },
+  options?: { prefix?: boolean }
+) {
+  const hash =
+    order.order_number != null ? `#${order.order_number}` : `#${order.id.substring(0, 8)}`;
+  return options?.prefix === false ? hash : `Order ${hash}`;
+}
+
 export function formatDate(date: string | Date) {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",

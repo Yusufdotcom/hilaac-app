@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatOrderLabel } from "@/lib/utils";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warning" | "destructive"> = {
   new: "secondary",
@@ -56,7 +56,7 @@ export default async function AdminOrdersPage({ params }: { params: { slug: stri
               <tbody>
                 {(orders ?? []).map((order: any) => (
                   <tr key={order.id} className="border-b last:border-0">
-                    <td className="p-4 font-mono text-xs">{order.id.slice(0, 8)}</td>
+                    <td className="p-4 font-semibold">{formatOrderLabel(order, { prefix: false })}</td>
                     <td className="p-4 capitalize">{order.order_type}</td>
                     <td className="p-4">{order.table?.table_number ?? "—"}</td>
                     <td className="p-4">
