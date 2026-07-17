@@ -51,6 +51,7 @@ export function ItemCustomizeSheet({
       <SheetContent
         side="bottom"
         className="mx-auto flex max-h-[92vh] w-full max-w-lg flex-col gap-0 overflow-hidden p-0"
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <SheetHeader className="shrink-0 space-y-0 px-6 pb-4 pt-6 pr-12 text-left">
           <SheetTitle>{item.name}</SheetTitle>
@@ -102,6 +103,8 @@ export function ItemCustomizeSheet({
                   placeholder="e.g. No onions"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
+                  autoFocus={false}
+                  tabIndex={0}
                 />
               </div>
 
@@ -130,7 +133,10 @@ export function ItemCustomizeSheet({
               type="button"
               size="lg"
               className="h-12 w-full rounded-xl bg-[#D4A373] text-base font-semibold text-[#0F172A] hover:bg-[#D4A373]/90"
-              onClick={handleAdd}
+              onClick={(e) => {
+                e.currentTarget.blur();
+                handleAdd();
+              }}
             >
               Ku rido · {formatCurrency(total)}
             </Button>

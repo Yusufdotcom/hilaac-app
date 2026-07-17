@@ -1,12 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2, Minus, Plus, Trash2, ShoppingBasket, Phone, MessageSquare } from "lucide-react";
+import { Loader2, Minus, Plus, Trash2, ShoppingBasket, Phone, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cartItemTotal, cartTotal } from "@/lib/order/cart-types";
@@ -61,7 +60,6 @@ export function CartSheet({
     createPayload: CreateOrderApiPayload;
   }) => void;
 }) {
-  const [notes, setNotes] = useState("");
   const [phone, setPhone] = useState("");
   const [placing, setPlacing] = useState<"evc" | "edahab" | null>(null);
 
@@ -98,7 +96,7 @@ export function CartSheet({
       orderType,
       paymentMethod: method,
       customerPhone: phone || null,
-      notes: notes || null,
+      notes: null,
       items: cart.map((item) => ({
         menuItemId: item.menuItem.id,
         quantity: item.quantity,
@@ -185,10 +183,19 @@ export function CartSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          className="mx-auto flex max-h-[92vh] w-full max-w-lg flex-col gap-0 overflow-hidden p-0"
+          className="mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col gap-0 overflow-hidden rounded-none p-0 sm:rounded-t-2xl"
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <SheetHeader className="shrink-0 space-y-0 px-6 pb-4 pt-6 pr-12 text-left">
-            <SheetTitle className="flex items-center gap-2.5">
+          <SheetHeader className="relative shrink-0 space-y-0 border-b px-6 pb-4 pt-5 pr-12 text-left">
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="absolute left-4 top-5 flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Back to menu"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <SheetTitle className="flex items-center justify-center gap-2.5 pl-6">
               <ShoppingBasket className="h-5 w-5 text-[#D4A373]" aria-hidden="true" />
               Saladda
             </SheetTitle>
@@ -257,26 +264,6 @@ export function CartSheet({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="cart-notes" className="flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      Tilmaamo gaar ah
-                    </Label>
-                    <div className="relative">
-                      <MessageSquare
-                        className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                      <Textarea
-                        id="cart-notes"
-                        placeholder="wax gaara ku darsaneysid?"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        className="min-h-[88px] pl-10"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
                     <Label htmlFor="cart-phone" className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       Lambarka taleefanka (ikhtiyaari)
@@ -318,11 +305,15 @@ export function CartSheet({
                     </RadioGroup>
 
                     {orderType === "dine-in" && (
-                      <Input
-                        placeholder="Lambarka miiska"
-                        value={tableNumber}
-                        onChange={(e) => onTableNumberChange(e.target.value)}
-                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="cart-table">Lambarka miiska</Label>
+                        <Input
+                          id="cart-table"
+                          placeholder="e.g. 12"
+                          value={tableNumber}
+                          onChange={(e) => onTableNumberChange(e.target.value)}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>

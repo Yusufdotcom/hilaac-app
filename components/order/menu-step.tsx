@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { ArrowLeft, ShoppingBasket, Star, UtensilsCrossed, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,12 @@ function ItemCardContent({ item, unavailable }: { item: MenuItem; unavailable: b
             className={cn("object-cover", unavailable && "grayscale")}
           />
         ) : (
-          <div className={cn("flex h-full items-center justify-center text-muted-foreground", unavailable && "grayscale")}>
+          <div
+            className={cn(
+              "flex h-full items-center justify-center text-muted-foreground",
+              unavailable && "grayscale"
+            )}
+          >
             <UtensilsCrossed className="h-7 w-7" />
           </div>
         )}
@@ -98,9 +104,16 @@ export function MenuStep({
   onSelectItem: (item: MenuItem) => void;
   onOpenCart: () => void;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
-    <div>
-      <header className="sticky top-0 z-20 border-b bg-background/95 px-4 py-3 backdrop-blur">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <header className="sticky top-0 z-20 shrink-0 border-b bg-background/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center justify-between">
           <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground">
             <ArrowLeft className="h-4 w-4" /> Back
@@ -115,46 +128,48 @@ export function MenuStep({
         </div>
       </header>
 
-      <div className="space-y-8 px-4 py-6">
-        {topPicks.length > 0 && (
-          <section>
-            <h2 className="mb-3 flex items-center gap-2 text-lg font-bold">
-              <Star className="h-5 w-5 fill-amber-400 text-amber-400" /> Top Picks
-            </h2>
-            <div className="no-scrollbar flex gap-3 overflow-x-auto pb-2">
-              {topPicks.map((item) => (
-                <ItemCard key={item.id} item={item} onSelect={onSelectItem} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {categories.map((category) => {
-          const items = menuItems.filter((m) => m.category_id === category.id);
-          if (items.length === 0) return null;
-          return (
-            <section key={category.id}>
-              <h2 className="mb-3 text-lg font-bold">{category.name}</h2>
-              <div className="no-scrollbar flex gap-3 overflow-x-auto pb-2">
-                {items.map((item) => (
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+        <div className={cn("space-y-6 px-4 py-4", cartCount > 0 && "pb-28")}>
+          {topPicks.length > 0 && (
+            <section>
+              <h2 className="mb-3 flex items-center gap-2 text-lg font-bold">
+                <Star className="h-5 w-5 fill-amber-400 text-amber-400" /> Top Picks
+              </h2>
+              <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
+                {topPicks.map((item) => (
                   <ItemCard key={item.id} item={item} onSelect={onSelectItem} />
                 ))}
               </div>
             </section>
-          );
-        })}
+          )}
 
-        {menuItems.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-20 text-center text-muted-foreground">
-            <UtensilsCrossed className="h-8 w-8" />
-            Menu is empty right now.
-          </div>
-        )}
+          {categories.map((category) => {
+            const items = menuItems.filter((m) => m.category_id === category.id);
+            if (items.length === 0) return null;
+            return (
+              <section key={category.id}>
+                <h2 className="mb-3 text-lg font-bold">{category.name}</h2>
+                <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
+                  {items.map((item) => (
+                    <ItemCard key={item.id} item={item} onSelect={onSelectItem} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+
+          {menuItems.length === 0 && (
+            <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
+              <UtensilsCrossed className="h-8 w-8" />
+              Menu is empty right now.
+            </div>
+          )}
+        </div>
       </div>
 
       {cartCount > 0 && (
-        <div className="fixed inset-x-0 bottom-6 z-30 flex justify-center px-4">
-          <Button size="lg" onClick={onOpenCart} className="w-full max-w-sm gap-2 rounded-full shadow-lg">
+        <div className="sticky bottom-0 z-30 shrink-0 border-t bg-background/95 px-4 py-3 backdrop-blur">
+          <Button size="lg" onClick={onOpenCart} className="w-full gap-2 rounded-full shadow-lg">
             <ShoppingBasket className="h-5 w-5" />
             Saladda ({cartCount})
           </Button>

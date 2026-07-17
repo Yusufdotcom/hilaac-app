@@ -13,6 +13,7 @@ import { ItemCustomizeSheet } from "@/components/order/item-customize-sheet";
 import { OrderConfirmation } from "@/components/order/order-confirmation";
 import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
+import { cn } from "@/lib/utils";
 
 type Step = "landing" | "table" | "menu" | "confirmation";
 type OrderType = "dine-in" | "takeaway";
@@ -66,6 +67,8 @@ export function OrderingApp({
     () => new Set(liveMenuItems.filter((m) => !m.is_available).map((m) => m.id)),
     [liveMenuItems]
   );
+
+  const isFullScreenStep = step === "landing" || step === "table";
 
   function handleSelectOrderType(type: OrderType) {
     setOrderType(type);
@@ -128,35 +131,42 @@ export function OrderingApp({
 
   return (
     <>
-    <div className="flex min-h-screen flex-col bg-muted/20 pb-28">
-      <div className="flex-1">
-      {step === "landing" && (
-        <LandingStep restaurant={restaurant} onSelect={handleSelectOrderType} />
-      )}
+      <div
+        className={cn(
+          "flex h-[100dvh] flex-col overflow-hidden bg-muted/20",
+        )}
+      >
+        {step === "landing" && (
+          <LandingStep restaurant={restaurant} onSelect={handleSelectOrderType} />
+        )}
 
-      {step === "table" && (
-        <TableStep
-          restaurant={restaurant}
-          tables={tables}
-          onConfirm={handleTableConfirmed}
-          onBack={() => setStep("landing")}
-        />
-      )}
+        {step === "table" && (
+          <TableStep
+            restaurant={restaurant}
+            tables={tables}
+            onConfirm={handleTableConfirmed}
+            onBack={() => setStep("landing")}
+          />
+        )}
 
-      {step === "menu" && (
-        <MenuStep
-          restaurant={restaurant}
-          categories={categories}
-          menuItems={liveMenuItems}
-          topPicks={topPicks}
-          orderType={orderType}
-          tableNumber={tableNumber}
-          cartCount={cart.reduce((sum, i) => sum + i.quantity, 0)}
-          onBack={() => setStep(orderType === "dine-in" ? "table" : "landing")}
-          onSelectItem={setCustomizeItem}
-          onOpenCart={() => setCartOpen(true)}
-        />
-      )}
+        {step === "menu" && (
+          <MenuStep
+            key={`${orderType}-${tableNumber}`}
+            restaurant={restaurant}
+            categories={categories}
+            menuItems={liveMenuItems}
+            topPicks={topPicks}
+            orderType={orderType}
+            tableNumber={tableNumber}
+            cartCount={cart.reduce((sum, i) => sum + i.quantity, 0)}
+            onBack={() => setStep(orderType === "dine-in" ? "table" : "landing")}
+            onSelectItem={setCustomizeItem}
+            onOpenCart={() => setCartOpen(true)}
+          />
+        )}
+
+        {isFullScreenStep && <PoweredByHilaac className="shrink-0 pb-4 pt-2" />}
+      </div>
 
       {customizeItem && (
         <ItemCustomizeSheet
@@ -183,21 +193,17 @@ export function OrderingApp({
         onOrderPlaced={handleOrderPlaced}
         onUssdPaymentStarted={handleUssdPaymentStarted}
       />
-      </div>
 
-      <PoweredByHilaac className="pb-6 pt-2" />
-    </div>
-
-    {ussdPayment && (
-      <PaymentConfirmationModal
-        open
-        orderId={ussdPayment.orderId}
-        slug={restaurant.slug}
-        ussdCode={ussdPayment.code}
-        createPayload={ussdPayment.createPayload}
-        onClose={() => setUssdPayment(null)}
-      />
-    )}
+      {ussdPayment && (
+        <PaymentConfirmationModal
+          open
+          orderId={ussdPayment.orderId}
+          slug={restaurant.slug}
+          ussdCode={ussdPayment.code}
+          createPayload={ussdPayment.createPayload}
+          onClose={() => setUssdPayment(null)}
+        />
+      )}
     </>
   );
 }
