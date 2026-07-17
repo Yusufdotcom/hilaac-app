@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { AddOn, Category, MenuItem, RestaurantTable } from "@/types/database";
-import type { CartItem, SessionSelection } from "@/lib/order/cart-types";
-import { defaultOrderTypeForSession } from "@/lib/order/cart-types";
+import type { AddOn, Category, MenuItem, OrderType, RestaurantTable } from "@/types/database";
+import type { CartItem } from "@/lib/order/cart-types";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
 import { useRealtimeMenuItems } from "@/lib/hooks/use-realtime-menu-items";
 import { LandingStep } from "@/components/order/landing-step";
@@ -43,10 +42,7 @@ export function OrderingApp({
   tables: RestaurantTable[];
 }) {
   const [step, setStep] = useState<Step>("landing");
-  const [sessionSelection, setSessionSelection] = useState<SessionSelection>({
-    dineIn: false,
-    takeaway: false,
-  });
+  const [orderType, setOrderType] = useState<OrderType>("dine-in");
   const [tableNumber, setTableNumber] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -70,16 +66,11 @@ export function OrderingApp({
     [liveMenuItems]
   );
 
-  const defaultOrderType = useMemo(
-    () => defaultOrderTypeForSession(sessionSelection),
-    [sessionSelection]
-  );
-
   const isFullScreenStep = step === "landing" || step === "table";
 
-  function handleLandingContinue(selection: SessionSelection) {
-    setSessionSelection(selection);
-    if (selection.dineIn) {
+  function handleSelectOrderType(type: OrderType) {
+    setOrderType(type);
+    if (type === "dine-in") {
       setStep("table");
     } else {
       setStep("menu");
@@ -89,14 +80,6 @@ export function OrderingApp({
   function handleTableConfirmed(number: string) {
     setTableNumber(number);
     setStep("menu");
-  }
-
-  function handleMenuBack() {
-    if (sessionSelection.dineIn) {
-      setStep("table");
-    } else {
-      setStep("landing");
-    }
   }
 
   function handleAddToCart(item: CartItem) {
@@ -112,11 +95,8 @@ export function OrderingApp({
     setCart((prev) => prev.filter((i) => i.cartId !== cartId));
   }
 
-  function handleOrderPlaced(orderIds: string[]) {
-    const primary =
-      orderIds.find((id) => id) ??
-      orderIds[0];
-    setPlacedOrderId(primary);
+  function handleOrderPlaced(orderId: string) {
+    setPlacedOrderId(orderId);
     setCart([]);
     setCartOpen(false);
     setStep("confirmation");
@@ -134,7 +114,6 @@ export function OrderingApp({
 
   function handleNewOrder() {
     setPlacedOrderId(null);
-    setSessionSelection({ dineIn: false, takeaway: false });
     setTableNumber("");
     setStep("landing");
   }
@@ -153,7 +132,7 @@ export function OrderingApp({
     <>
       <div className="flex h-[100dvh] flex-col overflow-hidden bg-muted/20">
         {step === "landing" && (
-          <LandingStep restaurant={restaurant} onContinue={handleLandingContinue} />
+          <LandingStep restaurant={restaurant} onSelect={handleSelectOrderType} />
         )}
 
         {step === "table" && (
@@ -167,15 +146,15 @@ export function OrderingApp({
 
         {step === "menu" && (
           <MenuStep
-            key={`${sessionSelection.dineIn}-${sessionSelection.takeaway}-${tableNumber}`}
+            key={`${orderType}-${tableNumber}`}
             restaurant={restaurant}
             categories={categories}
             menuItems={liveMenuItems}
             topPicks={topPicks}
-            sessionSelection={sessionSelection}
+            orderType={orderType}
             tableNumber={tableNumber}
             cartCount={cart.reduce((sum, i) => sum + i.quantity, 0)}
-            onBack={handleMenuBack}
+            onBack={() => setStep(orderType === "dine-in" ? "table" : "landing")}
             onSelectItem={setCustomizeItem}
             onOpenCart={() => setCartOpen(true)}
           />
@@ -188,7 +167,7 @@ export function OrderingApp({
         <ItemCustomizeSheet
           item={customizeItem}
           addOns={addOns.filter((a) => a.restaurant_id === customizeItem.restaurant_id)}
-          defaultOrderType={defaultOrderType}
+          orderType={orderType}
           onClose={() => setCustomizeItem(null)}
           onAdd={(cartItem) => handleAddToCart(cartItem)}
         />
@@ -201,7 +180,7 @@ export function OrderingApp({
         cart={cart}
         unavailableMenuIds={unavailableMenuIds}
         tables={tables}
-        sessionSelection={sessionSelection}
+        orderType={orderType}
         tableNumber={tableNumber}
         onTableNumberChange={setTableNumber}
         onUpdateItem={handleUpdateCartItem}

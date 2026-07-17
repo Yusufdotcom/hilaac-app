@@ -17,7 +17,7 @@ export default async function KitchenPage({ params }: { params: { slug: string }
         .select("*, table:table_id(*), order_items(*, menu_item:menu_item_id(*))")
         .eq("restaurant_id", restaurant.id)
         .in("status", ["new", "preparing", "ready"])
-        .order("created_at", { ascending: true }),
+        .order("created_at", { ascending: false }),
       supabase
         .from("orders")
         .select("*, table:table_id(*), order_items(*, menu_item:menu_item_id(*))", { count: "exact" })

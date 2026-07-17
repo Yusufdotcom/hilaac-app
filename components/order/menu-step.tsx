@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { ArrowLeft, ShoppingBasket, Star, UtensilsCrossed, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Category, MenuItem } from "@/types/database";
-import type { SessionSelection } from "@/lib/order/cart-types";
 
 function ItemCard({ item, onSelect }: { item: MenuItem; onSelect: (item: MenuItem) => void }) {
   const unavailable = !item.is_available;
@@ -87,7 +86,7 @@ export function MenuStep({
   categories,
   menuItems,
   topPicks,
-  sessionSelection,
+  orderType,
   tableNumber,
   cartCount,
   onBack,
@@ -98,7 +97,7 @@ export function MenuStep({
   categories: Category[];
   menuItems: MenuItem[];
   topPicks: MenuItem[];
-  sessionSelection: SessionSelection;
+  orderType: "dine-in" | "takeaway";
   tableNumber: string;
   cartCount: number;
   onBack: () => void;
@@ -107,16 +106,12 @@ export function MenuStep({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const sessionLabel = useMemo(() => {
-    const parts: string[] = [];
-    if (sessionSelection.dineIn) {
-      parts.push(tableNumber ? `Fadhi · Miiska ${tableNumber}` : "Fadhi");
-    }
-    if (sessionSelection.takeaway) {
-      parts.push("Qaadasho");
-    }
-    return parts.join(" & ");
-  }, [sessionSelection, tableNumber]);
+  const sessionLabel =
+    orderType === "dine-in"
+      ? tableNumber
+        ? `Fadhi · Miiska ${tableNumber}`
+        : "Fadhi"
+      : "Qaadasho";
 
   useEffect(() => {
     scrollRef.current?.scrollTo(0, 0);

@@ -7,15 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  cartHasOrderType,
-  cartItemTotal,
-  cartItemsByType,
-  cartTotal,
-  sessionAllowsBothTypes,
-  type CartItem,
-  type SessionSelection,
-} from "@/lib/order/cart-types";
+import { cartItemTotal, cartTotal, type CartItem } from "@/lib/order/cart-types";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
 import type { OrderType, RestaurantTable } from "@/types/database";
@@ -31,43 +23,6 @@ interface MinimalRestaurant {
   takeaway_enabled: boolean;
 }
 
-function ItemOrderTypeToggle({
-  value,
-  onChange,
-}: {
-  value: OrderType;
-  onChange: (type: OrderType) => void;
-}) {
-  return (
-    <div className="mt-2 inline-flex rounded-lg border bg-muted/40 p-0.5">
-      <button
-        type="button"
-        onClick={() => onChange("dine-in")}
-        className={cn(
-          "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-          value === "dine-in"
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        🍽️ Fadhi
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange("takeaway")}
-        className={cn(
-          "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-          value === "takeaway"
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        📦 Qaadasho
-      </button>
-    </div>
-  );
-}
-
 export function CartSheet({
   open,
   onOpenChange,
@@ -75,7 +30,7 @@ export function CartSheet({
   cart,
   unavailableMenuIds,
   tables,
-  sessionSelection,
+  orderType,
   tableNumber,
   onTableNumberChange,
   onUpdateItem,
@@ -89,12 +44,12 @@ export function CartSheet({
   cart: CartItem[];
   unavailableMenuIds: Set<string>;
   tables: RestaurantTable[];
-  sessionSelection: SessionSelection;
+  orderType: OrderType;
   tableNumber: string;
   onTableNumberChange: (value: string) => void;
   onUpdateItem: (cartId: string, updates: Partial<CartItem>) => void;
   onRemoveItem: (cartId: string) => void;
-  onOrderPlaced: (orderIds: string[]) => void;
+  onOrderPlaced: (orderId: string) => void;
   onUssdPaymentStarted: (payload: {
     orderIds: string[];
     code: string;
@@ -103,10 +58,6 @@ export function CartSheet({
 }) {
   const [phone, setPhone] = useState("");
   const [placing, setPlacing] = useState<"evc" | "edahab" | null>(null);
-
-  const showItemTypeToggle = sessionAllowsBothTypes(sessionSelection);
-  const needsTableNumber = cartHasOrderType(cart, "dine-in");
-  const splitCheckout = cartHasOrderType(cart, "dine-in") && cartHasOrderType(cart, "takeaway");
 
   const total = useMemo(() => cartTotal(cart), [cart]);
 
@@ -129,12 +80,8 @@ export function CartSheet({
     return `${trimmed}${Math.round(amount)}#`;
   }
 
-  function buildCreatePayload(
-    items: CartItem[],
-    orderType: OrderType,
-    method: "evc" | "edahab"
-  ): CreateOrderApiPayload | null {
-    if (items.length === 0) return null;
+  function buildCreatePayload(method: "evc" | "edahab"): CreateOrderApiPayload | null {
+    if (cart.length === 0) return null;
     if (orderType === "dine-in" && !tableNumber) return null;
 
     const table = tables.find((t) => t.table_number === tableNumber);
@@ -146,7 +93,7 @@ export function CartSheet({
       paymentMethod: method,
       customerPhone: phone || null,
       notes: null,
-      items: items.map((item) => ({
+      items: cart.map((item) => ({
         menuItemId: item.menuItem.id,
         quantity: item.quantity,
         addOnIds: item.selectedAddOns.map((a) => a.id),
@@ -155,7 +102,19 @@ export function CartSheet({
     };
   }
 
-  async function postOrder(payload: CreateOrderApiPayload) {
+  async function createOrder(method: "evc" | "edahab") {
+    if (cart.length === 0) {
+      toast.error("Your cart is empty");
+      return null;
+    }
+    if (orderType === "dine-in" && !tableNumber) {
+      toast.error("Fadlan geli lambarka miiska");
+      return null;
+    }
+
+    const payload = buildCreatePayload(method);
+    if (!payload) return null;
+
     const res = await fetch("/api/orders/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -164,54 +123,15 @@ export function CartSheet({
 
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error ?? "Could not place order");
+      toast.error(data.error ?? "Could not place order");
+      return null;
     }
 
     return {
       orderId: data.orderId as string,
-      total: Number(data.total ?? 0),
+      createPayload: payload,
+      total: Number(data.total ?? total),
     };
-  }
-
-  async function createOrders(method: "evc" | "edahab") {
-    if (cart.length === 0) {
-      toast.error("Your cart is empty");
-      return null;
-    }
-    if (needsTableNumber && !tableNumber) {
-      toast.error("Fadlan geli lambarka miiska");
-      return null;
-    }
-
-    const dineInItems = cartItemsByType(cart, "dine-in");
-    const takeawayItems = cartItemsByType(cart, "takeaway");
-    const payloads: CreateOrderApiPayload[] = [];
-    const orderIds: string[] = [];
-    let combinedTotal = 0;
-
-    const dineInPayload = buildCreatePayload(dineInItems, "dine-in", method);
-    if (dineInPayload) payloads.push(dineInPayload);
-
-    const takeawayPayload = buildCreatePayload(takeawayItems, "takeaway", method);
-    if (takeawayPayload) payloads.push(takeawayPayload);
-
-    if (payloads.length === 0) {
-      toast.error("Could not build order");
-      return null;
-    }
-
-    try {
-      for (const payload of payloads) {
-        const result = await postOrder(payload);
-        orderIds.push(result.orderId);
-        combinedTotal += result.total;
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not place order");
-      return null;
-    }
-
-    return { orderIds, createPayloads: payloads, combinedTotal };
   }
 
   async function handlePay(method: "evc" | "edahab") {
@@ -222,40 +142,38 @@ export function CartSheet({
 
     setPlacing(method);
     try {
-      const result = await createOrders(method);
+      const result = await createOrder(method);
       if (!result) return;
 
-      const { orderIds, createPayloads, combinedTotal } = result;
+      const { orderId, createPayload, total: orderTotal } = result;
 
       if (restaurant.payment_mode === "ussd") {
         const code = method === "evc" ? restaurant.evc_ussd_code : restaurant.edahab_ussd_code;
         if (code) {
-          const dialString = ussdDialString(code, combinedTotal);
+          const dialString = ussdDialString(code, orderTotal);
           window.location.href = `tel:${encodeURIComponent(dialString)}`;
           onOpenChange(false);
-          onUssdPaymentStarted({ orderIds, code: dialString, createPayloads });
+          onUssdPaymentStarted({
+            orderIds: [orderId],
+            code: dialString,
+            createPayloads: [createPayload],
+          });
         } else {
-          onOrderPlaced(orderIds);
+          onOrderPlaced(orderId);
         }
       } else {
-        for (const orderId of orderIds) {
-          const res = await fetch("/api/payments/charge", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId, method, phone }),
-          });
-          const data = await res.json();
-          if (!res.ok) {
-            toast.error(data.error ?? "Payment failed");
-            return;
-          }
+        const res = await fetch("/api/payments/charge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, method, phone }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          toast.error(data.error ?? "Payment failed");
+          return;
         }
-        toast.success(
-          orderIds.length > 1
-            ? "Payments initiated for both orders. Confirming..."
-            : "Payment initiated. Confirming..."
-        );
-        onOrderPlaced(orderIds);
+        toast.success("Payment initiated. Confirming...");
+        onOrderPlaced(orderId);
       }
     } finally {
       setPlacing(null);
@@ -290,12 +208,6 @@ export function CartSheet({
               <p className="py-12 text-center text-muted-foreground">Salaadu waxba kuma jiran.</p>
             ) : (
               <div className="space-y-6">
-                {splitCheckout && (
-                  <p className="rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-                    Waxaa la sameyn doonaa 2 dalab oo gooni ah: mid miiska iyo mid qaadasho.
-                  </p>
-                )}
-
                 <div className="space-y-3">
                   {cart.map((item) => {
                     const isUnavailable = unavailableMenuIds.has(item.menuItem.id);
@@ -323,16 +235,6 @@ export function CartSheet({
                             {item.notes && (
                               <p className="text-xs italic text-muted-foreground">
                                 &ldquo;{item.notes}&rdquo;
-                              </p>
-                            )}
-                            {showItemTypeToggle ? (
-                              <ItemOrderTypeToggle
-                                value={item.orderType}
-                                onChange={(orderType) => onUpdateItem(item.cartId, { orderType })}
-                              />
-                            ) : (
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {item.orderType === "dine-in" ? "🍽️ Fadhi" : "📦 Qaadasho"}
                               </p>
                             )}
                           </div>
@@ -387,7 +289,7 @@ export function CartSheet({
                   </div>
                 </div>
 
-                {needsTableNumber && (
+                {orderType === "dine-in" && (
                   <div className="space-y-2">
                     <Label htmlFor="cart-table">Lambarka miiska</Label>
                     <Input

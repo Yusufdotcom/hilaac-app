@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Loader2,
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { cn, formatOrderLabel } from "@/lib/utils";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
+import { useStaffOrderNotifications } from "@/lib/hooks/use-staff-order-notifications";
 import type { OrderStatus, OrderWithItems, RestaurantTable, Waiter } from "@/types/database";
 
 const ACTIVE_STATUSES: OrderStatus[] = ["new", "preparing", "ready"];
@@ -93,11 +94,26 @@ export function WaiterBoard({
   waiters: Waiter[];
   initialDeliveryCounts?: Record<string, number>;
 }) {
+  const { alertNewOrder, syncPendingBadge } = useStaffOrderNotifications(
+    "Waiter Dashboard",
+    restaurantName
+  );
+
   const { orders, removeOrder, restoreOrder, updateOrderFields } = useRealtimeOrders(
     restaurantId,
     initialOrders,
-    { activeOnly: true, pinReadyToTop: true }
+    {
+      activeOnly: true,
+      channelName: `waiter-orders-${restaurantId}`,
+      pinReadyToTop: true,
+      sortNewestFirst: true,
+      onNewOrder: alertNewOrder,
+    }
   );
+
+  useEffect(() => {
+    syncPendingBadge(orders);
+  }, [orders, syncPendingBadge]);
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [selectedWaiter, setSelectedWaiter] = useState("");
   const [deliveryCounts, setDeliveryCounts] = useState<Record<string, number>>(initialDeliveryCounts);
@@ -154,16 +170,10 @@ export function WaiterBoard({
     setBusyOrderId(orderId);
 
     try {
-      const fields: {
-        status: "completed";
-        payment_status?: "paid";
-        delivered_by: string;
-      } = { status: "completed", delivered_by: selectedWaiter };
-      if (order.payment_status !== "paid") {
-        fields.payment_status = "paid";
-      }
-
-      const error = await updateOrderFields(orderId, fields);
+      const error = await updateOrderFields(orderId, {
+        status: "completed",
+        delivered_by: selectedWaiter,
+      });
       if (error) {
         restoreOrder(order);
         toast.error(error.message);

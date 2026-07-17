@@ -6,6 +6,16 @@ import type { OrderWithItems } from "@/types/database";
 
 const ACTIVE_KITCHEN_STATUSES = ["new", "preparing", "ready"] as const;
 
+function isActiveStatus(status: string) {
+  return ACTIVE_KITCHEN_STATUSES.includes(status as (typeof ACTIVE_KITCHEN_STATUSES)[number]);
+}
+
+function sortByNewestFirst(orders: OrderWithItems[]) {
+  return [...orders].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+}
+
 /**
  * Subscribes to realtime order + order_item changes for a restaurant and
  * keeps a normalized, always-fresh list of orders (with their items joined)
@@ -18,15 +28,21 @@ export function useRealtimeOrders(
     activeOnly?: boolean;
     channelName?: string;
     onOrderRemoved?: (order: OrderWithItems, newStatus: string) => void;
+    onNewOrder?: (order: OrderWithItems) => void;
     pinReadyToTop?: boolean;
+    sortNewestFirst?: boolean;
   }
 ) {
   const activeOnly = options?.activeOnly ?? true;
   const channelName = options?.channelName ?? `orders-${restaurantId}`;
   const onOrderRemoved = options?.onOrderRemoved;
+  const onNewOrder = options?.onNewOrder;
   const pinReadyToTop = options?.pinReadyToTop ?? false;
+  const sortNewestFirst = options?.sortNewestFirst ?? false;
   const supabase = useMemo(() => createClient(), []);
-  const [orders, setOrders] = useState<OrderWithItems[]>(initialOrders);
+  const [orders, setOrders] = useState<OrderWithItems[]>(() =>
+    sortNewestFirst ? sortByNewestFirst(initialOrders) : initialOrders
+  );
 
   const fetchOrder = useCallback(
     async (orderId: string) => {
@@ -40,6 +56,33 @@ export function useRealtimeOrders(
     [supabase]
   );
 
+  const mergeOrder = useCallback(
+    (prev: OrderWithItems[], full: OrderWithItems) => {
+      const without = prev.filter((o) => o.id !== full.id);
+
+      if (activeOnly && !isActiveStatus(full.status)) {
+        return without;
+      }
+
+      let next: OrderWithItems[];
+
+      if (pinReadyToTop && full.status === "ready") {
+        next = [full, ...without];
+      } else if (sortNewestFirst) {
+        next = sortByNewestFirst([full, ...without]);
+      } else {
+        next = [full, ...without];
+      }
+
+      return next;
+    },
+    [activeOnly, pinReadyToTop, sortNewestFirst]
+  );
+
+  useEffect(() => {
+    setOrders(sortNewestFirst ? sortByNewestFirst(initialOrders) : initialOrders);
+  }, [initialOrders, sortNewestFirst]);
+
   useEffect(() => {
     const channel = supabase
       .channel(channelName)
@@ -48,53 +91,37 @@ export function useRealtimeOrders(
         { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
         async (payload) => {
           const full = await fetchOrder(payload.new.id as string);
-          if (full) setOrders((prev) => [full, ...prev.filter((o) => o.id !== full.id)]);
+          if (!full) return;
+          if (activeOnly && !isActiveStatus(full.status)) return;
+
+          setOrders((prev) => mergeOrder(prev, full));
+          onNewOrder?.(full);
         }
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
         async (payload) => {
-          const updated = payload.new as { id: string; status?: string; updated_at?: string };
-          const isRemovedFromActive =
-            activeOnly &&
-            updated.status &&
-            !ACTIVE_KITCHEN_STATUSES.includes(updated.status as (typeof ACTIVE_KITCHEN_STATUSES)[number]);
+          const updated = payload.new as { id: string; status?: string };
+          const full = await fetchOrder(updated.id);
 
-          if (isRemovedFromActive) {
+          if (!full) return;
+
+          if (activeOnly && !isActiveStatus(full.status)) {
             let removedOrder: OrderWithItems | undefined;
 
             setOrders((prev) => {
-              removedOrder = prev.find((o) => o.id === updated.id);
-              return prev.filter((o) => o.id !== updated.id);
+              removedOrder = prev.find((o) => o.id === full.id);
+              return prev.filter((o) => o.id !== full.id);
             });
 
-            const orderForCallback =
-              removedOrder ?? (updated.status ? await fetchOrder(updated.id) : null);
-
-            if (orderForCallback && updated.status) {
-              onOrderRemoved?.(
-                { ...orderForCallback, status: updated.status as OrderWithItems["status"] },
-                updated.status
-              );
+            if (removedOrder && full.status) {
+              onOrderRemoved?.(removedOrder, full.status);
             }
             return;
           }
 
-          setOrders((prev) => {
-            const next = prev.map((o) =>
-              o.id === updated.id ? { ...o, ...(payload.new as object) } : o
-            );
-
-            if (pinReadyToTop && updated.status === "ready") {
-              const readyOrder = next.find((o) => o.id === updated.id);
-              if (readyOrder) {
-                return [readyOrder, ...next.filter((o) => o.id !== updated.id)];
-              }
-            }
-
-            return next;
-          });
+          setOrders((prev) => mergeOrder(prev, full));
         }
       )
       .on(
@@ -102,12 +129,15 @@ export function useRealtimeOrders(
         { event: "INSERT", schema: "public", table: "order_items" },
         async (payload) => {
           const orderId = payload.new.order_id as string;
-          setOrders((prev) => {
-            if (!prev.some((o) => o.id === orderId)) return prev;
-            return prev;
-          });
           const full = await fetchOrder(orderId);
-          if (full) setOrders((prev) => prev.map((o) => (o.id === orderId ? full : o)));
+          if (!full) return;
+
+          setOrders((prev) => {
+            if (!prev.some((o) => o.id === orderId) && !(activeOnly && !isActiveStatus(full.status))) {
+              return mergeOrder(prev, full);
+            }
+            return mergeOrder(prev, full);
+          });
         }
       )
       .subscribe();
@@ -115,7 +145,16 @@ export function useRealtimeOrders(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [restaurantId, supabase, fetchOrder, activeOnly, onOrderRemoved, pinReadyToTop, channelName]);
+  }, [
+    restaurantId,
+    supabase,
+    fetchOrder,
+    activeOnly,
+    onOrderRemoved,
+    onNewOrder,
+    channelName,
+    mergeOrder,
+  ]);
 
   function removeOrder(orderId: string) {
     setOrders((prev) => prev.filter((o) => o.id !== orderId));
@@ -124,7 +163,7 @@ export function useRealtimeOrders(
   function restoreOrder(order: OrderWithItems) {
     setOrders((prev) => {
       if (prev.some((o) => o.id === order.id)) return prev;
-      return [order, ...prev];
+      return mergeOrder(prev, order);
     });
   }
 
@@ -173,11 +212,7 @@ export function useRealtimeOrders(
     setOrders((prev) => {
       previous = prev.find((o) => o.id === orderId);
       const updated = prev.map((o) => (o.id === orderId ? { ...o, ...(fields as object) } : o));
-      if (
-        activeOnly &&
-        fields.status &&
-        !ACTIVE_KITCHEN_STATUSES.includes(fields.status as (typeof ACTIVE_KITCHEN_STATUSES)[number])
-      ) {
+      if (activeOnly && fields.status && !isActiveStatus(fields.status)) {
         if (previous) {
           onOrderRemoved?.(previous, fields.status);
         }
@@ -193,7 +228,7 @@ export function useRealtimeOrders(
         if (prev.some((o) => o.id === orderId)) {
           return prev.map((o) => (o.id === orderId ? previous! : o));
         }
-        return [previous!, ...prev];
+        return mergeOrder(prev, previous!);
       });
     }
 

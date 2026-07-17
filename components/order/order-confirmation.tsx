@@ -133,6 +133,7 @@ export function OrderConfirmation({
   restaurant,
   onNewOrder,
   newOrderHref,
+  openNewOrderInNewTab = false,
   compact = false,
   className,
   showFooter = true,
@@ -141,6 +142,7 @@ export function OrderConfirmation({
   restaurant: { name: string };
   onNewOrder?: () => void;
   newOrderHref?: string;
+  openNewOrderInNewTab?: boolean;
   compact?: boolean;
   className?: string;
   showFooter?: boolean;
@@ -193,7 +195,14 @@ export function OrderConfirmation({
 
           {newOrderHref ? (
             <Button variant="outline" size="sm" className="mt-3 h-9" asChild>
-              <Link href={newOrderHref}>Samee dalab cusub</Link>
+              <Link
+                href={newOrderHref}
+                {...(openNewOrderInNewTab
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
+              >
+                Samee dalab cusub
+              </Link>
             </Button>
           ) : (
             <Button variant="outline" size="sm" className="mt-3 h-9" onClick={onNewOrder}>

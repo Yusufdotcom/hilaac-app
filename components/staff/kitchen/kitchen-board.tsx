@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ChefHat, Clock, Loader2, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatDate, formatOrderLabel } from "@/lib/utils";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
+import { useStaffOrderNotifications } from "@/lib/hooks/use-staff-order-notifications";
 import { KitchenMenuAvailability } from "@/components/staff/kitchen/kitchen-menu-availability";
 import type { OrderStatus, OrderWithItems, MenuItem } from "@/types/database";
 import type { PostgrestError } from "@supabase/supabase-js";
@@ -209,6 +210,11 @@ export function KitchenBoard({
   const [deliveredCount, setDeliveredCount] = useState(initialDeliveredCount);
   const [deliveredOrders, setDeliveredOrders] = useState<OrderWithItems[]>(initialDeliveredOrders);
 
+  const { alertNewOrder, syncPendingBadge } = useStaffOrderNotifications(
+    "Kitchen Dashboard",
+    restaurantName
+  );
+
   const handleOrderDelivered = useCallback((order: OrderWithItems, newStatus: string) => {
     if (!isDeliveredStatus(newStatus)) return;
     setDeliveredCount((count) => count + 1);
@@ -222,13 +228,16 @@ export function KitchenBoard({
     activeOnly: true,
     channelName: `kitchen-orders-${restaurantId}`,
     onOrderRemoved: handleOrderDelivered,
+    onNewOrder: alertNewOrder,
+    sortNewestFirst: true,
   });
 
+  useEffect(() => {
+    syncPendingBadge(orders);
+  }, [orders, syncPendingBadge]);
+
   const activeOrders = useMemo(
-    () =>
-      orders
-        .filter((o) => ACTIVE_STATUSES.includes(o.status))
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+    () => orders.filter((o) => ACTIVE_STATUSES.includes(o.status)),
     [orders]
   );
 

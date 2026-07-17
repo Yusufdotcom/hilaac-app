@@ -235,6 +235,7 @@ export default function OrderStatusPage({
         restaurant={{ name: restaurantName }}
         newOrderHref={`/order/${params.slug}`}
         compact
+        openNewOrderInNewTab
         className="w-full max-w-sm"
       />
     </div>
