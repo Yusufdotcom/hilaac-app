@@ -23,7 +23,11 @@ interface TrackedOrderRow {
   order_number: number | null;
   status: string;
   payment_status: PaymentStatus;
+  customer_confirmed_at: string | null;
 }
+
+const PAGE_SHELL =
+  "flex h-[100dvh] max-h-[100dvh] min-h-[100dvh] flex-col items-center overflow-hidden px-4";
 
 export default function OrderStatusPage({
   params,
@@ -44,6 +48,7 @@ export default function OrderStatusPage({
 
   const pendingSync = isOrderPendingSync(orderId);
   const showRetrySync = pendingSync || !isOnline;
+  const showExtras = showRetrySync || !isOnline;
 
   async function handleRetrySync() {
     setRetrying(true);
@@ -59,7 +64,7 @@ export default function OrderStatusPage({
         const supabase = createClient();
         const { data } = await supabase
           .from("orders")
-          .select("id, order_number, status, payment_status")
+          .select("id, order_number, status, payment_status, customer_confirmed_at")
           .eq("id", orderId)
           .maybeSingle();
         if (data) setOrder(data);
@@ -75,10 +80,10 @@ export default function OrderStatusPage({
 
   function OrderStatusExtras() {
     return (
-      <div className="flex w-full max-w-sm flex-col items-center gap-2 px-4">
+      <div className="flex w-full max-w-sm flex-col items-center gap-1.5">
         {!isOnline && (
-          <Badge className="gap-1.5 border-amber-200 bg-amber-100 px-3 py-1.5 text-amber-900 hover:bg-amber-100">
-            <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
+          <Badge className="gap-1 border-amber-200 bg-amber-100 px-2 py-0.5 text-[11px] text-amber-900 hover:bg-amber-100">
+            <WifiOff className="h-3 w-3" aria-hidden="true" />
             Mode Offline - Dalabka waa la keydiyay
           </Badge>
         )}
@@ -89,9 +94,9 @@ export default function OrderStatusPage({
             size="sm"
             disabled={retrying}
             onClick={() => void handleRetrySync()}
-            className="border-amber-200 text-amber-900 hover:bg-amber-50"
+            className="h-8 border-amber-200 px-3 text-xs text-amber-900 hover:bg-amber-50"
           >
-            {retrying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+            {retrying ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
             Isku day mar kale
           </Button>
         )}
@@ -99,7 +104,6 @@ export default function OrderStatusPage({
     );
   }
 
-  // Load restaurant name for the status UI.
   useEffect(() => {
     const supabase = createClient();
 
@@ -117,14 +121,13 @@ export default function OrderStatusPage({
     void fetchRestaurant();
   }, [params.slug]);
 
-  // Fetch the order from Supabase (RLS allows anon read on recent orders).
   useEffect(() => {
     const supabase = createClient();
 
     async function fetchOrder() {
       const { data } = await supabase
         .from("orders")
-        .select("id, order_number, status, payment_status")
+        .select("id, order_number, status, payment_status, customer_confirmed_at")
         .eq("id", orderId)
         .maybeSingle();
 
@@ -135,7 +138,6 @@ export default function OrderStatusPage({
     void fetchOrder();
   }, [orderId]);
 
-  // Auto-redirect to the payment screen once sync completes.
   useEffect(() => {
     const pendingInQueue = isOrderPendingSync(orderId);
 
@@ -149,7 +151,6 @@ export default function OrderStatusPage({
       return;
     }
 
-    // Still in the offline queue — keep polling until the order appears in Supabase.
     if (!order) {
       setWaitingForSync(true);
 
@@ -157,7 +158,7 @@ export default function OrderStatusPage({
       const interval = window.setInterval(async () => {
         const { data } = await supabase
           .from("orders")
-          .select("id, order_number, status, payment_status")
+          .select("id, order_number, status, payment_status, customer_confirmed_at")
           .eq("id", orderId)
           .maybeSingle();
 
@@ -170,7 +171,6 @@ export default function OrderStatusPage({
       return () => window.clearInterval(interval);
     }
 
-    // Order exists in DB and was previously queued — redirect to payment.
     const queue = getQueue();
     const wasQueued = queue.some(
       (item) =>
@@ -188,41 +188,54 @@ export default function OrderStatusPage({
 
   if (!orderId) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-6 text-center text-sm text-muted-foreground">
-        Order not found.
+      <div className={PAGE_SHELL}>
+        <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
+          Order not found.
+        </div>
+        <PoweredByHilaac className="mt-auto shrink-0 pb-2" />
       </div>
     );
   }
 
   if (loading || waitingForSync || !restaurantName) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-6 py-12 text-center">
-        <OrderStatusExtras />
-        <Loader2 className="mb-4 mt-4 h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
-        <p className="text-lg font-medium text-[#0F172A]">
-          {waitingForSync || !isOnline
-            ? "Waiting for connection to sync your order..."
-            : "Loading your order..."}
-        </p>
-        {!isOnline && (
-          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-            Your order is saved on this device and will sync automatically when you reconnect.
+      <div className={PAGE_SHELL}>
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
+          {showExtras && (
+            <div className="mb-3 shrink-0">
+              <OrderStatusExtras />
+            </div>
+          )}
+          <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" aria-hidden="true" />
+          <p className="mt-3 text-base font-medium leading-tight text-[#0F172A]">
+            {waitingForSync || !isOnline
+              ? "Waiting for connection to sync your order..."
+              : "Loading your order..."}
           </p>
-        )}
-        <PoweredByHilaac className="mt-auto pt-10" />
+          {!isOnline && (
+            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+              Your order is saved on this device and will sync automatically when you reconnect.
+            </p>
+          )}
+        </div>
+        <PoweredByHilaac className="mt-auto shrink-0 pb-2" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="flex justify-center pt-4">
-        <OrderStatusExtras />
-      </div>
+    <div className={PAGE_SHELL}>
+      {showExtras && (
+        <div className="w-full max-w-sm shrink-0 pt-2">
+          <OrderStatusExtras />
+        </div>
+      )}
       <OrderConfirmation
         orderId={orderId}
         restaurant={{ name: restaurantName }}
         newOrderHref={`/order/${params.slug}`}
+        compact
+        className="w-full max-w-sm"
       />
     </div>
   );

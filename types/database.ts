@@ -105,6 +105,7 @@ export interface Order {
   customer_phone: string | null;
   notes: string | null;
   delivered_by: string | null;
+  customer_confirmed_at: string | null;
   created_at: string;
   updated_at: string;
 }

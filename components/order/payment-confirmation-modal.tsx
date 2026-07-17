@@ -56,7 +56,7 @@ export function PaymentConfirmationModal({
             confirmPayment: true,
           });
         });
-        toast.message("Order saved locally. Will sync when connection returns.");
+        toast.message("Dalabka waa la keydiyay. Cashier-ka ayaa xaqiijin doona markaad isku xirto.");
         onClose();
         router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
         return;
@@ -74,11 +74,7 @@ export function PaymentConfirmationModal({
         }
       }
 
-      toast.success(
-        orderIds.length > 1
-          ? "Lacag bixinta waa la xaqiijiyay! Labada dalab waa la diyaarinayaa."
-          : "Lacag bixinta waa la xaqiijiyay! Dalabkaaga waa la diyaarinayaa."
-      );
+      toast.success("Lacag bixinta waa la diray. Cashier-ka ayaa xaqiijin doona.");
       onClose();
       router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
     } finally {

@@ -135,7 +135,7 @@ async function createOrderViaApi(payload: CreateOrderApiPayload): Promise<string
 /**
  * Syncs all unsynced queued orders through server API routes (never Supabase client).
  * - Creates orders via POST /api/orders/create
- * - Confirms payment via POST /api/orders/[id]/confirm-payment when needed
+ * - Records customer payment intent via POST /api/orders/[id]/confirm-payment when needed
  * Successfully synced entries are marked and removed from the queue.
  */
 export async function syncOfflineOrders(): Promise<{ synced: number; failed: number }> {

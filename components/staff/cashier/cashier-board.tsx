@@ -37,6 +37,34 @@ function formatLocation(order: OrderWithItems) {
   return order.table?.table_number ? `Table ${order.table.table_number}` : "Table —";
 }
 
+function formatPaymentBadge(order: OrderWithItems) {
+  if (order.payment_status === "paid") {
+    return {
+      label: "✅ Paid",
+      className: "bg-emerald-100 text-emerald-900",
+    };
+  }
+
+  if (order.payment_status === "pending" && order.customer_confirmed_at) {
+    return {
+      label: "Customer confirmed – Awaiting Cashier",
+      className: "bg-amber-100 text-amber-900",
+    };
+  }
+
+  if (order.payment_status === "pending") {
+    return {
+      label: "Pending",
+      className: "bg-slate-100 text-slate-600",
+    };
+  }
+
+  return {
+    label: formatPaymentLabel(order.payment_status),
+    className: PAYMENT_STATUS_STYLE[order.payment_status],
+  };
+}
+
 function formatPaymentLabel(status: PaymentStatus) {
   if (status === "paid") return "Paid";
   if (status === "pending") return "Pending";
@@ -179,16 +207,14 @@ export function CashierBoard({
                     {formatCurrency(Number(order.total))}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge
-                      className={cn(
-                        "border-0 capitalize",
-                        order.payment_status === "paid"
-                          ? "bg-emerald-100 text-emerald-900"
-                          : PAYMENT_STATUS_STYLE[order.payment_status]
-                      )}
-                    >
-                      {formatPaymentLabel(order.payment_status)}
-                    </Badge>
+                    {(() => {
+                      const paymentBadge = formatPaymentBadge(order);
+                      return (
+                        <Badge className={cn("border-0", paymentBadge.className)}>
+                          {paymentBadge.label}
+                        </Badge>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3">
                     <Badge

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { useOrderStatusRealtime } from "@/lib/hooks/use-order-status-realtime";
-import type { OrderStatus } from "@/types/database";
+import type { OrderStatus, PaymentStatus } from "@/types/database";
 import { cn, formatOrderLabel } from "@/lib/utils";
 
 const STATUS_STEPS: { key: OrderStatus; label: string }[] = [
@@ -27,6 +27,52 @@ const STATUS_BADGE: Record<
   delivered: { label: "Delivered", className: "border-blue-200 bg-blue-100 text-blue-800" },
 };
 
+function PaymentStatusBadge({
+  paymentStatus,
+  customerConfirmedAt,
+  compact,
+}: {
+  paymentStatus?: PaymentStatus;
+  customerConfirmedAt?: string | null;
+  compact?: boolean;
+}) {
+  if (paymentStatus === "paid") {
+    return (
+      <Badge variant="success" className={cn(compact ? "text-xs leading-snug" : "text-sm")}>
+        ✅ Payment verified by cashier
+      </Badge>
+    );
+  }
+
+  if (paymentStatus === "failed") {
+    return (
+      <Badge variant="destructive" className={cn(compact ? "text-xs" : "text-sm")}>
+        Failed
+      </Badge>
+    );
+  }
+
+  if (customerConfirmedAt) {
+    return (
+      <Badge
+        variant="warning"
+        className={cn(
+          "max-w-[260px] whitespace-normal text-center leading-snug",
+          compact ? "text-xs" : "text-sm"
+        )}
+      >
+        ⏳ Payment pending – Awaiting cashier verification
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="warning" className={cn(compact ? "text-xs" : "text-sm")}>
+      Pending
+    </Badge>
+  );
+}
+
 function OrderStatusBadge({ status }: { status: OrderStatus | undefined }) {
   if (!status) return null;
 
@@ -44,20 +90,122 @@ function OrderStatusBadge({ status }: { status: OrderStatus | undefined }) {
   );
 }
 
+function CompactStatusSteps({ currentIndex }: { currentIndex: number }) {
+  return (
+    <div className="flex w-full max-w-xs items-start justify-between gap-1">
+      {STATUS_STEPS.map((step, idx) => {
+        const active = idx <= currentIndex;
+        const current = idx === currentIndex;
+
+        return (
+          <div key={step.key} className="flex min-w-0 flex-1 flex-col items-center">
+            <div
+              className={cn(
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}
+            >
+              {idx < currentIndex ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              ) : current ? (
+                <ChefHat className="h-3.5 w-3.5" />
+              ) : (
+                <Clock className="h-3 w-3" />
+              )}
+            </div>
+            <span
+              className={cn(
+                "mt-1 w-full truncate text-center text-[10px] leading-tight",
+                current ? "font-semibold text-foreground" : active ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
+              {step.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function OrderConfirmation({
   orderId,
   restaurant,
   onNewOrder,
   newOrderHref,
+  compact = false,
+  className,
+  showFooter = true,
 }: {
   orderId: string;
   restaurant: { name: string };
   onNewOrder?: () => void;
   newOrderHref?: string;
+  compact?: boolean;
+  className?: string;
+  showFooter?: boolean;
 }) {
   const order = useOrderStatusRealtime(orderId);
 
   const currentIndex = STATUS_STEPS.findIndex((s) => s.key === order?.status);
+
+  if (compact) {
+    return (
+      <div className={cn("flex min-h-0 flex-1 flex-col items-center text-center", className)}>
+        <div className="flex w-full max-w-sm flex-1 flex-col items-center justify-center px-1">
+          <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-hilaac-gold/20 text-hilaac-gold">
+            <CheckCircle2 className="h-6 w-6" />
+          </div>
+
+          {order && (
+            <div className="mb-2 rounded-full bg-gray-100 px-4 py-1.5 text-base font-semibold tracking-wide text-[#0F172A]">
+              {formatOrderLabel(order)}
+            </div>
+          )}
+
+          <h1 className="text-lg font-bold leading-tight">Dalabkaagu wuu socdaa!</h1>
+          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+            {restaurant.name} ayaa diyaarinaya dalabkaaga.
+          </p>
+
+          <div className="mt-2">
+            <OrderStatusBadge status={order?.status} />
+          </div>
+
+          <div className="mt-4 w-full">
+            <CompactStatusSteps currentIndex={currentIndex} />
+          </div>
+
+          <div className="mt-3 flex flex-col items-center gap-1">
+            <span className="text-xs text-muted-foreground">Payment:</span>
+            <PaymentStatusBadge
+              paymentStatus={order?.payment_status}
+              customerConfirmedAt={order?.customer_confirmed_at}
+              compact
+            />
+          </div>
+
+          {order?.status === "completed" && (
+            <div className="mt-2 flex items-center gap-1.5 text-sm text-hilaac-gold">
+              <PartyPopper className="h-4 w-4" /> Mahadsanid!
+            </div>
+          )}
+
+          {newOrderHref ? (
+            <Button variant="outline" size="sm" className="mt-3 h-9" asChild>
+              <Link href={newOrderHref}>Samee dalab cusub</Link>
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" className="mt-3 h-9" onClick={onNewOrder}>
+              Samee dalab cusub
+            </Button>
+          )}
+        </div>
+
+        {showFooter && <PoweredByHilaac className="mt-auto shrink-0 pb-2" />}
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 py-12 text-center">
@@ -97,15 +245,12 @@ export function OrderConfirmation({
         ))}
       </div>
 
-      <div className="mt-6 flex items-center justify-center gap-2">
+      <div className="mt-6 flex flex-col items-center justify-center gap-2">
         <span className="text-sm text-muted-foreground">Payment:</span>
-        {order?.payment_status === "paid" ? (
-          <Badge variant="success">✅ Paid</Badge>
-        ) : order?.payment_status === "failed" ? (
-          <Badge variant="destructive">Failed</Badge>
-        ) : (
-          <Badge variant="warning">Pending</Badge>
-        )}
+        <PaymentStatusBadge
+          paymentStatus={order?.payment_status}
+          customerConfirmedAt={order?.customer_confirmed_at}
+        />
       </div>
 
       {order?.status === "completed" && (
@@ -124,7 +269,7 @@ export function OrderConfirmation({
         </Button>
       )}
 
-      <PoweredByHilaac className="mt-auto pt-10" />
+      {showFooter && <PoweredByHilaac className="mt-auto pt-10" />}
     </div>
   );
 }
