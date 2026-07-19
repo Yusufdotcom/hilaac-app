@@ -233,6 +233,7 @@ export function KitchenBoard({
     onOrderRemoved: handleOrderDelivered,
     onNewOrder: alertNewOrder,
     sortNewestFirst: true,
+    kitchenVisibleOnly: true,
   });
 
   useEffect(() => {

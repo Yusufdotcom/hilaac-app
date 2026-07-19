@@ -15,18 +15,24 @@ import { Button } from "@/components/ui/button";
 
 export function PaymentConfirmationModal({
   open,
-  orderIds,
+  orderIds = [],
   slug,
   ussdCode,
-  createPayloads,
+  createPayloads = [],
   onClose,
+  onCustomerConfirmed,
+  deferNavigation = false,
 }: {
   open: boolean;
-  orderIds: string[];
+  orderIds?: string[];
   slug: string;
   ussdCode: string;
-  createPayloads: CreateOrderApiPayload[];
+  createPayloads?: CreateOrderApiPayload[];
   onClose: () => void;
+  /** Called when the customer confirms payment before an order exists (pay-before USSD flow). */
+  onCustomerConfirmed?: () => void;
+  /** When true, stay on checkout and let the parent handle navigation (Place Order flow). */
+  deferNavigation?: boolean;
 }) {
   const router = useRouter();
   const isOnline = useOnlineStatus();
@@ -45,6 +51,12 @@ export function PaymentConfirmationModal({
     setSubmitting(true);
 
     try {
+      if (orderIds.length === 0) {
+        onCustomerConfirmed?.();
+        onClose();
+        return;
+      }
+
       if (!isOnline) {
         createPayloads.forEach((payload, index) => {
           queueOrder({
@@ -75,8 +87,11 @@ export function PaymentConfirmationModal({
       }
 
       toast.success("Lacag bixinta waa la diray. Cashier-ka ayaa xaqiijin doona.");
+      onCustomerConfirmed?.();
       onClose();
-      router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
+      if (!deferNavigation) {
+        router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);

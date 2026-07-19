@@ -9,8 +9,10 @@ import { cn, formatCurrency, formatOrderLabel } from "@/lib/utils";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import type { OrderStatus, OrderWithItems, PaymentStatus } from "@/types/database";
+import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
 
 const ORDER_STATUS_STYLE: Record<OrderStatus, string> = {
+  awaiting_payment: "bg-orange-100 text-orange-900",
   new: "bg-blue-100 text-blue-800",
   preparing: "bg-amber-100 text-amber-900",
   ready: "bg-emerald-100 text-emerald-900",
@@ -19,7 +21,8 @@ const ORDER_STATUS_STYLE: Record<OrderStatus, string> = {
 };
 
 const PAYMENT_STATUS_STYLE: Record<PaymentStatus, string> = {
-  pending: "bg-amber-100 text-amber-900",
+  pending: "bg-slate-100 text-slate-600",
+  pending_cashier_confirmation: "bg-amber-100 text-amber-900",
   paid: "bg-emerald-100 text-emerald-900",
   failed: "bg-red-100 text-red-800",
 };
@@ -46,9 +49,11 @@ function formatPaymentBadge(order: OrderWithItems) {
     };
   }
 
-  if (order.payment_status === "pending" && order.customer_confirmed_at) {
+  if (order.payment_status === PENDING_CASHIER_CONFIRMATION) {
     return {
-      label: "Customer confirmed – Awaiting Cashier",
+      label: order.customer_confirmed_at
+        ? "Customer confirmed – Awaiting Cashier"
+        : "API payment – Awaiting Cashier",
       className: "bg-amber-100 text-amber-900",
     };
   }
@@ -68,11 +73,13 @@ function formatPaymentBadge(order: OrderWithItems) {
 
 function formatPaymentLabel(status: PaymentStatus) {
   if (status === "paid") return "Paid";
+  if (status === PENDING_CASHIER_CONFIRMATION) return "Awaiting cashier";
   if (status === "pending") return "Pending";
   return "Failed";
 }
 
 function formatOrderStatusLabel(status: OrderStatus) {
+  if (status === "awaiting_payment") return "Awaiting payment";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
@@ -85,7 +92,7 @@ function PaymentAction({
   busy: boolean;
   onConfirmPayment: () => void;
 }) {
-  if (order.payment_status === "pending") {
+  if (order.payment_status === PENDING_CASHIER_CONFIRMATION) {
     return (
       <Button
         type="button"
@@ -117,39 +124,46 @@ export function CashierBoard({
   restaurantName: string;
   initialOrders: OrderWithItems[];
 }) {
-  const { orders, updatePaymentStatus } = useRealtimeOrders(
+  const { orders, updateOrderFields } = useRealtimeOrders(
     restaurantId,
     initialOrders,
     { activeOnly: false }
   );
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
 
-  const sortedOrders = useMemo(
+  const pendingOrders = useMemo(
     () =>
-      [...orders].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      ),
+      [...orders]
+        .filter((o) => o.payment_status === PENDING_CASHIER_CONFIRMATION)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
     [orders]
   );
 
   const summary = useMemo(
     () => ({
-      total: sortedOrders.length,
-      paid: sortedOrders.filter((o) => o.payment_status === "paid").length,
-      pending: sortedOrders.filter((o) => o.payment_status === "pending").length,
+      total: pendingOrders.length,
+      awaitingCashier: pendingOrders.length,
+      payAtEnd: pendingOrders.filter((o) => o.billing_model === "pay_after").length,
     }),
-    [sortedOrders]
+    [pendingOrders]
   );
 
-  async function handleConfirmPayment(orderId: string) {
-    setBusyOrderId(orderId);
+  async function handleConfirmPayment(order: OrderWithItems) {
+    setBusyOrderId(order.id);
     try {
-      const error = await updatePaymentStatus(orderId, "paid");
+      const fields: { payment_status: PaymentStatus; status?: OrderStatus } = {
+        payment_status: "paid",
+      };
+      if (order.status === "awaiting_payment") {
+        fields.status = "new";
+      }
+
+      const error = await updateOrderFields(order.id, fields);
       if (error) {
         toast.error(error.message);
         return;
       }
-      toast.success("Payment confirmed");
+      toast.success("Payment confirmed — order sent to kitchen");
     } finally {
       setBusyOrderId(null);
     }
@@ -169,13 +183,13 @@ export function CashierBoard({
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary" className="px-3 py-1 text-sm">
-            Orders: {summary.total}
-          </Badge>
-          <Badge className="border-0 bg-emerald-100 px-3 py-1 text-sm text-emerald-900">
-            Paid: {summary.paid}
+            Pending: {summary.total}
           </Badge>
           <Badge className="border-0 bg-amber-100 px-3 py-1 text-sm text-amber-900">
-            Pending: {summary.pending}
+            Customer confirmed: {summary.awaitingCashier}
+          </Badge>
+          <Badge className="border-0 bg-slate-100 px-3 py-1 text-sm text-slate-700">
+            Pay at end: {summary.payAtEnd}
           </Badge>
         </div>
       </header>
@@ -196,7 +210,7 @@ export function CashierBoard({
               </tr>
             </thead>
             <tbody>
-              {sortedOrders.map((order) => (
+              {pendingOrders.map((order) => (
                 <tr key={order.id} className="border-b last:border-0 hover:bg-[#F8FAFC]/80">
                   <td className="px-4 py-3 font-semibold text-[#0F172A]">
                     {formatOrderLabel(order, { prefix: false })}
@@ -237,15 +251,15 @@ export function CashierBoard({
                     <PaymentAction
                       order={order}
                       busy={busyOrderId === order.id}
-                      onConfirmPayment={() => handleConfirmPayment(order.id)}
+                      onConfirmPayment={() => handleConfirmPayment(order)}
                     />
                   </td>
                 </tr>
               ))}
-              {sortedOrders.length === 0 && (
+              {pendingOrders.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-4 py-16 text-center text-[#64748B]">
-                    No orders yet for this restaurant.
+                    No pending payments — all caught up.
                   </td>
                 </tr>
               )}

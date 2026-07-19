@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { isKitchenVisible } from "@/lib/order/kitchen-visibility";
 import type { OrderWithItems } from "@/types/database";
 
 const ACTIVE_KITCHEN_STATUSES = ["new", "preparing", "ready"] as const;
@@ -31,6 +32,7 @@ export function useRealtimeOrders(
     onNewOrder?: (order: OrderWithItems) => void;
     pinReadyToTop?: boolean;
     sortNewestFirst?: boolean;
+    kitchenVisibleOnly?: boolean;
   }
 ) {
   const activeOnly = options?.activeOnly ?? true;
@@ -39,6 +41,7 @@ export function useRealtimeOrders(
   const onNewOrder = options?.onNewOrder;
   const pinReadyToTop = options?.pinReadyToTop ?? false;
   const sortNewestFirst = options?.sortNewestFirst ?? false;
+  const kitchenVisibleOnly = options?.kitchenVisibleOnly ?? false;
   const supabase = useMemo(() => createClient(), []);
   const [orders, setOrders] = useState<OrderWithItems[]>(() =>
     sortNewestFirst ? sortByNewestFirst(initialOrders) : initialOrders
@@ -56,11 +59,20 @@ export function useRealtimeOrders(
     [supabase]
   );
 
+  const passesFilters = useCallback(
+    (order: OrderWithItems) => {
+      if (kitchenVisibleOnly && !isKitchenVisible(order)) return false;
+      if (activeOnly && !isActiveStatus(order.status)) return false;
+      return true;
+    },
+    [activeOnly, kitchenVisibleOnly]
+  );
+
   const mergeOrder = useCallback(
     (prev: OrderWithItems[], full: OrderWithItems) => {
       const without = prev.filter((o) => o.id !== full.id);
 
-      if (activeOnly && !isActiveStatus(full.status)) {
+      if (!passesFilters(full)) {
         return without;
       }
 
@@ -76,12 +88,15 @@ export function useRealtimeOrders(
 
       return next;
     },
-    [activeOnly, pinReadyToTop, sortNewestFirst]
+    [activeOnly, pinReadyToTop, sortNewestFirst, passesFilters]
   );
 
   useEffect(() => {
-    setOrders(sortNewestFirst ? sortByNewestFirst(initialOrders) : initialOrders);
-  }, [initialOrders, sortNewestFirst]);
+    const initial = kitchenVisibleOnly
+      ? initialOrders.filter(isKitchenVisible)
+      : initialOrders;
+    setOrders(sortNewestFirst ? sortByNewestFirst(initial) : initial);
+  }, [initialOrders, sortNewestFirst, kitchenVisibleOnly]);
 
   useEffect(() => {
     const channel = supabase
@@ -92,7 +107,7 @@ export function useRealtimeOrders(
         async (payload) => {
           const full = await fetchOrder(payload.new.id as string);
           if (!full) return;
-          if (activeOnly && !isActiveStatus(full.status)) return;
+          if (!passesFilters(full)) return;
 
           setOrders((prev) => mergeOrder(prev, full));
           onNewOrder?.(full);
@@ -107,7 +122,7 @@ export function useRealtimeOrders(
 
           if (!full) return;
 
-          if (activeOnly && !isActiveStatus(full.status)) {
+          if (!passesFilters(full)) {
             let removedOrder: OrderWithItems | undefined;
 
             setOrders((prev) => {
@@ -133,7 +148,7 @@ export function useRealtimeOrders(
           if (!full) return;
 
           setOrders((prev) => {
-            if (!prev.some((o) => o.id === orderId) && !(activeOnly && !isActiveStatus(full.status))) {
+            if (!prev.some((o) => o.id === orderId) && passesFilters(full)) {
               return mergeOrder(prev, full);
             }
             return mergeOrder(prev, full);
@@ -154,6 +169,7 @@ export function useRealtimeOrders(
     onNewOrder,
     channelName,
     mergeOrder,
+    passesFilters,
   ]);
 
   function removeOrder(orderId: string) {
@@ -212,6 +228,13 @@ export function useRealtimeOrders(
     setOrders((prev) => {
       previous = prev.find((o) => o.id === orderId);
       const updated = prev.map((o) => (o.id === orderId ? { ...o, ...(fields as object) } : o));
+      const nextOrder = updated.find((o) => o.id === orderId);
+      if (nextOrder && !passesFilters(nextOrder)) {
+        if (previous) {
+          onOrderRemoved?.(previous, fields.status ?? previous.status);
+        }
+        return updated.filter((o) => o.id !== orderId);
+      }
       if (activeOnly && fields.status && !isActiveStatus(fields.status)) {
         if (previous) {
           onOrderRemoved?.(previous, fields.status);

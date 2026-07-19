@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { KitchenBoard } from "@/components/staff/kitchen/kitchen-board";
+import { filterKitchenOrders } from "@/lib/order/kitchen-visibility";
 import type { OrderWithItems, MenuItem } from "@/types/database";
 
 export default async function KitchenPage({ params }: { params: { slug: string } }) {
@@ -47,7 +48,7 @@ export default async function KitchenPage({ params }: { params: { slug: string }
     <KitchenBoard
       restaurantId={restaurant.id}
       restaurantName={restaurant.name}
-      initialOrders={(orders as OrderWithItems[]) ?? []}
+      initialOrders={filterKitchenOrders((orders as OrderWithItems[]) ?? [])}
       initialDeliveredCount={deliveredCount ?? 0}
       initialDeliveredOrders={(deliveredOrders as OrderWithItems[]) ?? []}
       initialMenuItems={(menuItems as MenuItem[]) ?? []}

@@ -7,6 +7,7 @@ export interface CreateOrderApiPayload {
   tableId: string | null;
   orderType: "dine-in" | "takeaway";
   paymentMethod?: "evc" | "edahab" | null;
+  billingModel?: "pay_before" | "pay_after";
   customerPhone?: string | null;
   notes?: string | null;
   items: {

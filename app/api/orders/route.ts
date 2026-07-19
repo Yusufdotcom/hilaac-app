@@ -17,7 +17,7 @@ interface IncomingItem {
  */
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { restaurantId, tableId, orderType, items, notes, customerPhone, paymentMethod } = body as {
+  const { restaurantId, tableId, orderType, items, notes, customerPhone, paymentMethod, billingModel } = body as {
     restaurantId: string;
     tableId: string | null;
     orderType: "dine-in" | "takeaway";
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
     notes?: string;
     customerPhone?: string;
     paymentMethod?: "evc" | "edahab";
+    billingModel?: "pay_before" | "pay_after";
   };
 
   if (!restaurantId || !orderType || !Array.isArray(items) || items.length === 0) {
@@ -81,14 +82,18 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  const resolvedBilling: "pay_before" | "pay_after" = billingModel ?? "pay_before";
+  const initialStatus = resolvedBilling === "pay_before" ? "awaiting_payment" : "new";
+
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
       restaurant_id: restaurantId,
       table_id: orderType === "dine-in" ? tableId : null,
       order_type: orderType,
-      status: "new",
+      status: initialStatus,
       payment_status: "pending",
+      billing_model: resolvedBilling,
       payment_method: paymentMethod ?? null,
       total,
       customer_phone: customerPhone || null,

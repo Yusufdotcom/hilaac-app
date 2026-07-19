@@ -4,8 +4,14 @@ export type BillingModel = "pay_before" | "pay_after";
 export type SubscriptionTier = "trial" | "starter" | "pro";
 export type SubscriptionStatus = "active" | "expired";
 export type OrderType = "dine-in" | "takeaway";
-export type OrderStatus = "new" | "preparing" | "ready" | "delivered" | "completed";
-export type PaymentStatus = "pending" | "paid" | "failed";
+export type OrderStatus =
+  | "awaiting_payment"
+  | "new"
+  | "preparing"
+  | "ready"
+  | "delivered"
+  | "completed";
+export type PaymentStatus = "pending" | "pending_cashier_confirmation" | "paid" | "failed";
 export type PaymentMethod = "evc" | "edahab";
 
 export interface Restaurant {
@@ -102,6 +108,7 @@ export interface Order {
   order_type: OrderType;
   status: OrderStatus;
   payment_status: PaymentStatus;
+  billing_model: BillingModel | null;
   payment_method: PaymentMethod | null;
   payment_reference: string | null;
   total: number;

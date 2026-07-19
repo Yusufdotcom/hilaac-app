@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { decrypt } from "@/lib/encryption";
+import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
 import { chargeEdahab, chargeEvc } from "@/lib/payments/providers";
 
 /**
@@ -8,8 +9,8 @@ import { chargeEdahab, chargeEvc } from "@/lib/payments/providers";
  * Smart payment router used by the customer ordering flow when a restaurant
  * is on 'api' payment mode. Looks up the restaurant's encrypted credentials,
  * decrypts them in memory only, and calls the matching provider (EVC or
- * eDahab). Final confirmation still arrives asynchronously via
- * /api/webhooks/evc or /api/webhooks/edahab.
+ * eDahab). Successful charges always land in pending_cashier_confirmation —
+ * the cashier must verify before payment_status becomes paid.
  */
 export async function POST(req: NextRequest) {
   const { orderId, method, phone } = await req.json();
@@ -57,11 +58,12 @@ export async function POST(req: NextRequest) {
   const chargeFn = method === "evc" ? chargeEvc : chargeEdahab;
   const result = await chargeFn({ merchantId, apiKey, amount: Number(order.total), phone: phone ?? order.customer_phone, reference: order.id });
 
-  // Never log merchantId/apiKey — only the outcome.
+  const paymentStatus = result.success ? PENDING_CASHIER_CONFIRMATION : "failed";
+
   await supabase
     .from("orders")
     .update({
-      payment_status: result.status,
+      payment_status: paymentStatus,
       payment_method: method,
       payment_reference: result.providerReference ?? null,
     })
@@ -71,5 +73,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error ?? "Payment failed" }, { status: 502 });
   }
 
-  return NextResponse.json({ success: true, status: result.status });
+  return NextResponse.json({ success: true, status: paymentStatus });
 }

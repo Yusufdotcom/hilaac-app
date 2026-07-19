@@ -37,7 +37,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type public.payment_status as enum ('pending', 'paid', 'failed');
+  create type public.payment_status as enum ('pending', 'pending_cashier_confirmation', 'paid', 'failed');
 exception when duplicate_object then null; end $$;
 
 do $$ begin
@@ -519,21 +519,8 @@ revoke all on public.orders from anon;
 grant select (
   id, status, payment_status, order_type, total, created_at
 ) on public.orders to anon;
-grant update (payment_status) on public.orders to anon;
 
 drop policy if exists "customers can confirm payment on recent orders" on public.orders;
-create policy "customers can confirm payment on recent orders"
-  on public.orders
-  for update
-  to anon
-  using (
-    created_at >= (now() - interval '7 days')
-    and payment_status = 'pending'
-  )
-  with check (
-    created_at >= (now() - interval '7 days')
-    and payment_status = 'paid'
-  );
 
 drop policy if exists "staff can view own restaurant orders" on public.orders;
 create policy "staff can view own restaurant orders" on public.orders

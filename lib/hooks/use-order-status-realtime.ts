@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { OrderStatus, PaymentStatus } from "@/types/database";
+import type { BillingModel, OrderStatus, PaymentStatus } from "@/types/database";
 
 export interface TrackedOrder {
   id: string;
   order_number: number | null;
   status: OrderStatus;
   payment_status: PaymentStatus;
+  billing_model: BillingModel | null;
   customer_confirmed_at: string | null;
   customer_phone: string | null;
 }
@@ -53,6 +54,7 @@ export function useOrderStatusRealtime(orderId: string) {
             order_number: updated.order_number ?? null,
             status: updated.status,
             payment_status: updated.payment_status,
+            billing_model: updated.billing_model ?? null,
             customer_confirmed_at: updated.customer_confirmed_at ?? null,
             customer_phone: updated.customer_phone ?? null,
           });

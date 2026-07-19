@@ -15,6 +15,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "success" | "warn
 const PAYMENT_VARIANT: Record<string, "success" | "warning" | "destructive"> = {
   paid: "success",
   pending: "warning",
+  pending_cashier_confirmation: "warning",
   failed: "destructive",
 };
 

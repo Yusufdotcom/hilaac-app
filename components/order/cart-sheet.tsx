@@ -11,6 +11,7 @@ import { cartItemTotal, cartTotal, type CartItem } from "@/lib/order/cart-types"
 import { billingModelForOrderType, payAfterMessage } from "@/lib/order/billing-model";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
+import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
 import type { OrderType, RestaurantTable } from "@/types/database";
 
 interface MinimalRestaurant {
@@ -61,6 +62,11 @@ export function CartSheet({
 }) {
   const [phone, setPhone] = useState("");
   const [placing, setPlacing] = useState<"evc" | "edahab" | "place" | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"evc" | "edahab" | null>(null);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentDialCode, setPaymentDialCode] = useState("");
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 
   const total = useMemo(() => cartTotal(cart), [cart]);
   const billingModel = useMemo(
@@ -98,6 +104,7 @@ export function CartSheet({
       restaurantId: restaurant.id,
       tableId: orderType === "dine-in" ? table?.id ?? null : null,
       orderType,
+      billingModel: isPayBefore ? "pay_before" : "pay_after",
       ...(method ? { paymentMethod: method } : {}),
       customerPhone: phone || null,
       notes: null,
@@ -108,6 +115,16 @@ export function CartSheet({
         notes: item.notes || undefined,
       })),
     };
+  }
+
+  async function confirmPaymentForOrder(orderId: string) {
+    const res = await fetch(`/api/orders/${orderId}/confirm-payment`, { method: "POST" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error ?? "Could not confirm payment");
+      return false;
+    }
+    return true;
   }
 
   async function createOrder(method?: "evc" | "edahab") {
@@ -158,53 +175,95 @@ export function CartSheet({
     }
   }
 
-  async function handlePay(method: "evc" | "edahab") {
+  async function handlePlaceOrderPayBefore() {
+    if (!paymentMethod || !paymentConfirmed) return;
     if (hasUnavailableItems) {
       toast.error("Ka saar alaabta aan la heli karin si aad u sii wadato.");
       return;
     }
 
-    setPlacing(method);
+    setPlacing("place");
     try {
-      const result = await createOrder(method);
+      if (pendingOrderId) {
+        const confirmed = await confirmPaymentForOrder(pendingOrderId);
+        if (!confirmed) return;
+        onOrderPlaced(pendingOrderId);
+        return;
+      }
+
+      const result = await createOrder(paymentMethod);
       if (!result) return;
 
-      const { orderId, createPayload, total: orderTotal } = result;
+      const confirmed = await confirmPaymentForOrder(result.orderId);
+      if (!confirmed) return;
 
-      if (restaurant.payment_mode === "ussd") {
-        const code = method === "evc" ? restaurant.evc_ussd_code : restaurant.edahab_ussd_code;
-        if (code) {
-          const dialString = ussdDialString(code, orderTotal);
-          window.location.href = `tel:${encodeURIComponent(dialString)}`;
-          onOpenChange(false);
-          onUssdPaymentStarted({
-            orderIds: [orderId],
-            code: dialString,
-            createPayloads: [createPayload],
-          });
-        } else {
-          onOrderPlaced(orderId);
-        }
-      } else {
+      onOrderPlaced(result.orderId);
+    } finally {
+      setPlacing(null);
+    }
+  }
+
+  async function handleInitiatePayment(method: "evc" | "edahab") {
+    if (hasUnavailableItems) {
+      toast.error("Ka saar alaabta aan la heli karin si aad u sii wadato.");
+      return;
+    }
+    if (orderType === "dine-in" && !tableNumber) {
+      toast.error("Fadlan geli lambarka miiska");
+      return;
+    }
+
+    setPaymentMethod(method);
+    setPaymentConfirmed(false);
+    setPlacing(method);
+
+    try {
+      if (restaurant.payment_mode === "api") {
+        const result = await createOrder(method);
+        if (!result) return;
+
+        setPendingOrderId(result.orderId);
+
         const res = await fetch("/api/payments/charge", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId, method, phone }),
+          body: JSON.stringify({ orderId: result.orderId, method, phone }),
         });
         const data = await res.json();
         if (!res.ok) {
           toast.error(data.error ?? "Payment failed");
+          setPendingOrderId(null);
           return;
         }
-        toast.success("Payment initiated. Confirming...");
-        onOrderPlaced(orderId);
+
+        setPaymentDialCode("");
+        setPaymentModalOpen(true);
+        return;
+      }
+
+      const code = method === "evc" ? restaurant.evc_ussd_code : restaurant.edahab_ussd_code;
+      if (code) {
+        const dialString = ussdDialString(code, total);
+        setPaymentDialCode(dialString);
+        window.location.href = `tel:${encodeURIComponent(dialString)}`;
+        setPaymentModalOpen(true);
+      } else {
+        toast.error("Payment code not configured for this restaurant.");
       }
     } finally {
       setPlacing(null);
     }
   }
 
+  function handleCustomerPaymentConfirmed() {
+    setPaymentConfirmed(true);
+    setPaymentModalOpen(false);
+  }
+
+  const canPlacePayBeforeOrder = paymentConfirmed && !!paymentMethod;
+
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
@@ -340,22 +399,39 @@ export function CartSheet({
                   type="button"
                   size="lg"
                   disabled={!!placing || cart.length === 0 || hasUnavailableItems}
-                  onClick={() => handlePay("evc")}
+                  onClick={() => handleInitiatePayment("evc")}
                   className="h-12 w-full rounded-xl bg-emerald-600 text-base font-semibold text-white hover:bg-emerald-700"
                 >
                   {placing === "evc" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  EVC
+                  Ku bixi EVC
                 </Button>
 
                 <Button
                   type="button"
                   size="lg"
                   disabled={!!placing || cart.length === 0 || hasUnavailableItems}
-                  onClick={() => handlePay("edahab")}
+                  onClick={() => handleInitiatePayment("edahab")}
                   className="h-12 w-full rounded-xl bg-amber-500 text-base font-semibold text-white hover:bg-amber-600"
                 >
                   {placing === "edahab" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  eDahab
+                  Ku bixi eDahab
+                </Button>
+
+                {paymentConfirmed && (
+                  <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-sm text-emerald-800">
+                    Lacag bixinta waa la xaqiijiyay. Taabo &ldquo;Place Order&rdquo; si aad u dirto dalabka.
+                  </p>
+                )}
+
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={!!placing || cart.length === 0 || hasUnavailableItems || !canPlacePayBeforeOrder}
+                  onClick={handlePlaceOrderPayBefore}
+                  className="h-12 w-full rounded-xl bg-[#0F172A] text-base font-semibold text-white hover:bg-[#1E293B] disabled:opacity-50"
+                >
+                  {placing === "place" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Place Order
                 </Button>
               </>
             ) : (
@@ -379,5 +455,23 @@ export function CartSheet({
         </div>
       </SheetContent>
     </Sheet>
+
+    {paymentModalOpen && paymentMethod && (
+      <PaymentConfirmationModal
+        open
+        slug={restaurant.slug}
+        ussdCode={paymentDialCode}
+        orderIds={pendingOrderId ? [pendingOrderId] : []}
+        createPayloads={
+          pendingOrderId
+            ? [buildCreatePayload(paymentMethod)!].filter(Boolean)
+            : []
+        }
+        onCustomerConfirmed={handleCustomerPaymentConfirmed}
+        onClose={() => setPaymentModalOpen(false)}
+        deferNavigation
+      />
+    )}
+    </>
   );
 }

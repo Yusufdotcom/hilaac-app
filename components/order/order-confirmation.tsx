@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { useOrderStatusRealtime } from "@/lib/hooks/use-order-status-realtime";
+import { customerStatusWorkflowMessage } from "@/lib/order/billing-model";
+import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
 import type { OrderStatus, PaymentStatus } from "@/types/database";
 import { cn, formatOrderLabel } from "@/lib/utils";
 
@@ -53,7 +55,7 @@ function PaymentStatusBadge({
     );
   }
 
-  if (customerConfirmedAt) {
+  if (paymentStatus === PENDING_CASHIER_CONFIRMATION || customerConfirmedAt) {
     return (
       <Badge
         variant="warning"
@@ -62,7 +64,7 @@ function PaymentStatusBadge({
           compact ? "text-xs" : "text-sm"
         )}
       >
-        ⏳ Payment pending – Awaiting cashier verification
+        ⏳ Awaiting cashier verification
       </Badge>
     );
   }
@@ -77,6 +79,14 @@ function PaymentStatusBadge({
 function OrderStatusBadge({ status }: { status: OrderStatus | undefined }) {
   if (!status) return null;
 
+  if (status === "awaiting_payment") {
+    return (
+      <Badge variant="outline" className="border-orange-200 bg-orange-50 text-sm text-orange-800">
+        Awaiting payment
+      </Badge>
+    );
+  }
+
   const badgeKey =
     status === "completed" ? "delivered" : status in STATUS_BADGE ? (status as keyof typeof STATUS_BADGE) : null;
 
@@ -88,6 +98,28 @@ function OrderStatusBadge({ status }: { status: OrderStatus | undefined }) {
     <Badge variant="outline" className={cn("text-sm", className)}>
       {label}
     </Badge>
+  );
+}
+
+function WorkflowMessage({
+  order,
+  compact,
+}: {
+  order: NonNullable<ReturnType<typeof useOrderStatusRealtime>>;
+  compact?: boolean;
+}) {
+  const message = customerStatusWorkflowMessage(order);
+  if (!message) return null;
+
+  return (
+    <p
+      className={cn(
+        "rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-center text-[#64748B]",
+        compact ? "mt-2 text-xs leading-snug" : "mt-4 text-sm"
+      )}
+    >
+      {message}
+    </p>
   );
 }
 
@@ -150,7 +182,10 @@ export function OrderConfirmation({
 }) {
   const order = useOrderStatusRealtime(orderId);
 
-  const currentIndex = STATUS_STEPS.findIndex((s) => s.key === order?.status);
+  const currentIndex =
+    order?.status === "awaiting_payment"
+      ? -1
+      : STATUS_STEPS.findIndex((s) => s.key === order?.status);
 
   if (compact) {
     return (
@@ -174,6 +209,8 @@ export function OrderConfirmation({
           <div className="mt-2">
             <OrderStatusBadge status={order?.status} />
           </div>
+
+          {order && <WorkflowMessage order={order} compact />}
 
           <div className="mt-4 w-full">
             <CompactStatusSteps currentIndex={currentIndex} />
@@ -236,6 +273,8 @@ export function OrderConfirmation({
       <div className="mt-4">
         <OrderStatusBadge status={order?.status} />
       </div>
+
+      {order && <WorkflowMessage order={order} />}
 
       <div className="mt-8 w-full max-w-sm space-y-3">
         {STATUS_STEPS.map((step, idx) => (
