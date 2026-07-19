@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     items: IncomingItem[];
     notes?: string;
     customerPhone?: string;
-    paymentMethod: "evc" | "edahab";
+    paymentMethod?: "evc" | "edahab";
   };
 
   if (!restaurantId || !orderType || !Array.isArray(items) || items.length === 0) {

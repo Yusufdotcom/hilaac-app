@@ -32,6 +32,8 @@ export async function PATCH(req: NextRequest) {
     "payment_mode",
     "evc_ussd_code",
     "edahab_ussd_code",
+    "billing_model_dinein",
+    "billing_model_takeaway",
   ] as const;
 
   for (const field of plainFields) {

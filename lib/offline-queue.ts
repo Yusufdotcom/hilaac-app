@@ -6,7 +6,7 @@ export interface CreateOrderApiPayload {
   restaurantId: string;
   tableId: string | null;
   orderType: "dine-in" | "takeaway";
-  paymentMethod: "evc" | "edahab";
+  paymentMethod?: "evc" | "edahab" | null;
   customerPhone?: string | null;
   notes?: string | null;
   items: {

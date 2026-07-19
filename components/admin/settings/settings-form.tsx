@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { createClient } from "@/lib/supabase/client";
-import type { Restaurant } from "@/types/database";
+import type { BillingModel, Restaurant } from "@/types/database";
 
 export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
   const supabase = createClient();
@@ -29,6 +29,10 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     takeaway_enabled: restaurant.takeaway_enabled,
   });
   const [paymentMode, setPaymentMode] = useState<"ussd" | "api">(restaurant.payment_mode);
+  const [billingRules, setBillingRules] = useState({
+    billing_model_dinein: (restaurant.billing_model_dinein ?? "pay_before") as BillingModel,
+    billing_model_takeaway: (restaurant.billing_model_takeaway ?? "pay_before") as BillingModel,
+  });
   const [ussd, setUssd] = useState({
     evc_ussd_code: restaurant.evc_ussd_code ?? "",
     edahab_ussd_code: restaurant.edahab_ussd_code ?? "",
@@ -38,6 +42,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
   const [savingGeneral, setSavingGeneral] = useState(false);
   const [savingOrderTypes, setSavingOrderTypes] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
+  const [savingBillingRules, setSavingBillingRules] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [testing, setTesting] = useState<"evc" | "edahab" | null>(null);
   const [testResult, setTestResult] = useState<Record<string, { success: boolean; message: string }>>({});
@@ -126,6 +131,29 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
       toast.error(err?.message ?? "Connection failed");
     } finally {
       setTesting(null);
+    }
+  }
+
+  async function handleSaveBillingRules(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingBillingRules(true);
+    try {
+      const { error } = await supabase
+        .from("restaurants")
+        .update({
+          billing_model_dinein: billingRules.billing_model_dinein,
+          billing_model_takeaway: billingRules.billing_model_takeaway,
+        })
+        .eq("id", restaurant.id);
+
+      if (error) throw error;
+
+      toast.success("Payment rules saved");
+      router.refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to save payment rules");
+    } finally {
+      setSavingBillingRules(false);
     }
   }
 
@@ -220,6 +248,82 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
             </div>
             <Switch checked={orderTypes.takeaway_enabled} disabled={savingOrderTypes} onCheckedChange={() => handleToggleOrderType("takeaway_enabled")} />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment rules per order type */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Payment Rules per Order Type</CardTitle>
+          <CardDescription>
+            Choose when customers pay for dine-in vs takeaway orders.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSaveBillingRules} className="space-y-6">
+            <div className="space-y-3">
+              <p className="text-sm font-medium">🍽️ Dine-in: Pay before cooking or Pay after meal?</p>
+              <RadioGroup
+                value={billingRules.billing_model_dinein}
+                onValueChange={(value) =>
+                  setBillingRules((prev) => ({
+                    ...prev,
+                    billing_model_dinein: value as BillingModel,
+                  }))
+                }
+                className="grid gap-3 sm:grid-cols-2"
+              >
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-4">
+                  <RadioGroupItem value="pay_before" id="dinein-pay-before" />
+                  <div>
+                    <p className="font-medium">Pay before cooking</p>
+                    <p className="text-xs text-muted-foreground">Customer pays at checkout (EVC / eDahab)</p>
+                  </div>
+                </label>
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-4">
+                  <RadioGroupItem value="pay_after" id="dinein-pay-after" />
+                  <div>
+                    <p className="font-medium">Pay after meal</p>
+                    <p className="text-xs text-muted-foreground">Bill brought to the table later</p>
+                  </div>
+                </label>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm font-medium">📦 Takeaway: Pay before cooking or Pay after meal?</p>
+              <RadioGroup
+                value={billingRules.billing_model_takeaway}
+                onValueChange={(value) =>
+                  setBillingRules((prev) => ({
+                    ...prev,
+                    billing_model_takeaway: value as BillingModel,
+                  }))
+                }
+                className="grid gap-3 sm:grid-cols-2"
+              >
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-4">
+                  <RadioGroupItem value="pay_before" id="takeaway-pay-before" />
+                  <div>
+                    <p className="font-medium">Pay before cooking</p>
+                    <p className="text-xs text-muted-foreground">Customer pays at checkout (EVC / eDahab)</p>
+                  </div>
+                </label>
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-4">
+                  <RadioGroupItem value="pay_after" id="takeaway-pay-after" />
+                  <div>
+                    <p className="font-medium">Pay on pickup</p>
+                    <p className="text-xs text-muted-foreground">Customer pays when collecting the order</p>
+                  </div>
+                </label>
+              </RadioGroup>
+            </div>
+
+            <Button type="submit" disabled={savingBillingRules}>
+              {savingBillingRules && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save Payment Rules
+            </Button>
+          </form>
         </CardContent>
       </Card>
 

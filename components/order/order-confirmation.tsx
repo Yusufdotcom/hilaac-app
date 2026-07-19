@@ -5,6 +5,7 @@ import { CheckCircle2, ChefHat, Clock, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
+import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { useOrderStatusRealtime } from "@/lib/hooks/use-order-status-realtime";
 import type { OrderStatus, PaymentStatus } from "@/types/database";
 import { cn, formatOrderLabel } from "@/lib/utils";
@@ -187,6 +188,8 @@ export function OrderConfirmation({
             />
           </div>
 
+          <OrderCustomerPhone phone={order?.customer_phone} variant="badge" className="mt-2" />
+
           {order?.status === "completed" && (
             <div className="mt-2 flex items-center gap-1.5 text-sm text-hilaac-gold">
               <PartyPopper className="h-4 w-4" /> Mahadsanid!
@@ -261,6 +264,8 @@ export function OrderConfirmation({
           customerConfirmedAt={order?.customer_confirmed_at}
         />
       </div>
+
+      <OrderCustomerPhone phone={order?.customer_phone} variant="badge" className="mt-3" />
 
       {order?.status === "completed" && (
         <div className="mt-8 flex items-center gap-2 text-hilaac-gold">

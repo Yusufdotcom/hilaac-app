@@ -26,6 +26,8 @@ interface MinimalRestaurant {
   edahab_ussd_code: string | null;
   dine_in_enabled: boolean;
   takeaway_enabled: boolean;
+  billing_model_dinein: "pay_before" | "pay_after";
+  billing_model_takeaway: "pay_before" | "pay_after";
 }
 
 export function OrderingApp({

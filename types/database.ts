@@ -1,5 +1,6 @@
 export type UserRole = "owner" | "manager" | "waiter" | "kitchen" | "cashier";
 export type PaymentMode = "ussd" | "api";
+export type BillingModel = "pay_before" | "pay_after";
 export type SubscriptionTier = "trial" | "starter" | "pro";
 export type SubscriptionStatus = "active" | "expired";
 export type OrderType = "dine-in" | "takeaway";
@@ -28,6 +29,8 @@ export interface Restaurant {
   edahab_api_key_encrypted?: string | null;
   dine_in_enabled: boolean;
   takeaway_enabled: boolean;
+  billing_model_dinein: BillingModel;
+  billing_model_takeaway: BillingModel;
   is_active: boolean;
   is_demo: boolean;
   demo_expires_at: string | null;

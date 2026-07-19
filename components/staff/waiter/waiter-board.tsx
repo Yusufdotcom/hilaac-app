@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn, formatOrderLabel } from "@/lib/utils";
+import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import { useStaffOrderNotifications } from "@/lib/hooks/use-staff-order-notifications";
 import type { OrderStatus, OrderWithItems, RestaurantTable, Waiter } from "@/types/database";
@@ -280,6 +281,8 @@ export function WaiterBoard({
                     </p>
                   )}
 
+                  {order && <OrderCustomerPhone phone={order.customer_phone} variant="compact" className="mt-1" />}
+
                   {order && (
                     <p className="mt-1 line-clamp-2 text-sm text-[#64748B]">
                       {order.order_items
@@ -327,6 +330,7 @@ export function WaiterBoard({
                   <div>
                     <p className="text-lg font-bold text-[#0F172A]">{formatOrderLabel(order)}</p>
                     <p className="text-sm font-medium text-[#64748B]">Takeaway</p>
+                    <OrderCustomerPhone phone={order.customer_phone} variant="compact" className="mt-1" />
                   </div>
                   <Badge className="border-0 bg-emerald-100 text-emerald-900">Ready</Badge>
                 </div>

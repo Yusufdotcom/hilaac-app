@@ -10,6 +10,7 @@ export interface TrackedOrder {
   status: OrderStatus;
   payment_status: PaymentStatus;
   customer_confirmed_at: string | null;
+  customer_phone: string | null;
 }
 
 /**
@@ -53,6 +54,7 @@ export function useOrderStatusRealtime(orderId: string) {
             status: updated.status,
             payment_status: updated.payment_status,
             customer_confirmed_at: updated.customer_confirmed_at ?? null,
+            customer_phone: updated.customer_phone ?? null,
           });
         }
       )

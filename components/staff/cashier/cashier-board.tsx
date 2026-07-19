@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency, formatOrderLabel } from "@/lib/utils";
+import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import type { OrderStatus, OrderWithItems, PaymentStatus } from "@/types/database";
 
@@ -186,6 +187,7 @@ export function CashierBoard({
               <tr className="border-b bg-[#F8FAFC] text-left text-[#64748B]">
                 <th className="px-4 py-3 font-semibold">Order #</th>
                 <th className="px-4 py-3 font-semibold">Table / Takeaway</th>
+                <th className="px-4 py-3 font-semibold">Phone</th>
                 <th className="px-4 py-3 font-semibold">Items</th>
                 <th className="px-4 py-3 font-semibold">Total</th>
                 <th className="px-4 py-3 font-semibold">Payment Status</th>
@@ -200,6 +202,9 @@ export function CashierBoard({
                     {formatOrderLabel(order, { prefix: false })}
                   </td>
                   <td className="px-4 py-3 font-medium text-[#0F172A]">{formatLocation(order)}</td>
+                  <td className="px-4 py-3">
+                    <OrderCustomerPhone phone={order.customer_phone} variant="compact" />
+                  </td>
                   <td className="max-w-xs px-4 py-3 text-[#64748B]">
                     <p className="line-clamp-2">{formatItems(order)}</p>
                   </td>
@@ -239,7 +244,7 @@ export function CashierBoard({
               ))}
               {sortedOrders.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-16 text-center text-[#64748B]">
+                  <td colSpan={8} className="px-4 py-16 text-center text-[#64748B]">
                     No orders yet for this restaurant.
                   </td>
                 </tr>

@@ -9,6 +9,7 @@ import { cn, formatDate, formatOrderLabel } from "@/lib/utils";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import { useStaffOrderNotifications } from "@/lib/hooks/use-staff-order-notifications";
 import { KitchenMenuAvailability } from "@/components/staff/kitchen/kitchen-menu-availability";
+import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import type { OrderStatus, OrderWithItems, MenuItem } from "@/types/database";
 import type { PostgrestError } from "@supabase/supabase-js";
 
@@ -90,6 +91,7 @@ function KitchenOrderCard({
               <Clock className="h-3.5 w-3.5" aria-hidden="true" />
               {formatDate(order.created_at)}
             </p>
+            <OrderCustomerPhone phone={order.customer_phone} variant="compact" className="mt-0.5" />
           </div>
         </div>
         <Badge className={cn("shrink-0 border-0", badge.className)}>{badge.label}</Badge>
@@ -177,6 +179,7 @@ function DeliveredOrderCard({ order }: { order: OrderWithItems }) {
               <Clock className="h-3.5 w-3.5" aria-hidden="true" />
               {formatDate(order.created_at)}
             </p>
+            <OrderCustomerPhone phone={order.customer_phone} variant="compact" className="mt-0.5" />
           </div>
         </div>
         <Badge className="shrink-0 border-0 bg-blue-100 text-blue-900">Delivered</Badge>

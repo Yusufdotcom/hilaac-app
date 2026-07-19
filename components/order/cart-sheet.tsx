@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cartItemTotal, cartTotal, type CartItem } from "@/lib/order/cart-types";
+import { billingModelForOrderType, payAfterMessage } from "@/lib/order/billing-model";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
 import type { OrderType, RestaurantTable } from "@/types/database";
@@ -21,6 +22,8 @@ interface MinimalRestaurant {
   edahab_ussd_code: string | null;
   dine_in_enabled: boolean;
   takeaway_enabled: boolean;
+  billing_model_dinein: "pay_before" | "pay_after";
+  billing_model_takeaway: "pay_before" | "pay_after";
 }
 
 export function CartSheet({
@@ -57,9 +60,14 @@ export function CartSheet({
   }) => void;
 }) {
   const [phone, setPhone] = useState("");
-  const [placing, setPlacing] = useState<"evc" | "edahab" | null>(null);
+  const [placing, setPlacing] = useState<"evc" | "edahab" | "place" | null>(null);
 
   const total = useMemo(() => cartTotal(cart), [cart]);
+  const billingModel = useMemo(
+    () => billingModelForOrderType(orderType, restaurant),
+    [orderType, restaurant]
+  );
+  const isPayBefore = billingModel === "pay_before";
 
   const hasUnavailableItems = useMemo(
     () => cart.some((item) => unavailableMenuIds.has(item.menuItem.id)),
@@ -80,7 +88,7 @@ export function CartSheet({
     return `${trimmed}${Math.round(amount)}#`;
   }
 
-  function buildCreatePayload(method: "evc" | "edahab"): CreateOrderApiPayload | null {
+  function buildCreatePayload(method?: "evc" | "edahab"): CreateOrderApiPayload | null {
     if (cart.length === 0) return null;
     if (orderType === "dine-in" && !tableNumber) return null;
 
@@ -90,7 +98,7 @@ export function CartSheet({
       restaurantId: restaurant.id,
       tableId: orderType === "dine-in" ? table?.id ?? null : null,
       orderType,
-      paymentMethod: method,
+      ...(method ? { paymentMethod: method } : {}),
       customerPhone: phone || null,
       notes: null,
       items: cart.map((item) => ({
@@ -102,7 +110,7 @@ export function CartSheet({
     };
   }
 
-  async function createOrder(method: "evc" | "edahab") {
+  async function createOrder(method?: "evc" | "edahab") {
     if (cart.length === 0) {
       toast.error("Your cart is empty");
       return null;
@@ -132,6 +140,22 @@ export function CartSheet({
       createPayload: payload,
       total: Number(data.total ?? total),
     };
+  }
+
+  async function handlePlaceOrderWithoutPayment() {
+    if (hasUnavailableItems) {
+      toast.error("Ka saar alaabta aan la heli karin si aad u sii wadato.");
+      return;
+    }
+
+    setPlacing("place");
+    try {
+      const result = await createOrder();
+      if (!result) return;
+      onOrderPlaced(result.orderId);
+    } finally {
+      setPlacing(null);
+    }
   }
 
   async function handlePay(method: "evc" | "edahab") {
@@ -310,27 +334,47 @@ export function CartSheet({
               <span>{formatCurrency(total)}</span>
             </div>
 
-            <Button
-              type="button"
-              size="lg"
-              disabled={!!placing || cart.length === 0 || hasUnavailableItems}
-              onClick={() => handlePay("evc")}
-              className="h-12 w-full rounded-xl bg-emerald-600 text-base font-semibold text-white hover:bg-emerald-700"
-            >
-              {placing === "evc" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              EVC
-            </Button>
+            {isPayBefore ? (
+              <>
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={!!placing || cart.length === 0 || hasUnavailableItems}
+                  onClick={() => handlePay("evc")}
+                  className="h-12 w-full rounded-xl bg-emerald-600 text-base font-semibold text-white hover:bg-emerald-700"
+                >
+                  {placing === "evc" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  EVC
+                </Button>
 
-            <Button
-              type="button"
-              size="lg"
-              disabled={!!placing || cart.length === 0 || hasUnavailableItems}
-              onClick={() => handlePay("edahab")}
-              className="h-12 w-full rounded-xl bg-amber-500 text-base font-semibold text-white hover:bg-amber-600"
-            >
-              {placing === "edahab" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              eDahab
-            </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={!!placing || cart.length === 0 || hasUnavailableItems}
+                  onClick={() => handlePay("edahab")}
+                  className="h-12 w-full rounded-xl bg-amber-500 text-base font-semibold text-white hover:bg-amber-600"
+                >
+                  {placing === "edahab" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  eDahab
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <p className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-center text-sm text-[#64748B]">
+                  {payAfterMessage(orderType)}
+                </p>
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={!!placing || cart.length === 0 || hasUnavailableItems}
+                  onClick={handlePlaceOrderWithoutPayment}
+                  className="h-12 w-full rounded-xl bg-[#0F172A] text-base font-semibold text-white hover:bg-[#1E293B]"
+                >
+                  {placing === "place" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Place Order
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </SheetContent>

@@ -23,6 +23,16 @@ export function formatOrderLabel(
   return options?.prefix === false ? hash : `Order ${hash}`;
 }
 
+/** Display customer phone with optional +252 prefix for local numbers. */
+export function formatCustomerPhone(phone: string | null | undefined) {
+  if (!phone?.trim()) return null;
+  const trimmed = phone.trim();
+  if (trimmed.startsWith("+")) return trimmed;
+  if (trimmed.startsWith("252")) return `+${trimmed}`;
+  if (trimmed.startsWith("0")) return `+252${trimmed.slice(1)}`;
+  return trimmed;
+}
+
 export function formatDate(date: string | Date) {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
