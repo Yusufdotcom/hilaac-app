@@ -39,7 +39,7 @@ function BranchOption({
         "flex w-full min-w-0 items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors duration-150",
         isSelected ? "text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
       )}
-      style={isSelected ? { backgroundColor: `${accent}22` } : undefined}
+      style={isSelected ? { backgroundColor: `${accent}33` } : undefined}
     >
       <MapPin
         className="h-4 w-4 shrink-0"
@@ -49,8 +49,7 @@ function BranchOption({
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {isSelected && (
         <span
-          className="shrink-0 text-[10px] font-medium uppercase tracking-wide"
-          style={{ color: accent }}
+          className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-white"
         >
           Active
         </span>

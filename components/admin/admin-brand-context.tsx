@@ -18,7 +18,10 @@ export function AdminBrandProvider({
     <AdminBrandContext.Provider value={accent}>
       <div
         className="contents"
-        style={{ ["--admin-brand" as string]: accent }}
+        style={{
+          ["--admin-brand" as string]: accent,
+          ["--brand-accent" as string]: accent,
+        }}
       >
         {children}
       </div>

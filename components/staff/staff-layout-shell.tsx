@@ -3,7 +3,7 @@
 import { StaffSidebar } from "@/components/staff/staff-sidebar";
 import { SidebarBrandHeader } from "@/components/dashboard/sidebar-brand-header";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
-import { sidebarBrandStyles } from "@/lib/brand/restaurant-brand";
+import { resolveBrandColor, sidebarBrandStyles } from "@/lib/brand/restaurant-brand";
 import type { UserRole } from "@/types/database";
 
 export function StaffLayoutShell({
@@ -23,8 +23,13 @@ export function StaffLayoutShell({
   subscriptionTier: string;
   brandColor?: string | null;
 }) {
+  const accent = resolveBrandColor(brandColor);
+
   return (
-    <div className="flex min-h-screen w-full flex-col bg-[#F8FAFC] md:flex-row">
+    <div
+      className="flex min-h-screen w-full flex-col bg-[#F8FAFC] md:flex-row"
+      style={{ ["--brand-accent" as string]: accent }}
+    >
       <div
         className="shrink-0 border-b border-white/10 md:hidden"
         style={sidebarBrandStyles(brandColor)}

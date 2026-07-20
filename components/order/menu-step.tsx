@@ -21,9 +21,10 @@ function ItemCard({
   item: MenuItem;
   onSelect: (item: MenuItem) => void;
 }) {
-  const { restaurant, customBrandingActive } = useOrderBrand();
+  const { restaurant } = useOrderBrand();
   const unavailable = !item.is_available;
-  const plusStyle = customBrandingActive ? customerPrimaryButtonStyle(restaurant) : undefined;
+  const plusStyle = customerPrimaryButtonStyle(restaurant);
+  const accentTextStyle = customerAccentTextStyle(restaurant);
 
   return (
     <div
@@ -34,10 +35,15 @@ function ItemCard({
     >
       {!unavailable ? (
         <button type="button" onClick={() => onSelect(item)} className="flex flex-1 flex-col text-left">
-          <ItemCardContent item={item} unavailable={false} plusStyle={plusStyle} customBrandingActive={customBrandingActive} restaurant={restaurant} />
+          <ItemCardContent
+            item={item}
+            unavailable={false}
+            plusStyle={plusStyle}
+            accentTextStyle={accentTextStyle}
+          />
         </button>
       ) : (
-        <ItemCardContent item={item} unavailable plusStyle={plusStyle} customBrandingActive={customBrandingActive} restaurant={restaurant} />
+        <ItemCardContent item={item} unavailable plusStyle={plusStyle} accentTextStyle={accentTextStyle} />
       )}
     </div>
   );
@@ -47,14 +53,12 @@ function ItemCardContent({
   item,
   unavailable,
   plusStyle,
-  customBrandingActive,
-  restaurant,
+  accentTextStyle,
 }: {
   item: MenuItem;
   unavailable: boolean;
-  plusStyle?: React.CSSProperties;
-  customBrandingActive: boolean;
-  restaurant: { brand_color?: string | null; custom_branding_enabled?: boolean | null; subscription_tier?: string | null };
+  plusStyle: React.CSSProperties;
+  accentTextStyle: React.CSSProperties;
 }) {
   return (
     <>
@@ -95,18 +99,12 @@ function ItemCardContent({
           <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
         )}
         <div className="mt-auto flex items-center justify-between pt-1">
-          <span
-            className={cn("font-bold", !customBrandingActive && "text-primary")}
-            style={customBrandingActive ? customerAccentTextStyle(restaurant) : undefined}
-          >
+          <span className="font-bold" style={accentTextStyle}>
             {formatCurrency(Number(item.price))}
           </span>
           {!unavailable && (
             <span
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full",
-                !customBrandingActive && "bg-primary text-primary-foreground"
-              )}
+              className="flex h-7 w-7 items-center justify-center rounded-full"
               style={plusStyle}
             >
               <Plus className="h-4 w-4" />

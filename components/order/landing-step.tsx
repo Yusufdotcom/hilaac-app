@@ -4,8 +4,10 @@ import Image from "next/image";
 import { UtensilsCrossed, ShoppingBag, ChefHat } from "lucide-react";
 import { useOrderBrand } from "@/components/order/order-brand-context";
 import {
+  brandColorWithAlpha,
   customerAccentTextStyle,
   customerPrimaryButtonStyle,
+  resolveCustomerAccent,
 } from "@/lib/brand/restaurant-brand";
 import { cn } from "@/lib/utils";
 
@@ -18,9 +20,10 @@ export function LandingStep({
   onSelect: (type: "dine-in" | "takeaway") => void;
   className?: string;
 }) {
-  const { restaurant: brandingRestaurant, customBrandingActive } = useOrderBrand();
+  const { restaurant: brandingRestaurant } = useOrderBrand();
+  const accent = resolveCustomerAccent(brandingRestaurant);
   const accentStyle = customerPrimaryButtonStyle(brandingRestaurant);
-  const accentBorder = { borderColor: customBrandingActive ? accentStyle.backgroundColor : undefined };
+  const accentTextStyle = customerAccentTextStyle(brandingRestaurant);
 
   return (
     <div
@@ -30,11 +33,8 @@ export function LandingStep({
       )}
     >
       <div
-        className={cn(
-          "mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full",
-          !customBrandingActive && "bg-primary/10"
-        )}
-        style={customBrandingActive ? { backgroundColor: `${accentStyle.backgroundColor}22` } : undefined}
+        className="mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full"
+        style={{ backgroundColor: brandColorWithAlpha(accent, 0.12) }}
       >
         {restaurant.logo_url ? (
           <Image
@@ -45,10 +45,7 @@ export function LandingStep({
             className="h-full w-full object-cover"
           />
         ) : (
-          <ChefHat
-            className={cn("h-9 w-9", !customBrandingActive && "text-primary")}
-            style={customBrandingActive ? customerAccentTextStyle(brandingRestaurant) : undefined}
-          />
+          <ChefHat className="h-9 w-9" style={accentTextStyle} />
         )}
       </div>
       <h1 className="text-2xl font-bold">Kusoo dhawaaw {restaurant.name}</h1>
@@ -59,18 +56,15 @@ export function LandingStep({
           <button
             type="button"
             onClick={() => onSelect("dine-in")}
-            className={cn(
-              "flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition-transform active:scale-[0.98]",
-              !customBrandingActive && "border-primary bg-primary/5"
-            )}
-            style={customBrandingActive ? { ...accentBorder, backgroundColor: `${accentStyle.backgroundColor}12` } : undefined}
+            className="flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition-transform active:scale-[0.98]"
+            style={{
+              borderColor: accent,
+              backgroundColor: brandColorWithAlpha(accent, 0.08),
+            }}
           >
             <div
-              className={cn(
-                "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
-                !customBrandingActive && "bg-primary text-primary-foreground"
-              )}
-              style={customBrandingActive ? accentStyle : undefined}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+              style={accentStyle}
             >
               <UtensilsCrossed className="h-6 w-6" />
             </div>

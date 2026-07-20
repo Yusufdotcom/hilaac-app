@@ -5,16 +5,27 @@ import {
   customerPaymentButtonStyle,
   customerPlaceOrderButtonStyle,
   customerPrimaryButtonStyle,
+  isCustomerBrandingActive,
 } from "@/lib/brand/restaurant-brand";
 import { cn } from "@/lib/utils";
 import { useOrderBrand } from "@/components/order/order-brand-context";
 
 type OrderButtonKind = "primary" | "place-order" | "payment-evc" | "payment-edahab";
 
-const DEFAULT_PAYMENT_CLASS: Record<"payment-evc" | "payment-edahab", string> = {
-  "payment-evc": "bg-emerald-600 text-white hover:bg-emerald-700",
-  "payment-edahab": "bg-amber-500 text-white hover:bg-amber-600",
-};
+function styleForKind(
+  restaurant: Parameters<typeof customerPrimaryButtonStyle>[0],
+  kind: OrderButtonKind
+) {
+  switch (kind) {
+    case "place-order":
+      return customerPlaceOrderButtonStyle(restaurant);
+    case "payment-evc":
+    case "payment-edahab":
+      return customerPaymentButtonStyle(restaurant);
+    default:
+      return customerPrimaryButtonStyle(restaurant);
+  }
+}
 
 export function OrderPrimaryButton({
   className,
@@ -22,25 +33,9 @@ export function OrderPrimaryButton({
   kind = "primary",
   ...props
 }: ButtonProps & { kind?: OrderButtonKind }) {
-  const { restaurant, customBrandingActive } = useOrderBrand();
-
-  let inlineStyle: React.CSSProperties | undefined;
-  let defaultClass: string | undefined;
-
-  switch (kind) {
-    case "place-order":
-      inlineStyle = customerPlaceOrderButtonStyle(restaurant);
-      break;
-    case "payment-evc":
-    case "payment-edahab":
-      inlineStyle = customerPaymentButtonStyle(restaurant);
-      if (!customBrandingActive) {
-        defaultClass = DEFAULT_PAYMENT_CLASS[kind];
-      }
-      break;
-    default:
-      inlineStyle = customerPrimaryButtonStyle(restaurant);
-  }
+  const { restaurant } = useOrderBrand();
+  const inlineStyle = styleForKind(restaurant, kind);
+  const usesBrandFill = isCustomerBrandingActive(restaurant);
 
   return (
     <Button
@@ -48,8 +43,7 @@ export function OrderPrimaryButton({
       variant="brand"
       className={cn(
         "border-0 hover:opacity-90",
-        customBrandingActive && "text-white",
-        defaultClass,
+        usesBrandFill && "text-white",
         className
       )}
       style={{ ...inlineStyle, ...style }}

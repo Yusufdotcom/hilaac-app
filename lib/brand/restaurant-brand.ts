@@ -51,12 +51,17 @@ export function customerPlaceOrderButtonStyle(restaurant: CustomerBrandingRestau
   };
 }
 
-/** Payment buttons — emerald/amber by default; brand when Pro custom branding. */
-export function customerPaymentButtonStyle(restaurant: CustomerBrandingRestaurant): CSSProperties | undefined {
-  if (!isCustomerBrandingActive(restaurant)) return undefined;
+/** Payment buttons — gold by default; brand + white when Pro custom branding. */
+export function customerPaymentButtonStyle(restaurant: CustomerBrandingRestaurant): CSSProperties {
+  if (isCustomerBrandingActive(restaurant)) {
+    return {
+      backgroundColor: resolveBrandColor(restaurant.brand_color),
+      color: SIDEBAR_TEXT_COLOR,
+    };
+  }
   return {
-    backgroundColor: resolveBrandColor(restaurant.brand_color),
-    color: SIDEBAR_TEXT_COLOR,
+    backgroundColor: HILAAC_GOLD,
+    color: HILAAC_NAVY,
   };
 }
 

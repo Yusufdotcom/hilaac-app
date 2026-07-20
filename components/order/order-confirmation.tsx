@@ -14,6 +14,8 @@ import { useOrderBrandOptional } from "@/components/order/order-brand-context";
 import {
   brandColorWithAlpha,
   customerAccentTextStyle,
+  customerPrimaryButtonStyle,
+  isCustomerBrandingActive,
   resolveCustomerAccent,
 } from "@/lib/brand/restaurant-brand";
 import { cn, formatOrderLabel } from "@/lib/utils";
@@ -129,7 +131,13 @@ function WorkflowMessage({
   );
 }
 
-function CompactStatusSteps({ currentIndex }: { currentIndex: number }) {
+function CompactStatusSteps({
+  currentIndex,
+  stepStyle,
+}: {
+  currentIndex: number;
+  stepStyle: React.CSSProperties;
+}) {
   return (
     <div className="flex w-full max-w-xs items-start justify-between gap-1">
       {STATUS_STEPS.map((step, idx) => {
@@ -141,8 +149,9 @@ function CompactStatusSteps({ currentIndex }: { currentIndex: number }) {
             <div
               className={cn(
                 "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-                active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                !active && "bg-muted text-muted-foreground"
               )}
+              style={active ? stepStyle : undefined}
             >
               {idx < currentIndex ? (
                 <CheckCircle2 className="h-3.5 w-3.5" />
@@ -194,6 +203,8 @@ export function OrderConfirmation({
     color: accent,
   };
   const accentTextStyle = customerAccentTextStyle(brand?.restaurant ?? {});
+  const activeStepStyle = customerPrimaryButtonStyle(brand?.restaurant ?? {});
+  const customBrandingActive = brand ? isCustomerBrandingActive(brand.restaurant) : false;
 
   const currentIndex =
     order?.status === "awaiting_payment"
@@ -226,7 +237,7 @@ export function OrderConfirmation({
           {order && <WorkflowMessage order={order} compact />}
 
           <div className="mt-4 w-full">
-            <CompactStatusSteps currentIndex={currentIndex} />
+            <CompactStatusSteps currentIndex={currentIndex} stepStyle={activeStepStyle} />
           </div>
 
           <div className="mt-3 flex flex-col items-center gap-1">
@@ -293,14 +304,23 @@ export function OrderConfirmation({
         {STATUS_STEPS.map((step, idx) => (
           <div
             key={step.key}
-            className={`flex items-center gap-3 rounded-lg border p-3 text-left ${
-              idx <= currentIndex ? "border-primary bg-primary/5" : "opacity-50"
-            }`}
+            className={cn(
+              "flex items-center gap-3 rounded-lg border p-3 text-left",
+              idx > currentIndex && "opacity-50"
+            )}
+            style={
+              idx <= currentIndex
+                ? {
+                    borderColor: accent,
+                    backgroundColor: brandColorWithAlpha(accent, customBrandingActive ? 0.15 : 0.08),
+                  }
+                : undefined
+            }
           >
             {idx < currentIndex ? (
-              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <CheckCircle2 className="h-5 w-5" style={{ color: accent }} />
             ) : idx === currentIndex ? (
-              <ChefHat className="h-5 w-5 text-primary" />
+              <ChefHat className="h-5 w-5" style={{ color: accent }} />
             ) : (
               <Clock className="h-5 w-5 text-muted-foreground" />
             )}

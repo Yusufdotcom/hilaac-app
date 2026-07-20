@@ -27,7 +27,13 @@ export function OrderBrandProvider({
 
   return (
     <OrderBrandContext.Provider value={{ restaurant, accent, customBrandingActive }}>
-      <div className="contents" style={{ ["--order-accent" as string]: accent }}>
+      <div
+        className="contents"
+        style={{
+          ["--order-accent" as string]: accent,
+          ["--brand-accent" as string]: accent,
+        }}
+      >
         {children}
       </div>
     </OrderBrandContext.Provider>
