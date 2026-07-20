@@ -79,9 +79,16 @@ export function LandingStep({
           <button
             type="button"
             onClick={() => onSelect("takeaway")}
-            className="flex items-center gap-4 rounded-2xl border-2 border-secondary bg-secondary/5 p-5 text-left transition-transform active:scale-[0.98]"
+            className="flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition-transform active:scale-[0.98]"
+            style={{
+              borderColor: accent,
+              backgroundColor: brandColorWithAlpha(accent, 0.08),
+            }}
           >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+            <div
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+              style={accentStyle}
+            >
               <ShoppingBag className="h-6 w-6" />
             </div>
             <div>
