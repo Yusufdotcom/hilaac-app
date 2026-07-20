@@ -49,16 +49,18 @@ function MobilePlanCard({
   return (
     <div
       className={cn(
-        "relative rounded-2xl border p-5 sm:p-6",
+        "relative overflow-visible rounded-2xl border p-5 sm:p-6",
         highlight
-          ? "border-[#D4A373]/50 bg-[#D4A373]/10 pt-8 ring-1 ring-[#D4A373]/30"
+          ? "border-[#D4A373]/50 bg-[#D4A373]/10 ring-1 ring-[#D4A373]/30"
           : "border-white/10 bg-white/5"
       )}
     >
       {highlight && (
-        <span className="absolute left-1/2 top-20 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[#D4A373] px-3 py-1 text-xs font-semibold text-[#0F172A] shadow-md">
-          Most Popular
-        </span>
+        <div className="mb-4 flex justify-center">
+          <span className="z-20 whitespace-nowrap rounded-full bg-[#D4A373] px-3 py-1 text-xs font-semibold text-[#0F172A] shadow-md">
+            Most Popular
+          </span>
+        </div>
       )}
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
@@ -127,7 +129,7 @@ export function ComparePlansSection() {
       </div>
 
       {/* Desktop: comparison table */}
-      <div className="relative mt-8 hidden overflow-visible rounded-2xl border border-white/10 bg-[#0F172A] pt-5 shadow-xl shadow-black/20 md:block">
+      <div className="relative mt-8 hidden overflow-visible rounded-2xl border border-white/10 bg-[#0F172A] shadow-xl shadow-black/20 md:block">
         <div className="overflow-x-auto overflow-y-visible">
           <table className="w-full min-w-[640px] border-collapse text-left">
             <thead>
@@ -139,11 +141,11 @@ export function ComparePlansSection() {
                   </p>
                   <p className="mt-1 text-2xl font-bold text-white">{PLANS.starter.priceLabel}</p>
                 </th>
-                <th className="relative bg-[#D4A373]/10 p-5 pt-6 text-center ring-1 ring-inset ring-[#D4A373]/30">
-                  <span className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[#D4A373] px-3 py-1 text-xs font-semibold text-[#0F172A] shadow-md">
+                <th className="overflow-visible bg-[#D4A373]/10 p-5 text-center ring-1 ring-inset ring-[#D4A373]/30">
+                  <span className="relative z-20 mx-auto mb-3 inline-block whitespace-nowrap rounded-full bg-[#D4A373] px-3 py-1 text-xs font-semibold text-[#0F172A] shadow-md">
                     Most Popular
                   </span>
-                  <p className="mt-2 text-xs font-medium uppercase tracking-wider text-[#D4A373]">
+                  <p className="text-xs font-medium uppercase tracking-wider text-[#D4A373]">
                     {PLANS.pro.name}
                   </p>
                   <p className="mt-1 text-2xl font-bold text-white">{PLANS.pro.priceLabel}</p>

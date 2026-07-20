@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { StaffLayoutShell } from "@/components/staff/staff-layout-shell";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 
 export default async function StaffLayout({
@@ -7,11 +10,30 @@ export default async function StaffLayout({
   children: React.ReactNode;
   params: { slug: string };
 }) {
-  await getRestaurantContext(params.slug);
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { restaurant, profile } = await getRestaurantContext(params.slug, [
+    "owner",
+    "manager",
+    "kitchen",
+    "waiter",
+    "cashier",
+  ]);
 
   return (
-    <div className="min-h-screen w-full bg-[#F8FAFC]">
-      <main className="app-light-surface min-h-screen w-full text-[#0F172A]">{children}</main>
-    </div>
+    <StaffLayoutShell
+      slug={params.slug}
+      role={profile.role}
+      restaurantName={restaurant.name}
+      logoUrl={restaurant.logo_url}
+      subscriptionTier={restaurant.subscription_tier}
+      brandColor={restaurant.brand_color}
+    >
+      {children}
+    </StaffLayoutShell>
   );
 }

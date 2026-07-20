@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { createClient } from "@/lib/supabase/client";
+import { DEFAULT_BRAND_COLOR, normalizeHex, resolveBrandColor } from "@/lib/brand/restaurant-brand";
 import type { BillingModel, Restaurant } from "@/types/database";
 
 export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
@@ -24,6 +25,9 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     phone: restaurant.phone ?? "",
     logo_url: restaurant.logo_url ?? "",
   });
+  const [brandColor, setBrandColor] = useState(
+    resolveBrandColor(restaurant.brand_color ?? DEFAULT_BRAND_COLOR)
+  );
   const [orderTypes, setOrderTypes] = useState({
     dine_in_enabled: restaurant.dine_in_enabled,
     takeaway_enabled: restaurant.takeaway_enabled,
@@ -40,6 +44,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
   const [api, setApi] = useState({ evc_merchant_id: "", evc_api_key: "", edahab_merchant_id: "", edahab_api_key: "" });
 
   const [savingGeneral, setSavingGeneral] = useState(false);
+  const [savingBrandColor, setSavingBrandColor] = useState(false);
   const [savingOrderTypes, setSavingOrderTypes] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [savingBillingRules, setSavingBillingRules] = useState(false);
@@ -177,6 +182,33 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     }
   }
 
+  async function handleSaveBrandColor(e: React.FormEvent) {
+    e.preventDefault();
+    const normalized = normalizeHex(brandColor);
+    if (!normalized) {
+      toast.error("Please choose a valid color");
+      return;
+    }
+
+    setSavingBrandColor(true);
+    try {
+      const { error } = await supabase
+        .from("restaurants")
+        .update({ brand_color: normalized })
+        .eq("id", restaurant.id);
+
+      if (error) throw error;
+
+      setBrandColor(normalized);
+      toast.success("Brand settings saved");
+      router.refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to save brand color");
+    } finally {
+      setSavingBrandColor(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Restaurant details */}
@@ -222,6 +254,51 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
             <Button type="submit" disabled={savingGeneral}>
               {savingGeneral && <Loader2 className="h-4 w-4 animate-spin" />}
               Save Details
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Brand settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">🎨 Brand Settings</CardTitle>
+          <CardDescription>
+            Pick any color for your admin and staff dashboard sidebars.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSaveBrandColor} className="space-y-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="space-y-2">
+                <Label htmlFor="brand-color">Dashboard color</Label>
+                <input
+                  id="brand-color"
+                  type="color"
+                  value={brandColor}
+                  onChange={(e) => setBrandColor(e.target.value.toUpperCase())}
+                  className="h-12 w-full max-w-[8rem] cursor-pointer rounded-lg border bg-transparent p-1"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="brand-color-value">Current value</Label>
+                <p
+                  id="brand-color-value"
+                  className="font-mono text-sm font-medium uppercase tracking-wide text-[#0F172A]"
+                >
+                  {brandColor}
+                </p>
+              </div>
+              <div
+                className="hidden h-12 min-w-[5rem] flex-1 rounded-lg border sm:block"
+                style={{ backgroundColor: brandColor }}
+                aria-hidden="true"
+              />
+            </div>
+
+            <Button type="submit" disabled={savingBrandColor}>
+              {savingBrandColor && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save
             </Button>
           </form>
         </CardContent>

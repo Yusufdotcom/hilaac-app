@@ -37,6 +37,7 @@ export interface Restaurant {
   takeaway_enabled: boolean;
   billing_model_dinein: BillingModel;
   billing_model_takeaway: BillingModel;
+  brand_color: string | null;
   is_active: boolean;
   is_demo: boolean;
   demo_expires_at: string | null;

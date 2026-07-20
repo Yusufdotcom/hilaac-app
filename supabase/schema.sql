@@ -69,6 +69,7 @@ create table if not exists public.restaurants (
   edahab_api_key_encrypted text,
   dine_in_enabled boolean not null default true,
   takeaway_enabled boolean not null default true,
+  brand_color text default '#0F172A',
   is_active boolean not null default true,
   is_demo boolean not null default false,
   demo_expires_at timestamptz,

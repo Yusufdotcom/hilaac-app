@@ -34,6 +34,7 @@ export async function PATCH(req: NextRequest) {
     "edahab_ussd_code",
     "billing_model_dinein",
     "billing_model_takeaway",
+    "brand_color",
   ] as const;
 
   for (const field of plainFields) {

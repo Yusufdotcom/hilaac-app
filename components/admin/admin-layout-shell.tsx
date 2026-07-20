@@ -11,14 +11,18 @@ import type { OwnerBranch } from "@/lib/admin/owner-branches";
 export function AdminLayoutShell({
   children,
   restaurantName,
+  logoUrl,
   subscriptionTier,
+  brandColor,
   userName,
   currentSlug,
   branches = [],
 }: {
   children: React.ReactNode;
   restaurantName: string;
+  logoUrl: string | null;
   subscriptionTier: string;
+  brandColor?: string | null;
   userName: string;
   currentSlug: string;
   branches?: OwnerBranch[];
@@ -31,7 +35,9 @@ export function AdminLayoutShell({
     <div className="min-h-screen w-full bg-[#F8FAFC]">
       <AdminSidebar
         restaurantName={restaurantName}
+        logoUrl={logoUrl}
         subscriptionTier={subscriptionTier}
+        brandColor={brandColor}
         isExpanded={isExpanded}
         isCollapsed={isCollapsed}
         currentWidth={currentWidth}

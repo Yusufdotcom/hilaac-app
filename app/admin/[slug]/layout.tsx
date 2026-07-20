@@ -34,8 +34,10 @@ export default async function AdminLayout({
 
   return (
     <AdminLayoutShell
-      restaurantName={restaurant.branch_name?.trim() || restaurant.name}
+      restaurantName={restaurant.name}
+      logoUrl={restaurant.logo_url}
       subscriptionTier={restaurant.subscription_tier}
+      brandColor={restaurant.brand_color}
       userName={userName}
       currentSlug={params.slug}
       branches={branches}
