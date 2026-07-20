@@ -11,6 +11,9 @@ import {
   queueOrder,
   type CreateOrderApiPayload,
 } from "@/lib/offline-queue";
+import { OrderPrimaryButton } from "@/components/order/order-primary-button";
+import { useOrderBrandOptional } from "@/components/order/order-brand-context";
+import { customerPrimaryButtonStyle } from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
 
 export function PaymentConfirmationModal({
@@ -40,7 +43,11 @@ export function PaymentConfirmationModal({
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
 
+  const brand = useOrderBrandOptional();
   const primaryOrderId = orderIds[0];
+  const confirmStyle = brand
+    ? customerPrimaryButtonStyle(brand.restaurant)
+    : customerPrimaryButtonStyle({});
 
   useEffect(() => setMounted(true), []);
 
@@ -130,15 +137,28 @@ export function PaymentConfirmationModal({
             Offline mode — order will sync when you reconnect.
           </p>
         )}
-        <Button
-          type="button"
-          size="lg"
-          onClick={handlePaymentConfirmed}
-          className="mt-6 w-full cursor-pointer hover:opacity-90"
-        >
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-          Haa, waan bixiyay
-        </Button>
+        {brand ? (
+          <OrderPrimaryButton
+            type="button"
+            size="lg"
+            onClick={handlePaymentConfirmed}
+            className="mt-6 w-full cursor-pointer"
+          >
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+            Haa, waan bixiyay
+          </OrderPrimaryButton>
+        ) : (
+          <Button
+            type="button"
+            size="lg"
+            onClick={handlePaymentConfirmed}
+            className="mt-6 w-full cursor-pointer border-0 hover:opacity-90"
+            style={confirmStyle}
+          >
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+            Haa, waan bixiyay
+          </Button>
+        )}
       </div>
     </div>,
     document.body

@@ -120,7 +120,7 @@ export function AdminSidebar({
             brandColor={brandColor}
           />
 
-          <nav className="relative z-10 flex flex-1 flex-col justify-center gap-1 overflow-y-auto overflow-x-hidden px-3 py-4">
+          <nav className="relative z-10 flex min-h-0 flex-1 flex-col justify-start gap-1 overflow-y-auto overflow-x-hidden px-3 py-4">
             {navItems.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}

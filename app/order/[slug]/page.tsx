@@ -8,7 +8,7 @@ export default async function OrderPage({ params }: { params: { slug: string } }
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, name, slug, logo_url, payment_mode, evc_ussd_code, edahab_ussd_code, dine_in_enabled, takeaway_enabled, billing_model_dinein, billing_model_takeaway, is_active"
+      "id, name, slug, logo_url, payment_mode, evc_ussd_code, edahab_ussd_code, dine_in_enabled, takeaway_enabled, billing_model_dinein, billing_model_takeaway, brand_color, custom_branding_enabled, subscription_tier, is_active"
     )
     .eq("slug", params.slug)
     .maybeSingle();

@@ -13,11 +13,12 @@ import {
   YAxis,
 } from "recharts";
 import { Receipt } from "lucide-react";
+import { useAdminBrandColor } from "@/components/admin/admin-brand-context";
+import { resolveBrandColor } from "@/lib/brand/restaurant-brand";
 import type { ReportData } from "@/lib/reports/types";
 import { formatCurrency } from "@/lib/utils";
 
 const NAVY = "#0F172A";
-const GOLD = "#D4A373";
 
 function ChartCard({
   title,
@@ -58,6 +59,7 @@ function buildPaymentStackData(paymentSplit: ReportData["paymentSplit"]) {
 }
 
 export function ReportCharts({ data }: { data: ReportData }) {
+  const accent = resolveBrandColor(useAdminBrandColor());
   const revenueData = data.revenue.map((row) => ({
     period: row.period_label,
     revenue: Number(row.revenue),
@@ -121,12 +123,12 @@ export function ReportCharts({ data }: { data: ReportData }) {
                 type="monotone"
                 dataKey="revenue"
                 name="Revenue"
-                stroke={GOLD}
+                stroke={accent}
                 strokeWidth={3}
                 connectNulls
                 isAnimationActive={false}
-                dot={{ r: 4, fill: GOLD, stroke: NAVY, strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: GOLD, stroke: NAVY, strokeWidth: 2 }}
+                dot={{ r: 4, fill: accent, stroke: NAVY, strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: accent, stroke: NAVY, strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -165,7 +167,7 @@ export function ReportCharts({ data }: { data: ReportData }) {
               <Bar
                 dataKey="quantity"
                 name="Quantity"
-                fill={GOLD}
+                fill={accent}
                 radius={[4, 4, 0, 0]}
                 maxBarSize={40}
                 isAnimationActive={false}
@@ -261,7 +263,7 @@ export function ReportCharts({ data }: { data: ReportData }) {
                   dataKey="evc"
                   name="EVC"
                   stackId="payment"
-                  fill={GOLD}
+                  fill={accent}
                   isAnimationActive={false}
                 />
                 <Bar
@@ -298,7 +300,7 @@ export function ReportCharts({ data }: { data: ReportData }) {
             <Bar
               dataKey="deliveries"
               name="Deliveries"
-              fill={GOLD}
+              fill={accent}
               radius={[4, 4, 0, 0]}
               maxBarSize={48}
               isAnimationActive={false}

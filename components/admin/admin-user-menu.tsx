@@ -36,11 +36,11 @@ export function AdminUserMenu({ userName }: { userName: string }) {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-2 rounded-lg px-2 py-1.5 outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#D4A373] focus-visible:ring-offset-2 focus-visible:ring-offset-hilaac-navy md:hover:bg-[#F8FAFC] md:focus-visible:ring-offset-white"
+          className="flex items-center gap-2 rounded-lg px-2 py-1.5 outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[var(--admin-brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-hilaac-navy md:hover:bg-[#F8FAFC] md:focus-visible:ring-offset-white"
           aria-label="Open profile menu"
         >
           <Avatar className="h-9 w-9">
-            <AvatarFallback className="bg-[#D4A373] text-sm font-semibold text-[#0F172A] md:bg-[#0F172A] md:text-white">
+            <AvatarFallback className="max-md:bg-[var(--admin-brand)] bg-[#0F172A] text-sm font-semibold text-white">
               {getInitials(userName)}
             </AvatarFallback>
           </Avatar>

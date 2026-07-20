@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
+import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,10 +79,10 @@ export function WaiterManager({
               onChange={(e) => setName(e.target.value)}
               maxLength={80}
             />
-            <Button type="submit" disabled={loading}>
+            <BrandButton type="submit" disabled={loading}>
               <Plus className="h-4 w-4" />
               Add
-            </Button>
+            </BrandButton>
           </form>
 
           {waiters.length === 0 ? (

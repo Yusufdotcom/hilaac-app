@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Minus, Plus, UtensilsCrossed } from "lucide-react";
 import Image from "next/image";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { OrderPrimaryButton } from "@/components/order/order-primary-button";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
@@ -132,17 +133,17 @@ export function ItemCustomizeSheet({
           </div>
 
           <div className="sticky bottom-0 shrink-0 border-t bg-background px-6 py-4">
-            <Button
+            <OrderPrimaryButton
               type="button"
               size="lg"
-              className="h-12 w-full rounded-xl bg-[#D4A373] text-base font-semibold text-[#0F172A] hover:bg-[#D4A373]/90"
+              className="h-12 w-full rounded-xl text-base font-semibold"
               onClick={(e) => {
                 e.currentTarget.blur();
                 handleAdd();
               }}
             >
               Ku rido · {formatCurrency(total)}
-            </Button>
+            </OrderPrimaryButton>
           </div>
         </div>
       </SheetContent>

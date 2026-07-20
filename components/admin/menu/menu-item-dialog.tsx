@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -241,10 +242,10 @@ export function MenuItemDialog({
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={saving}>
+            <BrandButton type="submit" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {item ? "Save Changes" : "Add Item"}
-            </Button>
+            </BrandButton>
           </DialogFooter>
         </form>
       </DialogContent>

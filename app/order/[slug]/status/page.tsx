@@ -12,6 +12,7 @@ import {
   removeQueuedOrderByOrderId,
   syncOfflineOrders,
 } from "@/lib/offline-queue";
+import { OrderBrandProvider } from "@/components/order/order-brand-context";
 import { OrderConfirmation } from "@/components/order/order-confirmation";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,11 @@ export default function OrderStatusPage({
 
   const [order, setOrder] = useState<TrackedOrderRow | null>(null);
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
+  const [brandingRestaurant, setBrandingRestaurant] = useState<{
+    brand_color?: string | null;
+    custom_branding_enabled?: boolean;
+    subscription_tier?: string;
+  }>({});
   const [waitingForSync, setWaitingForSync] = useState(false);
   const [loading, setLoading] = useState(true);
   const [retrying, setRetrying] = useState(false);
@@ -110,12 +116,13 @@ export default function OrderStatusPage({
     async function fetchRestaurant() {
       const { data } = await supabase
         .from("restaurants")
-        .select("name, is_active")
+        .select("name, is_active, brand_color, custom_branding_enabled, subscription_tier")
         .eq("slug", params.slug)
         .maybeSingle();
 
       if (!data?.is_active) return;
       setRestaurantName(data.name);
+      setBrandingRestaurant(data);
     }
 
     void fetchRestaurant();
@@ -230,14 +237,16 @@ export default function OrderStatusPage({
           <OrderStatusExtras />
         </div>
       )}
-      <OrderConfirmation
-        orderId={orderId}
-        restaurant={{ name: restaurantName }}
-        newOrderHref={`/order/${params.slug}`}
-        compact
-        openNewOrderInNewTab
-        className="w-full max-w-sm"
-      />
+      <OrderBrandProvider restaurant={brandingRestaurant}>
+        <OrderConfirmation
+          orderId={orderId}
+          restaurant={{ name: restaurantName }}
+          newOrderHref={`/order/${params.slug}`}
+          compact
+          openNewOrderInNewTab
+          className="w-full max-w-sm"
+        />
+      </OrderBrandProvider>
     </div>
   );
 }

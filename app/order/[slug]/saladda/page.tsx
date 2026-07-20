@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { OrderBrandProvider } from "@/components/order/order-brand-context";
 import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
+import type { CustomerBrandingRestaurant } from "@/lib/brand/restaurant-brand";
 
 /**
  * Payment screen (Saladda) — opened after an offline order syncs so the
@@ -19,6 +21,7 @@ export default function SaladdaPaymentPage({ params }: { params: { slug: string 
   const [ready, setReady] = useState(false);
   const [ussdCode, setUssdCode] = useState("");
   const [createPayload, setCreatePayload] = useState<CreateOrderApiPayload | null>(null);
+  const [brandingRestaurant, setBrandingRestaurant] = useState<CustomerBrandingRestaurant>({});
 
   useEffect(() => {
     if (!orderId) return;
@@ -30,7 +33,7 @@ export default function SaladdaPaymentPage({ params }: { params: { slug: string 
         fetch(`/api/orders/${orderId}/track`, { cache: "no-store" }),
         supabase
           .from("restaurants")
-          .select("id, evc_ussd_code, edahab_ussd_code")
+          .select("id, evc_ussd_code, edahab_ussd_code, brand_color, custom_branding_enabled, subscription_tier")
           .eq("slug", params.slug)
           .maybeSingle(),
       ]);
@@ -47,6 +50,7 @@ export default function SaladdaPaymentPage({ params }: { params: { slug: string 
         return;
       }
 
+      setBrandingRestaurant(restaurant);
       setUssdCode(restaurant.evc_ussd_code ?? "");
 
       setCreatePayload({
@@ -79,13 +83,15 @@ export default function SaladdaPaymentPage({ params }: { params: { slug: string 
   }
 
   return (
-    <PaymentConfirmationModal
-      open
-      orderIds={[orderId]}
-      slug={params.slug}
-      ussdCode={ussdCode}
-      createPayloads={[createPayload]}
-      onClose={() => router.push(`/order/${params.slug}/status?orderId=${orderId}`)}
-    />
+    <OrderBrandProvider restaurant={brandingRestaurant}>
+      <PaymentConfirmationModal
+        open
+        orderIds={[orderId]}
+        slug={params.slug}
+        ussdCode={ussdCode}
+        createPayloads={[createPayload]}
+        onClose={() => router.push(`/order/${params.slug}/status?orderId=${orderId}`)}
+      />
+    </OrderBrandProvider>
   );
 }

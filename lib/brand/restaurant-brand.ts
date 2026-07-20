@@ -2,7 +2,84 @@ import type { CSSProperties } from "react";
 import type { SubscriptionTier } from "@/types/database";
 
 export const DEFAULT_BRAND_COLOR = "#0F172A";
+export const HILAAC_GOLD = "#D4A373";
+export const HILAAC_NAVY = "#0F172A";
 export const SIDEBAR_TEXT_COLOR = "#FFFFFF";
+
+export type CustomerBrandingRestaurant = {
+  brand_color?: string | null;
+  custom_branding_enabled?: boolean | null;
+  subscription_tier?: SubscriptionTier | string | null;
+};
+
+export function isCustomerBrandingActive(restaurant: CustomerBrandingRestaurant): boolean {
+  return restaurant.subscription_tier === "pro" && restaurant.custom_branding_enabled === true;
+}
+
+export function resolveCustomerAccent(restaurant: CustomerBrandingRestaurant): string {
+  if (isCustomerBrandingActive(restaurant)) {
+    return resolveBrandColor(restaurant.brand_color);
+  }
+  return HILAAC_GOLD;
+}
+
+/** Primary CTA on customer menu — gold (navy text) by default, brand + white when Pro custom branding. */
+export function customerPrimaryButtonStyle(restaurant: CustomerBrandingRestaurant): CSSProperties {
+  if (isCustomerBrandingActive(restaurant)) {
+    return {
+      backgroundColor: resolveBrandColor(restaurant.brand_color),
+      color: SIDEBAR_TEXT_COLOR,
+    };
+  }
+  return {
+    backgroundColor: HILAAC_GOLD,
+    color: HILAAC_NAVY,
+  };
+}
+
+/** Place Order / navy actions — navy by default, brand when Pro custom branding. */
+export function customerPlaceOrderButtonStyle(restaurant: CustomerBrandingRestaurant): CSSProperties {
+  if (isCustomerBrandingActive(restaurant)) {
+    return {
+      backgroundColor: resolveBrandColor(restaurant.brand_color),
+      color: SIDEBAR_TEXT_COLOR,
+    };
+  }
+  return {
+    backgroundColor: HILAAC_NAVY,
+    color: SIDEBAR_TEXT_COLOR,
+  };
+}
+
+/** Payment buttons — emerald/amber by default; brand when Pro custom branding. */
+export function customerPaymentButtonStyle(restaurant: CustomerBrandingRestaurant): CSSProperties | undefined {
+  if (!isCustomerBrandingActive(restaurant)) return undefined;
+  return {
+    backgroundColor: resolveBrandColor(restaurant.brand_color),
+    color: SIDEBAR_TEXT_COLOR,
+  };
+}
+
+/** Active category tab — gold tint by default, brand when Pro custom branding. */
+export function customerActiveTabStyle(restaurant: CustomerBrandingRestaurant): CSSProperties {
+  const accent = resolveCustomerAccent(restaurant);
+  if (isCustomerBrandingActive(restaurant)) {
+    return {
+      backgroundColor: accent,
+      color: SIDEBAR_TEXT_COLOR,
+      borderColor: accent,
+    };
+  }
+  return {
+    backgroundColor: `color-mix(in srgb, ${accent} 15%, white)`,
+    color: HILAAC_NAVY,
+    borderColor: accent,
+  };
+}
+
+export function customerAccentTextStyle(restaurant: CustomerBrandingRestaurant): CSSProperties {
+  return { color: resolveCustomerAccent(restaurant) };
+}
 
 export function resolveBrandColor(brandColor: string | null | undefined): string {
   const trimmed = brandColor?.trim();
@@ -56,6 +133,14 @@ export function sidebarBrandStyles(brandColor: string | null | undefined): CSSPr
   const accent = resolveBrandColor(brandColor);
   return {
     backgroundColor: accent,
+    color: SIDEBAR_TEXT_COLOR,
+  };
+}
+
+/** Primary admin button — solid brand background, white label. */
+export function brandPrimaryButtonStyle(brandColor: string | null | undefined): CSSProperties {
+  return {
+    backgroundColor: resolveBrandColor(brandColor),
     color: SIDEBAR_TEXT_COLOR,
   };
 }

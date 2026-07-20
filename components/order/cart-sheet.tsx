@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { Loader2, Minus, Plus, Trash2, ShoppingBasket, Phone, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { OrderPrimaryButton } from "@/components/order/order-primary-button";
+import { customerAccentTextStyle } from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +27,9 @@ interface MinimalRestaurant {
   takeaway_enabled: boolean;
   billing_model_dinein: "pay_before" | "pay_after";
   billing_model_takeaway: "pay_before" | "pay_after";
+  brand_color?: string | null;
+  custom_branding_enabled?: boolean;
+  subscription_tier?: string;
 }
 
 export function CartSheet({
@@ -67,6 +72,7 @@ export function CartSheet({
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentDialCode, setPaymentDialCode] = useState("");
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const accentStyle = customerAccentTextStyle(restaurant);
 
   const total = useMemo(() => cartTotal(cart), [cart]);
   const billingModel = useMemo(
@@ -280,7 +286,7 @@ export function CartSheet({
             <ArrowLeft className="h-5 w-5" />
           </button>
           <SheetTitle className="flex items-center justify-center gap-2.5 pl-6">
-            <ShoppingBasket className="h-5 w-5 text-[#D4A373]" aria-hidden="true" />
+            <ShoppingBasket className="h-5 w-5" style={accentStyle} aria-hidden="true" />
             Saladda
           </SheetTitle>
         </SheetHeader>
@@ -395,27 +401,29 @@ export function CartSheet({
 
             {isPayBefore ? (
               <>
-                <Button
+                <OrderPrimaryButton
                   type="button"
                   size="lg"
+                  kind="payment-evc"
                   disabled={!!placing || cart.length === 0 || hasUnavailableItems}
                   onClick={() => handleInitiatePayment("evc")}
-                  className="h-12 w-full rounded-xl bg-emerald-600 text-base font-semibold text-white hover:bg-emerald-700"
+                  className="h-12 w-full rounded-xl text-base font-semibold"
                 >
                   {placing === "evc" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Ku bixi EVC
-                </Button>
+                </OrderPrimaryButton>
 
-                <Button
+                <OrderPrimaryButton
                   type="button"
                   size="lg"
+                  kind="payment-edahab"
                   disabled={!!placing || cart.length === 0 || hasUnavailableItems}
                   onClick={() => handleInitiatePayment("edahab")}
-                  className="h-12 w-full rounded-xl bg-amber-500 text-base font-semibold text-white hover:bg-amber-600"
+                  className="h-12 w-full rounded-xl text-base font-semibold"
                 >
                   {placing === "edahab" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Ku bixi eDahab
-                </Button>
+                </OrderPrimaryButton>
 
                 {paymentConfirmed && (
                   <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-sm text-emerald-800">
@@ -423,32 +431,34 @@ export function CartSheet({
                   </p>
                 )}
 
-                <Button
+                <OrderPrimaryButton
                   type="button"
                   size="lg"
+                  kind="place-order"
                   disabled={!!placing || cart.length === 0 || hasUnavailableItems || !canPlacePayBeforeOrder}
                   onClick={handlePlaceOrderPayBefore}
-                  className="h-12 w-full rounded-xl bg-[#0F172A] text-base font-semibold text-white hover:bg-[#1E293B] disabled:opacity-50"
+                  className="h-12 w-full rounded-xl text-base font-semibold disabled:opacity-50"
                 >
                   {placing === "place" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Place Order
-                </Button>
+                </OrderPrimaryButton>
               </>
             ) : (
               <div className="space-y-3">
                 <p className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-center text-sm text-[#64748B]">
                   {payAfterMessage(orderType)}
                 </p>
-                <Button
+                <OrderPrimaryButton
                   type="button"
                   size="lg"
+                  kind="place-order"
                   disabled={!!placing || cart.length === 0 || hasUnavailableItems}
                   onClick={handlePlaceOrderWithoutPayment}
-                  className="h-12 w-full rounded-xl bg-[#0F172A] text-base font-semibold text-white hover:bg-[#1E293B]"
+                  className="h-12 w-full rounded-xl text-base font-semibold"
                 >
                   {placing === "place" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Place Order
-                </Button>
+                </OrderPrimaryButton>
               </div>
             )}
           </div>

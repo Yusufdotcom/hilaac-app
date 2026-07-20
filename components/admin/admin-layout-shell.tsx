@@ -1,5 +1,6 @@
 "use client";
 
+import { AdminBrandProvider } from "@/components/admin/admin-brand-context";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminUserMenu } from "@/components/admin/admin-user-menu";
 import { HilaacLogo } from "@/components/brand/hilaac-logo";
@@ -32,6 +33,7 @@ export function AdminLayoutShell({
   const marginTransition = isDragging ? "none" : "margin-left 300ms ease-out, left 300ms ease-out";
 
   return (
+    <AdminBrandProvider brandColor={brandColor}>
     <div className="min-h-screen w-full bg-[#F8FAFC]">
       <AdminSidebar
         restaurantName={restaurantName}
@@ -80,5 +82,6 @@ export function AdminLayoutShell({
         <PoweredByHilaac className="pb-6 pt-2" />
       </main>
     </div>
+    </AdminBrandProvider>
   );
 }

@@ -38,6 +38,7 @@ export interface Restaurant {
   billing_model_dinein: BillingModel;
   billing_model_takeaway: BillingModel;
   brand_color: string | null;
+  custom_branding_enabled: boolean;
   is_active: boolean;
   is_demo: boolean;
   demo_expires_at: string | null;

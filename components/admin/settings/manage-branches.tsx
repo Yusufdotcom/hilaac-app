@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Lock, MapPin, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { BrandButton } from "@/components/admin/brand-button";
+import { useAdminBrandColor } from "@/components/admin/admin-brand-context";
+import { brandColorWithAlpha, resolveBrandColor } from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +33,8 @@ export function ManageBranches({
   subscriptionTier: SubscriptionTier;
 }) {
   const router = useRouter();
+  const brandColor = useAdminBrandColor();
+  const accent = resolveBrandColor(brandColor);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [branchName, setBranchName] = useState("");
   const [address, setAddress] = useState("");
@@ -98,7 +103,8 @@ export function ManageBranches({
                   ) : (
                     <Link
                       href={`/admin/${branch.slug}/dashboard`}
-                      className="shrink-0 text-xs font-medium text-[#D4A373] hover:underline"
+                      className="shrink-0 text-xs font-medium hover:underline"
+                      style={{ color: accent }}
                     >
                       Switch
                     </Link>
@@ -109,13 +115,19 @@ export function ManageBranches({
           )}
 
           {isPro ? (
-            <Button type="button" onClick={() => setDialogOpen(true)}>
+            <BrandButton type="button" onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4" />
               Add New Location
-            </Button>
+            </BrandButton>
           ) : (
-            <div className="flex items-start gap-3 rounded-lg border border-[#D4A373]/40 bg-[#D4A373]/10 px-4 py-3 text-sm text-[#0F172A]">
-              <Lock className="mt-0.5 h-5 w-5 shrink-0 text-[#D4A373]" />
+            <div
+              className="flex items-start gap-3 rounded-lg border px-4 py-3 text-sm text-[#0F172A]"
+              style={{
+                borderColor: brandColorWithAlpha(accent, 0.4),
+                backgroundColor: brandColorWithAlpha(accent, 0.1),
+              }}
+            >
+              <Lock className="mt-0.5 h-5 w-5 shrink-0" style={{ color: accent }} />
               <div>
                 <p className="font-medium">Upgrade to Pro to add multiple branches.</p>
                 <p className="mt-1 text-[#64748B]">
@@ -160,10 +172,10 @@ export function ManageBranches({
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={creating}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={creating}>
+              <BrandButton type="submit" disabled={creating}>
                 {creating && <Loader2 className="h-4 w-4 animate-spin" />}
                 Create Location
-              </Button>
+              </BrandButton>
             </DialogFooter>
           </form>
         </DialogContent>

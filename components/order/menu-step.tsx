@@ -1,15 +1,29 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ArrowLeft, ShoppingBasket, Star, UtensilsCrossed, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { OrderPrimaryButton } from "@/components/order/order-primary-button";
+import { useOrderBrand } from "@/components/order/order-brand-context";
+import {
+  customerAccentTextStyle,
+  customerActiveTabStyle,
+  customerPrimaryButtonStyle,
+} from "@/lib/brand/restaurant-brand";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Category, MenuItem } from "@/types/database";
 
-function ItemCard({ item, onSelect }: { item: MenuItem; onSelect: (item: MenuItem) => void }) {
+function ItemCard({
+  item,
+  onSelect,
+}: {
+  item: MenuItem;
+  onSelect: (item: MenuItem) => void;
+}) {
+  const { restaurant, customBrandingActive } = useOrderBrand();
   const unavailable = !item.is_available;
+  const plusStyle = customBrandingActive ? customerPrimaryButtonStyle(restaurant) : undefined;
 
   return (
     <div
@@ -20,16 +34,28 @@ function ItemCard({ item, onSelect }: { item: MenuItem; onSelect: (item: MenuIte
     >
       {!unavailable ? (
         <button type="button" onClick={() => onSelect(item)} className="flex flex-1 flex-col text-left">
-          <ItemCardContent item={item} unavailable={false} />
+          <ItemCardContent item={item} unavailable={false} plusStyle={plusStyle} customBrandingActive={customBrandingActive} restaurant={restaurant} />
         </button>
       ) : (
-        <ItemCardContent item={item} unavailable />
+        <ItemCardContent item={item} unavailable plusStyle={plusStyle} customBrandingActive={customBrandingActive} restaurant={restaurant} />
       )}
     </div>
   );
 }
 
-function ItemCardContent({ item, unavailable }: { item: MenuItem; unavailable: boolean }) {
+function ItemCardContent({
+  item,
+  unavailable,
+  plusStyle,
+  customBrandingActive,
+  restaurant,
+}: {
+  item: MenuItem;
+  unavailable: boolean;
+  plusStyle?: React.CSSProperties;
+  customBrandingActive: boolean;
+  restaurant: { brand_color?: string | null; custom_branding_enabled?: boolean | null; subscription_tier?: string | null };
+}) {
   return (
     <>
       <div className="relative h-28 w-full bg-muted">
@@ -69,9 +95,20 @@ function ItemCardContent({ item, unavailable }: { item: MenuItem; unavailable: b
           <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
         )}
         <div className="mt-auto flex items-center justify-between pt-1">
-          <span className="font-bold text-primary">{formatCurrency(Number(item.price))}</span>
+          <span
+            className={cn("font-bold", !customBrandingActive && "text-primary")}
+            style={customBrandingActive ? customerAccentTextStyle(restaurant) : undefined}
+          >
+            {formatCurrency(Number(item.price))}
+          </span>
           {!unavailable && (
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <span
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-full",
+                !customBrandingActive && "bg-primary text-primary-foreground"
+              )}
+              style={plusStyle}
+            >
               <Plus className="h-4 w-4" />
             </span>
           )}
@@ -80,6 +117,8 @@ function ItemCardContent({ item, unavailable }: { item: MenuItem; unavailable: b
     </>
   );
 }
+
+type MenuTab = { id: string; label: string };
 
 export function MenuStep({
   restaurant,
@@ -105,6 +144,27 @@ export function MenuStep({
   onOpenCart: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const { restaurant: brandingRestaurant } = useOrderBrand();
+
+  const tabs = useMemo(() => {
+    const items: MenuTab[] = [];
+    if (topPicks.length > 0) items.push({ id: "top-picks", label: "Top Picks" });
+    for (const category of categories) {
+      if (menuItems.some((m) => m.category_id === category.id)) {
+        items.push({ id: category.id, label: category.name });
+      }
+    }
+    return items;
+  }, [categories, menuItems, topPicks.length]);
+
+  const [activeTabId, setActiveTabId] = useState(tabs[0]?.id ?? "");
+
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.some((t) => t.id === activeTabId)) {
+      setActiveTabId(tabs[0].id);
+    }
+  }, [tabs, activeTabId]);
 
   const sessionLabel =
     orderType === "dine-in"
@@ -118,10 +178,38 @@ export function MenuStep({
     window.scrollTo(0, 0);
   }, []);
 
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || tabs.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        const top = visible[0];
+        if (top?.target.id) setActiveTabId(top.target.id);
+      },
+      { root, rootMargin: "-30% 0px -55% 0px", threshold: [0, 0.25, 0.5, 1] }
+    );
+
+    for (const tab of tabs) {
+      const node = sectionRefs.current[tab.id];
+      if (node) observer.observe(node);
+    }
+
+    return () => observer.disconnect();
+  }, [tabs]);
+
+  function scrollToTab(tabId: string) {
+    setActiveTabId(tabId);
+    sectionRefs.current[tabId]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="sticky top-0 z-20 shrink-0 border-b bg-background/95 px-4 py-3 backdrop-blur">
-        <div className="flex items-center justify-between">
+      <header className="sticky top-0 z-20 shrink-0 border-b bg-background/95 backdrop-blur">
+        <div className="flex items-center justify-between px-4 py-3">
           <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
@@ -131,12 +219,40 @@ export function MenuStep({
           </div>
           <div className="w-10" />
         </div>
+
+        {tabs.length > 1 && (
+          <div className="no-scrollbar flex gap-2 overflow-x-auto border-t px-4 py-2">
+            {tabs.map((tab) => {
+              const active = activeTabId === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => scrollToTab(tab.id)}
+                  className={cn(
+                    "shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                    !active && "border-transparent bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}
+                  style={active ? customerActiveTabStyle(brandingRestaurant) : undefined}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </header>
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
         <div className={cn("space-y-6 px-4 py-4", cartCount > 0 && "pb-28")}>
           {topPicks.length > 0 && (
-            <section>
+            <section
+              id="top-picks"
+              ref={(node) => {
+                sectionRefs.current["top-picks"] = node;
+              }}
+              className="scroll-mt-36"
+            >
               <h2 className="mb-3 flex items-center gap-2 text-lg font-bold">
                 <Star className="h-5 w-5 fill-amber-400 text-amber-400" /> Top Picks
               </h2>
@@ -152,7 +268,14 @@ export function MenuStep({
             const items = menuItems.filter((m) => m.category_id === category.id);
             if (items.length === 0) return null;
             return (
-              <section key={category.id}>
+              <section
+                key={category.id}
+                id={category.id}
+                ref={(node) => {
+                  sectionRefs.current[category.id] = node;
+                }}
+                className="scroll-mt-36"
+              >
                 <h2 className="mb-3 text-lg font-bold">{category.name}</h2>
                 <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
                   {items.map((item) => (
@@ -174,10 +297,10 @@ export function MenuStep({
 
       {cartCount > 0 && (
         <div className="sticky bottom-0 z-30 shrink-0 border-t bg-background/95 px-4 py-3 backdrop-blur">
-          <Button size="lg" onClick={onOpenCart} className="w-full gap-2 rounded-full shadow-lg">
+          <OrderPrimaryButton size="lg" onClick={onOpenCart} className="w-full gap-2 rounded-full shadow-lg">
             <ShoppingBasket className="h-5 w-5" />
             Saladda ({cartCount})
-          </Button>
+          </OrderPrimaryButton>
         </div>
       )}
     </div>

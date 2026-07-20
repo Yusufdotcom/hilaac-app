@@ -10,6 +10,12 @@ import { useOrderStatusRealtime } from "@/lib/hooks/use-order-status-realtime";
 import { customerStatusWorkflowMessage } from "@/lib/order/billing-model";
 import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
 import type { OrderStatus, PaymentStatus } from "@/types/database";
+import { useOrderBrandOptional } from "@/components/order/order-brand-context";
+import {
+  brandColorWithAlpha,
+  customerAccentTextStyle,
+  resolveCustomerAccent,
+} from "@/lib/brand/restaurant-brand";
 import { cn, formatOrderLabel } from "@/lib/utils";
 
 const STATUS_STEPS: { key: OrderStatus; label: string }[] = [
@@ -181,6 +187,13 @@ export function OrderConfirmation({
   showFooter?: boolean;
 }) {
   const order = useOrderStatusRealtime(orderId);
+  const brand = useOrderBrandOptional();
+  const accent = brand?.accent ?? resolveCustomerAccent(brand?.restaurant ?? {});
+  const accentIconStyle = {
+    backgroundColor: brandColorWithAlpha(accent, 0.2),
+    color: accent,
+  };
+  const accentTextStyle = customerAccentTextStyle(brand?.restaurant ?? {});
 
   const currentIndex =
     order?.status === "awaiting_payment"
@@ -191,7 +204,7 @@ export function OrderConfirmation({
     return (
       <div className={cn("flex min-h-0 flex-1 flex-col items-center text-center", className)}>
         <div className="flex w-full max-w-sm flex-1 flex-col items-center justify-center px-1">
-          <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-hilaac-gold/20 text-hilaac-gold">
+          <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full" style={accentIconStyle}>
             <CheckCircle2 className="h-6 w-6" />
           </div>
 
@@ -228,7 +241,7 @@ export function OrderConfirmation({
           <OrderCustomerPhone phone={order?.customer_phone} variant="badge" className="mt-2" />
 
           {order?.status === "completed" && (
-            <div className="mt-2 flex items-center gap-1.5 text-sm text-hilaac-gold">
+            <div className="mt-2 flex items-center gap-1.5 text-sm" style={accentTextStyle}>
               <PartyPopper className="h-4 w-4" /> Mahadsanid!
             </div>
           )}
@@ -258,7 +271,7 @@ export function OrderConfirmation({
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 py-12 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-hilaac-gold/20 text-hilaac-gold">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full" style={accentIconStyle}>
         <CheckCircle2 className="h-8 w-8" />
       </div>
       {order && (
@@ -307,7 +320,7 @@ export function OrderConfirmation({
       <OrderCustomerPhone phone={order?.customer_phone} variant="badge" className="mt-3" />
 
       {order?.status === "completed" && (
-        <div className="mt-8 flex items-center gap-2 text-hilaac-gold">
+        <div className="mt-8 flex items-center gap-2" style={accentTextStyle}>
           <PartyPopper className="h-5 w-5" /> Mahadsanid!
         </div>
       )}

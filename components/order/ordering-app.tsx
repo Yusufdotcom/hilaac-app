@@ -12,6 +12,7 @@ import { CartSheet } from "@/components/order/cart-sheet";
 import { ItemCustomizeSheet } from "@/components/order/item-customize-sheet";
 import { OrderConfirmation } from "@/components/order/order-confirmation";
 import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
+import { OrderBrandProvider } from "@/components/order/order-brand-context";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 
 type Step = "landing" | "table" | "menu" | "confirmation";
@@ -28,6 +29,9 @@ interface MinimalRestaurant {
   takeaway_enabled: boolean;
   billing_model_dinein: "pay_before" | "pay_after";
   billing_model_takeaway: "pay_before" | "pay_after";
+  brand_color?: string | null;
+  custom_branding_enabled?: boolean;
+  subscription_tier?: string;
 }
 
 export function OrderingApp({
@@ -122,16 +126,18 @@ export function OrderingApp({
 
   if (step === "confirmation" && placedOrderId) {
     return (
-      <OrderConfirmation
-        orderId={placedOrderId}
-        restaurant={restaurant}
-        onNewOrder={handleNewOrder}
-      />
+      <OrderBrandProvider restaurant={restaurant}>
+        <OrderConfirmation
+          orderId={placedOrderId}
+          restaurant={restaurant}
+          onNewOrder={handleNewOrder}
+        />
+      </OrderBrandProvider>
     );
   }
 
   return (
-    <>
+    <OrderBrandProvider restaurant={restaurant}>
       <div className="flex h-[100dvh] flex-col overflow-hidden bg-muted/20">
         {step === "landing" && (
           <LandingStep restaurant={restaurant} onSelect={handleSelectOrderType} />
@@ -201,7 +207,7 @@ export function OrderingApp({
           onClose={() => setUssdPayment(null)}
         />
       )}
-    </>
+    </OrderBrandProvider>
   );
 }
 

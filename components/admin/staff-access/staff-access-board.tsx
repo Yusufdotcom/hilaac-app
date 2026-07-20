@@ -11,6 +11,9 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { BrandButton } from "@/components/admin/brand-button";
+import { useAdminBrandColor } from "@/components/admin/admin-brand-context";
+import { resolveBrandColor } from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 
 type StaffDashboard = {
   id: string;
@@ -27,17 +29,18 @@ type StaffDashboard = {
   description: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
-  accent: string;
 };
 
 function StaffDashboardCard({
   dashboard,
   fullUrl,
+  brandAccent,
   onShowQr,
   onCopyLink,
 }: {
   dashboard: StaffDashboard;
   fullUrl: string;
+  brandAccent: string;
   onShowQr: () => void;
   onCopyLink: () => void;
 }) {
@@ -47,12 +50,10 @@ function StaffDashboardCard({
     <article className="flex flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
       <div className="bg-[#0F172A] px-6 py-8">
         <div
-          className={cn(
-            "mb-4 flex h-16 w-16 items-center justify-center rounded-2xl",
-            dashboard.accent
-          )}
+          className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
+          style={{ backgroundColor: brandAccent }}
         >
-          <Icon className="h-8 w-8 text-[#0F172A]" aria-hidden="true" />
+          <Icon className="h-8 w-8 text-white" aria-hidden="true" />
         </div>
         <h2 className="text-2xl font-bold text-white">{dashboard.title}</h2>
         <p className="mt-2 text-sm leading-relaxed text-[#94A3B8]">{dashboard.description}</p>
@@ -63,14 +64,14 @@ function StaffDashboardCard({
           {dashboard.path}
         </p>
         <div className="mt-auto grid gap-3 sm:grid-cols-2">
-          <Button
+          <BrandButton
             type="button"
             onClick={onCopyLink}
-            className="h-14 rounded-xl bg-[#D4A373] text-base font-semibold text-[#0F172A] hover:bg-[#c49262]"
+            className="h-14 rounded-xl text-base font-semibold"
           >
             <Copy className="mr-2 h-5 w-5" aria-hidden="true" />
             Copy Link
-          </Button>
+          </BrandButton>
           <Button
             type="button"
             variant="outline"
@@ -96,6 +97,8 @@ export function StaffAccessBoard({
   appUrl: string;
   restaurantName: string;
 }) {
+  const brandColor = useAdminBrandColor();
+  const brandAccent = resolveBrandColor(brandColor);
   const qrRef = useRef<HTMLDivElement>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const [activeDashboard, setActiveDashboard] = useState<StaffDashboard | null>(null);
@@ -107,7 +110,6 @@ export function StaffAccessBoard({
       description: "For the chef to see incoming orders and mark them 'Ready'.",
       path: `/staff/${slug}/kitchen`,
       icon: ChefHat,
-      accent: "bg-[#D4A373]",
     },
     {
       id: "waiter",
@@ -115,7 +117,6 @@ export function StaffAccessBoard({
       description: "For waiters to see 'Ready' orders and mark them 'Delivered'.",
       path: `/staff/${slug}/waiter`,
       icon: UserRound,
-      accent: "bg-[#D4A373]",
     },
     {
       id: "cashier",
@@ -123,7 +124,6 @@ export function StaffAccessBoard({
       description: "For the cashier to see all orders and confirm payments.",
       path: `/staff/${slug}/cashier`,
       icon: CreditCard,
-      accent: "bg-[#D4A373]",
     },
   ];
 
@@ -161,7 +161,7 @@ export function StaffAccessBoard({
   return (
     <div className="space-y-8">
       <header className="rounded-2xl bg-[#0F172A] px-6 py-8 sm:px-8">
-        <p className="text-sm font-medium uppercase tracking-wider text-[#D4A373]">
+        <p className="text-sm font-medium uppercase tracking-wider" style={{ color: brandAccent }}>
           Team access
         </p>
         <h1 className="mt-2 text-3xl font-bold text-white">Staff Access</h1>
@@ -176,6 +176,7 @@ export function StaffAccessBoard({
           <StaffDashboardCard
             key={dashboard.id}
             dashboard={dashboard}
+            brandAccent={brandAccent}
             fullUrl={buildFullUrl(dashboard.path)}
             onCopyLink={() => handleCopyLink(dashboard.path)}
             onShowQr={() => handleShowQr(dashboard)}

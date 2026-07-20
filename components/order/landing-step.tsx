@@ -2,6 +2,11 @@
 
 import Image from "next/image";
 import { UtensilsCrossed, ShoppingBag, ChefHat } from "lucide-react";
+import { useOrderBrand } from "@/components/order/order-brand-context";
+import {
+  customerAccentTextStyle,
+  customerPrimaryButtonStyle,
+} from "@/lib/brand/restaurant-brand";
 import { cn } from "@/lib/utils";
 
 export function LandingStep({
@@ -13,6 +18,10 @@ export function LandingStep({
   onSelect: (type: "dine-in" | "takeaway") => void;
   className?: string;
 }) {
+  const { restaurant: brandingRestaurant, customBrandingActive } = useOrderBrand();
+  const accentStyle = customerPrimaryButtonStyle(brandingRestaurant);
+  const accentBorder = { borderColor: customBrandingActive ? accentStyle.backgroundColor : undefined };
+
   return (
     <div
       className={cn(
@@ -20,7 +29,13 @@ export function LandingStep({
         className
       )}
     >
-      <div className="mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-primary/10">
+      <div
+        className={cn(
+          "mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full",
+          !customBrandingActive && "bg-primary/10"
+        )}
+        style={customBrandingActive ? { backgroundColor: `${accentStyle.backgroundColor}22` } : undefined}
+      >
         {restaurant.logo_url ? (
           <Image
             src={restaurant.logo_url}
@@ -30,7 +45,10 @@ export function LandingStep({
             className="h-full w-full object-cover"
           />
         ) : (
-          <ChefHat className="h-9 w-9 text-primary" />
+          <ChefHat
+            className={cn("h-9 w-9", !customBrandingActive && "text-primary")}
+            style={customBrandingActive ? customerAccentTextStyle(brandingRestaurant) : undefined}
+          />
         )}
       </div>
       <h1 className="text-2xl font-bold">Kusoo dhawaaw {restaurant.name}</h1>
@@ -41,9 +59,19 @@ export function LandingStep({
           <button
             type="button"
             onClick={() => onSelect("dine-in")}
-            className="flex items-center gap-4 rounded-2xl border-2 border-primary bg-primary/5 p-5 text-left transition-transform active:scale-[0.98]"
+            className={cn(
+              "flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition-transform active:scale-[0.98]",
+              !customBrandingActive && "border-primary bg-primary/5"
+            )}
+            style={customBrandingActive ? { ...accentBorder, backgroundColor: `${accentStyle.backgroundColor}12` } : undefined}
           >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <div
+              className={cn(
+                "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
+                !customBrandingActive && "bg-primary text-primary-foreground"
+              )}
+              style={customBrandingActive ? accentStyle : undefined}
+            >
               <UtensilsCrossed className="h-6 w-6" />
             </div>
             <div>

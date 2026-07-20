@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Loader2, Upload, Store, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,10 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
   const [brandColor, setBrandColor] = useState(
     resolveBrandColor(restaurant.brand_color ?? DEFAULT_BRAND_COLOR)
   );
+  const [customBrandingEnabled, setCustomBrandingEnabled] = useState(
+    restaurant.custom_branding_enabled ?? false
+  );
+  const isPro = restaurant.subscription_tier === "pro";
   const [orderTypes, setOrderTypes] = useState({
     dine_in_enabled: restaurant.dine_in_enabled,
     takeaway_enabled: restaurant.takeaway_enabled,
@@ -45,6 +50,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
 
   const [savingGeneral, setSavingGeneral] = useState(false);
   const [savingBrandColor, setSavingBrandColor] = useState(false);
+  const [savingCustomBranding, setSavingCustomBranding] = useState(false);
   const [savingOrderTypes, setSavingOrderTypes] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [savingBillingRules, setSavingBillingRules] = useState(false);
@@ -182,6 +188,32 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     }
   }
 
+  async function handleToggleCustomBranding(enabled: boolean) {
+    if (!isPro) {
+      toast.error("Upgrade to Pro to enable custom customer menu branding");
+      return;
+    }
+
+    setCustomBrandingEnabled(enabled);
+    setSavingCustomBranding(true);
+    try {
+      const { error } = await supabase
+        .from("restaurants")
+        .update({ custom_branding_enabled: enabled })
+        .eq("id", restaurant.id);
+
+      if (error) throw error;
+
+      toast.success(enabled ? "Custom customer branding enabled" : "Custom customer branding disabled");
+      router.refresh();
+    } catch (err: unknown) {
+      setCustomBrandingEnabled(!enabled);
+      toast.error(err instanceof Error ? err.message : "Failed to update branding setting");
+    } finally {
+      setSavingCustomBranding(false);
+    }
+  }
+
   async function handleSaveBrandColor(e: React.FormEvent) {
     e.preventDefault();
     const normalized = normalizeHex(brandColor);
@@ -251,10 +283,10 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
               <Input id="address" value={general.address} onChange={(e) => setGeneral({ ...general, address: e.target.value })} />
             </div>
 
-            <Button type="submit" disabled={savingGeneral}>
+            <BrandButton type="submit" disabled={savingGeneral}>
               {savingGeneral && <Loader2 className="h-4 w-4 animate-spin" />}
               Save Details
-            </Button>
+            </BrandButton>
           </form>
         </CardContent>
       </Card>
@@ -264,7 +296,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
         <CardHeader>
           <CardTitle className="text-lg">🎨 Brand Settings</CardTitle>
           <CardDescription>
-            Pick any color for your admin and staff dashboard sidebars.
+            Pick any color for your admin and staff dashboard sidebars. Pro restaurants can also apply it to the customer ordering menu.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -296,10 +328,27 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
               />
             </div>
 
-            <Button type="submit" disabled={savingBrandColor}>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-1 pr-4">
+                <Label htmlFor="custom-branding-toggle" className="text-sm font-medium">
+                  Enable custom branding on customer menu (Pro only)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Applies your brand color to buttons and highlights on the public ordering page.
+                </p>
+              </div>
+              <Switch
+                id="custom-branding-toggle"
+                checked={customBrandingEnabled}
+                disabled={!isPro || savingCustomBranding}
+                onCheckedChange={handleToggleCustomBranding}
+              />
+            </div>
+
+            <BrandButton type="submit" disabled={savingBrandColor}>
               {savingBrandColor && <Loader2 className="h-4 w-4 animate-spin" />}
               Save
-            </Button>
+            </BrandButton>
           </form>
         </CardContent>
       </Card>
@@ -396,10 +445,10 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
               </RadioGroup>
             </div>
 
-            <Button type="submit" disabled={savingBillingRules}>
+            <BrandButton type="submit" disabled={savingBillingRules}>
               {savingBillingRules && <Loader2 className="h-4 w-4 animate-spin" />}
               Save Payment Rules
-            </Button>
+            </BrandButton>
           </form>
         </CardContent>
       </Card>
@@ -512,10 +561,10 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
               </div>
             )}
 
-            <Button type="submit" disabled={savingPayment}>
+            <BrandButton type="submit" disabled={savingPayment}>
               {savingPayment && <Loader2 className="h-4 w-4 animate-spin" />}
               Save Payment Settings
-            </Button>
+            </BrandButton>
           </form>
         </CardContent>
       </Card>

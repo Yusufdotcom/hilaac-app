@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,9 +51,9 @@ export function CategorySection({ restaurantId, categories }: { restaurantId: st
       <CardContent className="p-6">
         <form onSubmit={handleAdd} className="mb-6 flex gap-2">
           <Input placeholder="e.g. Appetizers" value={name} onChange={(e) => setName(e.target.value)} />
-          <Button type="submit" disabled={loading}>
+          <BrandButton type="submit" disabled={loading}>
             <Plus className="h-4 w-4" /> Add
-          </Button>
+          </BrandButton>
         </form>
 
         <div className="space-y-2">

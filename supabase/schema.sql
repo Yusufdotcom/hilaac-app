@@ -70,6 +70,7 @@ create table if not exists public.restaurants (
   dine_in_enabled boolean not null default true,
   takeaway_enabled boolean not null default true,
   brand_color text default '#0F172A',
+  custom_branding_enabled boolean not null default false,
   is_active boolean not null default true,
   is_demo boolean not null default false,
   demo_expires_at timestamptz,

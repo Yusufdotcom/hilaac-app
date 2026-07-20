@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,9 +60,9 @@ export function AddOnSection({ restaurantId, addOns }: { restaurantId: string; a
             value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
           />
-          <Button type="submit" disabled={loading}>
+          <BrandButton type="submit" disabled={loading}>
             <Plus className="h-4 w-4" /> Add
-          </Button>
+          </BrandButton>
         </form>
 
         <div className="space-y-2">

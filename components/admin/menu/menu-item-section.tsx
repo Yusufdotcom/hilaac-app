@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Plus, Pencil, Trash2, Star, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
+import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -65,9 +66,9 @@ export function MenuItemSection({
   return (
     <div className="mt-4 space-y-4">
       <div className="flex justify-end">
-        <Button onClick={openCreate} disabled={categories.length === 0}>
+        <BrandButton onClick={openCreate} disabled={categories.length === 0}>
           <Plus className="h-4 w-4" /> Add Menu Item
-        </Button>
+        </BrandButton>
       </div>
 
       {categories.length === 0 && (

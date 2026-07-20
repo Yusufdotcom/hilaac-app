@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, Crown, Smartphone } from "lucide-react";
 import { toast } from "sonner";
+import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -84,9 +85,9 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
             </p>
           )}
           {!isPro && (
-            <Button className="mt-4" onClick={() => setUpgradeOpen(true)}>
+            <BrandButton className="mt-4" onClick={() => setUpgradeOpen(true)}>
               <Crown className="h-4 w-4" /> Upgrade to Pro
-            </Button>
+            </BrandButton>
           )}
         </CardContent>
       </Card>
@@ -120,9 +121,9 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
           </DialogHeader>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="success" size="lg" onClick={() => dial("evc")}>
+            <BrandButton variant="success" size="lg" onClick={() => dial("evc")}>
               <Smartphone className="h-4 w-4" /> Ku bixi EVC
-            </Button>
+            </BrandButton>
             <Button variant="warning" size="lg" onClick={() => dial("edahab")}>
               <Smartphone className="h-4 w-4" /> Ku bixi eDahab
             </Button>
@@ -138,10 +139,10 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
           )}
 
           <DialogFooter>
-            <Button onClick={handleConfirmPayment} disabled={!method || confirming} className="w-full">
+            <BrandButton onClick={handleConfirmPayment} disabled={!method || confirming} className="w-full">
               {confirming && <Loader2 className="h-4 w-4 animate-spin" />}
               Haa, waan bixiyay (Yes, I&apos;ve paid)
-            </Button>
+            </BrandButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

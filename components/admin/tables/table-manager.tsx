@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 import { Plus, Trash2, Download, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -93,9 +94,9 @@ export function TableManager({
               <Button variant="outline" className="flex-1" onClick={handleCopyLink}>
                 <Copy className="h-4 w-4" /> Copy Link
               </Button>
-              <Button className="flex-1" onClick={handleDownloadQr}>
+              <BrandButton className="flex-1" onClick={handleDownloadQr}>
                 <Download className="h-4 w-4" /> Download
-              </Button>
+              </BrandButton>
             </div>
           </CardContent>
         </Card>
@@ -108,9 +109,9 @@ export function TableManager({
           <CardContent>
             <form onSubmit={handleAdd} className="mb-6 flex gap-2">
               <Input placeholder="e.g. 12" value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} />
-              <Button type="submit" disabled={loading}>
+              <BrandButton type="submit" disabled={loading}>
                 <Plus className="h-4 w-4" /> Add Table
-              </Button>
+              </BrandButton>
             </form>
 
             <div className="grid gap-2 sm:grid-cols-2">

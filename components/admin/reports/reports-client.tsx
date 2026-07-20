@@ -12,6 +12,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { BrandButton } from "@/components/admin/brand-button";
+import { useAdminBrandColor } from "@/components/admin/admin-brand-context";
+import { brandColorWithAlpha, resolveBrandColor } from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -54,6 +57,8 @@ export function ReportsClient({
   isPro: initialIsPro,
   isExpired,
 }: ReportsClientProps) {
+  const brandColor = useAdminBrandColor();
+  const accent = resolveBrandColor(brandColor);
   const [granularity, setGranularity] = useState<ReportGranularity>(initialGranularity);
   const [data, setData] = useState<ReportData>(initialData);
   const [isPro, setIsPro] = useState(initialIsPro);
@@ -139,7 +144,10 @@ export function ReportsClient({
     <div className="space-y-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0F172A] text-[#D4A373]">
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0F172A]"
+            style={{ color: accent }}
+          >
             <BarChart3 className="h-6 w-6" aria-hidden="true" />
           </div>
           <div>
@@ -218,8 +226,14 @@ export function ReportsClient({
       )}
 
       {!isPro && !isExpired && (
-        <div className="flex items-start gap-3 rounded-xl border border-[#D4A373]/40 bg-[#D4A373]/10 px-4 py-3 text-sm text-[#0F172A]">
-          <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-[#D4A373]" />
+        <div
+          className="flex items-start gap-3 rounded-xl border px-4 py-3 text-sm text-[#0F172A]"
+          style={{
+            borderColor: brandColorWithAlpha(accent, 0.4),
+            backgroundColor: brandColorWithAlpha(accent, 0.1),
+          }}
+        >
+          <Sparkles className="mt-0.5 h-5 w-5 shrink-0" style={{ color: accent }} />
           <div>
             <p className="font-semibold">Upgrade to Pro for advanced analytics</p>
             <p className="mt-1 text-[#64748B]">
@@ -261,9 +275,9 @@ export function ReportsClient({
                 Upgrade to visualize revenue trends, peak hours, payment splits, and waiter performance.
               </p>
               {!isExpired && (
-                <Link href={`/admin/${slug}/billing`} className="landing-btn-gold mt-6 inline-flex">
-                  Upgrade to Pro
-                </Link>
+                <BrandButton asChild className="mt-6 inline-flex rounded-full px-6 py-3 text-sm font-semibold">
+                  <Link href={`/admin/${slug}/billing`}>Upgrade to Pro</Link>
+                </BrandButton>
               )}
             </div>
           )}

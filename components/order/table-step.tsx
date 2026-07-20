@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { ArrowLeft, Delete } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { OrderPrimaryButton } from "@/components/order/order-primary-button";
+import { useOrderBrandOptional } from "@/components/order/order-brand-context";
+import { resolveCustomerAccent } from "@/lib/brand/restaurant-brand";
 import { cn } from "@/lib/utils";
 import type { RestaurantTable } from "@/types/database";
 
@@ -20,6 +22,8 @@ export function TableStep({
   onBack: () => void;
   className?: string;
 }) {
+  const brand = useOrderBrandOptional();
+  const accent = brand ? brand.accent : resolveCustomerAccent({});
   const [value, setValue] = useState("");
 
   function press(key: string) {
@@ -47,7 +51,10 @@ export function TableStep({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
-        <div className="flex h-16 w-36 items-center justify-center rounded-2xl border-2 border-primary text-3xl font-bold">
+        <div
+          className="flex h-16 w-36 items-center justify-center rounded-2xl border-2 text-3xl font-bold"
+          style={{ borderColor: accent }}
+        >
           {value || <span className="text-muted-foreground">—</span>}
         </div>
 
@@ -75,9 +82,9 @@ export function TableStep({
       </div>
 
       <div className="shrink-0 pt-3">
-        <Button size="lg" className="h-12 w-full" disabled={!canConfirm} onClick={() => onConfirm(value)}>
+        <OrderPrimaryButton size="lg" className="h-12 w-full" disabled={!canConfirm} onClick={() => onConfirm(value)}>
           Sii wad
-        </Button>
+        </OrderPrimaryButton>
       </div>
     </div>
   );
