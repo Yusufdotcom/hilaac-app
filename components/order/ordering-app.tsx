@@ -121,6 +121,7 @@ export function OrderingApp({
   function handleNewOrder() {
     setPlacedOrderId(null);
     setTableNumber("");
+    setOrderType("dine-in");
     setStep("landing");
   }
 

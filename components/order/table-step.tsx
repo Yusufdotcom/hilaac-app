@@ -52,7 +52,7 @@ export function TableStep({
 
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
         <div
-          className="flex h-16 w-36 items-center justify-center rounded-2xl border-2 text-3xl font-bold"
+          className="flex h-16 w-36 items-center justify-center rounded-2xl border-2 text-3xl font-bold transition-all duration-200"
           style={{ borderColor: accent }}
         >
           {value || <span className="text-muted-foreground">—</span>}

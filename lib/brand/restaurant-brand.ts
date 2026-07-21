@@ -86,6 +86,39 @@ export function customerAccentTextStyle(restaurant: CustomerBrandingRestaurant):
   return { color: resolveCustomerAccent(restaurant) };
 }
 
+/** Landing / selection cards — neutral when unselected, accent when selected. */
+export function customerSelectionCardStyle(
+  restaurant: CustomerBrandingRestaurant,
+  selected: boolean
+): CSSProperties {
+  if (!selected) {
+    return { borderColor: "#E5E7EB" };
+  }
+  const accent = resolveCustomerAccent(restaurant);
+  return {
+    borderColor: accent,
+    backgroundColor: brandColorWithAlpha(accent, 0.08),
+  };
+}
+
+/** Icon tile inside a selection card. */
+export function customerSelectionIconStyle(
+  restaurant: CustomerBrandingRestaurant,
+  selected: boolean
+): CSSProperties {
+  if (!selected) {
+    return { backgroundColor: "#F3F4F6", color: "#6B7280" };
+  }
+  if (isCustomerBrandingActive(restaurant)) {
+    const accent = resolveBrandColor(restaurant.brand_color);
+    return {
+      backgroundColor: brandColorWithAlpha(accent, 0.2),
+      color: accent,
+    };
+  }
+  return customerPrimaryButtonStyle(restaurant);
+}
+
 export function resolveBrandColor(brandColor: string | null | undefined): string {
   const trimmed = brandColor?.trim();
   if (!trimmed) return DEFAULT_BRAND_COLOR;

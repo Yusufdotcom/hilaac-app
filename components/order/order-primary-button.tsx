@@ -35,15 +35,15 @@ export function OrderPrimaryButton({
 }: ButtonProps & { kind?: OrderButtonKind }) {
   const { restaurant } = useOrderBrand();
   const inlineStyle = styleForKind(restaurant, kind);
-  const usesBrandFill = isCustomerBrandingActive(restaurant);
+  const customBrandingActive = isCustomerBrandingActive(restaurant);
 
   return (
     <Button
       {...props}
       variant="brand"
       className={cn(
-        "border-0 hover:opacity-90",
-        usesBrandFill && "text-white",
+        "border-0 transition-all duration-200 hover:opacity-90",
+        customBrandingActive && "text-white",
         className
       )}
       style={{ ...inlineStyle, ...style }}

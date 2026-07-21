@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2, Minus, Plus, Trash2, ShoppingBasket, Phone, ArrowLeft } from "lucide-react";
+import { Loader2, Minus, Plus, Trash2, ShoppingBasket, Phone, ArrowLeft, Smartphone, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { OrderPrimaryButton } from "@/components/order/order-primary-button";
@@ -68,7 +68,6 @@ export function CartSheet({
   const [phone, setPhone] = useState("");
   const [placing, setPlacing] = useState<"evc" | "edahab" | "place" | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"evc" | "edahab" | null>(null);
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentDialCode, setPaymentDialCode] = useState("");
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
@@ -181,8 +180,7 @@ export function CartSheet({
     }
   }
 
-  async function handlePlaceOrderPayBefore() {
-    if (!paymentMethod || !paymentConfirmed) return;
+  async function finalizePayBeforeOrder(method: "evc" | "edahab") {
     if (hasUnavailableItems) {
       toast.error("Ka saar alaabta aan la heli karin si aad u sii wadato.");
       return;
@@ -191,13 +189,11 @@ export function CartSheet({
     setPlacing("place");
     try {
       if (pendingOrderId) {
-        const confirmed = await confirmPaymentForOrder(pendingOrderId);
-        if (!confirmed) return;
         onOrderPlaced(pendingOrderId);
         return;
       }
 
-      const result = await createOrder(paymentMethod);
+      const result = await createOrder(method);
       if (!result) return;
 
       const confirmed = await confirmPaymentForOrder(result.orderId);
@@ -220,7 +216,7 @@ export function CartSheet({
     }
 
     setPaymentMethod(method);
-    setPaymentConfirmed(false);
+    setPendingOrderId(null);
     setPlacing(method);
 
     try {
@@ -261,12 +257,14 @@ export function CartSheet({
     }
   }
 
-  function handleCustomerPaymentConfirmed() {
-    setPaymentConfirmed(true);
+  async function handleCustomerPaymentConfirmed() {
     setPaymentModalOpen(false);
+    const method = paymentMethod;
+    if (!method) return;
+    await finalizePayBeforeOrder(method);
   }
 
-  const canPlacePayBeforeOrder = paymentConfirmed && !!paymentMethod;
+  const paymentDisabled = !!placing || cart.length === 0 || hasUnavailableItems;
 
   return (
     <>
@@ -400,49 +398,37 @@ export function CartSheet({
             </div>
 
             {isPayBefore ? (
-              <>
-                <OrderPrimaryButton
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Button
                   type="button"
                   size="lg"
-                  kind="payment-evc"
-                  disabled={!!placing || cart.length === 0 || hasUnavailableItems}
+                  disabled={paymentDisabled}
                   onClick={() => handleInitiatePayment("evc")}
-                  className="h-12 w-full rounded-xl text-base font-semibold"
+                  className="h-12 w-full gap-2 rounded-xl border-0 bg-[#10B981] text-base font-semibold text-white hover:bg-[#059669] active:scale-[0.98]"
                 >
-                  {placing === "evc" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {placing === "evc" ? (
+                    <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Smartphone className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  )}
                   Ku bixi EVC
-                </OrderPrimaryButton>
+                </Button>
 
-                <OrderPrimaryButton
+                <Button
                   type="button"
                   size="lg"
-                  kind="payment-edahab"
-                  disabled={!!placing || cart.length === 0 || hasUnavailableItems}
+                  disabled={paymentDisabled}
                   onClick={() => handleInitiatePayment("edahab")}
-                  className="h-12 w-full rounded-xl text-base font-semibold"
+                  className="h-12 w-full gap-2 rounded-xl border-0 bg-[#F59E0B] text-base font-semibold text-white hover:bg-[#D97706] active:scale-[0.98]"
                 >
-                  {placing === "edahab" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {placing === "edahab" ? (
+                    <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Wallet className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  )}
                   Ku bixi eDahab
-                </OrderPrimaryButton>
-
-                {paymentConfirmed && (
-                  <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-sm text-emerald-800">
-                    Lacag bixinta waa la xaqiijiyay. Taabo &ldquo;Place Order&rdquo; si aad u dirto dalabka.
-                  </p>
-                )}
-
-                <OrderPrimaryButton
-                  type="button"
-                  size="lg"
-                  kind="place-order"
-                  disabled={!!placing || cart.length === 0 || hasUnavailableItems || !canPlacePayBeforeOrder}
-                  onClick={handlePlaceOrderPayBefore}
-                  className="h-12 w-full rounded-xl text-base font-semibold disabled:opacity-50"
-                >
-                  {placing === "place" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Place Order
-                </OrderPrimaryButton>
-              </>
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
                 <p className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-center text-sm text-[#64748B]">

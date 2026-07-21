@@ -1,15 +1,61 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { UtensilsCrossed, ShoppingBag, ChefHat } from "lucide-react";
+import { OrderPrimaryButton } from "@/components/order/order-primary-button";
 import { useOrderBrand } from "@/components/order/order-brand-context";
 import {
   brandColorWithAlpha,
   customerAccentTextStyle,
-  customerPrimaryButtonStyle,
+  customerSelectionCardStyle,
+  customerSelectionIconStyle,
   resolveCustomerAccent,
 } from "@/lib/brand/restaurant-brand";
 import { cn } from "@/lib/utils";
+import type { OrderType } from "@/types/database";
+
+function OrderTypeCard({
+  type,
+  selected,
+  icon: Icon,
+  title,
+  description,
+  onSelect,
+}: {
+  type: OrderType;
+  selected: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  onSelect: (type: OrderType) => void;
+}) {
+  const { restaurant } = useOrderBrand();
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(type)}
+      className={cn(
+        "flex w-full items-center gap-4 rounded-2xl border-2 bg-background p-5 text-left",
+        "transition-all duration-200 active:scale-[0.98]"
+      )}
+      style={customerSelectionCardStyle(restaurant, selected)}
+      aria-pressed={selected}
+    >
+      <div
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-all duration-200"
+        style={customerSelectionIconStyle(restaurant, selected)}
+      >
+        <Icon className="h-6 w-6" aria-hidden="true" />
+      </div>
+      <div>
+        <p className="text-lg font-bold">{title}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+    </button>
+  );
+}
 
 export function LandingStep({
   restaurant,
@@ -17,23 +63,37 @@ export function LandingStep({
   className,
 }: {
   restaurant: { name: string; logo_url: string | null; dine_in_enabled: boolean; takeaway_enabled: boolean };
-  onSelect: (type: "dine-in" | "takeaway") => void;
+  onSelect: (type: OrderType) => void;
   className?: string;
 }) {
   const { restaurant: brandingRestaurant } = useOrderBrand();
   const accent = resolveCustomerAccent(brandingRestaurant);
-  const accentStyle = customerPrimaryButtonStyle(brandingRestaurant);
   const accentTextStyle = customerAccentTextStyle(brandingRestaurant);
+
+  const [selectedOrderType, setSelectedOrderType] = useState<OrderType | null>(null);
+
+  useEffect(() => {
+    if (restaurant.dine_in_enabled && !restaurant.takeaway_enabled) {
+      setSelectedOrderType("dine-in");
+    } else if (!restaurant.dine_in_enabled && restaurant.takeaway_enabled) {
+      setSelectedOrderType("takeaway");
+    }
+  }, [restaurant.dine_in_enabled, restaurant.takeaway_enabled]);
+
+  function handleContinue() {
+    if (!selectedOrderType) return;
+    onSelect(selectedOrderType);
+  }
 
   return (
     <div
       className={cn(
-        "flex flex-1 flex-col items-center justify-center px-6 text-center",
+        "flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-6 text-center",
         className
       )}
     >
       <div
-        className="mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full"
+        className="mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full transition-all duration-200"
         style={{ backgroundColor: brandColorWithAlpha(accent, 0.12) }}
       >
         {restaurant.logo_url ? (
@@ -45,7 +105,7 @@ export function LandingStep({
             className="h-full w-full object-cover"
           />
         ) : (
-          <ChefHat className="h-9 w-9" style={accentTextStyle} />
+          <ChefHat className="h-9 w-9 transition-colors duration-200" style={accentTextStyle} />
         )}
       </div>
       <h1 className="text-2xl font-bold">Kusoo dhawaaw {restaurant.name}</h1>
@@ -53,51 +113,37 @@ export function LandingStep({
 
       <div className="mt-6 grid w-full max-w-sm gap-3">
         {restaurant.dine_in_enabled && (
-          <button
-            type="button"
-            onClick={() => onSelect("dine-in")}
-            className="flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition-transform active:scale-[0.98]"
-            style={{
-              borderColor: accent,
-              backgroundColor: brandColorWithAlpha(accent, 0.08),
-            }}
-          >
-            <div
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-              style={accentStyle}
-            >
-              <UtensilsCrossed className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-lg font-bold">🍽️ Fadhi</p>
-              <p className="text-sm text-muted-foreground">Dine-in at your table</p>
-            </div>
-          </button>
+          <OrderTypeCard
+            type="dine-in"
+            selected={selectedOrderType === "dine-in"}
+            icon={UtensilsCrossed}
+            title="🍽️ Fadhi"
+            description="Dine-in at your table"
+            onSelect={setSelectedOrderType}
+          />
         )}
 
         {restaurant.takeaway_enabled && (
-          <button
-            type="button"
-            onClick={() => onSelect("takeaway")}
-            className="flex items-center gap-4 rounded-2xl border-2 p-5 text-left transition-transform active:scale-[0.98]"
-            style={{
-              borderColor: accent,
-              backgroundColor: brandColorWithAlpha(accent, 0.08),
-            }}
-          >
-            <div
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-              style={accentStyle}
-            >
-              <ShoppingBag className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-lg font-bold">📦 Qaadasho</p>
-              <p className="text-sm text-muted-foreground">Takeaway / pickup</p>
-            </div>
-          </button>
+          <OrderTypeCard
+            type="takeaway"
+            selected={selectedOrderType === "takeaway"}
+            icon={ShoppingBag}
+            title="📦 Qaadasho"
+            description="Takeaway / pickup"
+            onSelect={setSelectedOrderType}
+          />
         )}
       </div>
+
+      <OrderPrimaryButton
+        type="button"
+        size="lg"
+        disabled={!selectedOrderType}
+        onClick={handleContinue}
+        className="mt-6 w-full max-w-sm rounded-full transition-all duration-200 disabled:opacity-50"
+      >
+        Sii wad
+      </OrderPrimaryButton>
     </div>
   );
 }

@@ -228,7 +228,7 @@ export function MenuStep({
                   type="button"
                   onClick={() => scrollToTab(tab.id)}
                   className={cn(
-                    "shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                    "shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
                     !active && "border-transparent bg-muted text-muted-foreground hover:bg-muted/80"
                   )}
                   style={active ? customerActiveTabStyle(brandingRestaurant) : undefined}

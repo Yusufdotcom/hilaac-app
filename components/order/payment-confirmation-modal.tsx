@@ -11,10 +11,13 @@ import {
   queueOrder,
   type CreateOrderApiPayload,
 } from "@/lib/offline-queue";
-import { OrderPrimaryButton } from "@/components/order/order-primary-button";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
-import { customerPrimaryButtonStyle } from "@/lib/brand/restaurant-brand";
+import {
+  customerPrimaryButtonStyle,
+  isCustomerBrandingActive,
+} from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function PaymentConfirmationModal({
   open,
@@ -32,8 +35,8 @@ export function PaymentConfirmationModal({
   ussdCode: string;
   createPayloads?: CreateOrderApiPayload[];
   onClose: () => void;
-  /** Called when the customer confirms payment before an order exists (pay-before USSD flow). */
-  onCustomerConfirmed?: () => void;
+  /** Called when the customer confirms payment — parent should place the order. */
+  onCustomerConfirmed?: () => void | Promise<void>;
   /** When true, stay on checkout and let the parent handle navigation (Place Order flow). */
   deferNavigation?: boolean;
 }) {
@@ -48,6 +51,7 @@ export function PaymentConfirmationModal({
   const confirmStyle = brand
     ? customerPrimaryButtonStyle(brand.restaurant)
     : customerPrimaryButtonStyle({});
+  const confirmUsesBrand = brand ? isCustomerBrandingActive(brand.restaurant) : false;
 
   useEffect(() => setMounted(true), []);
 
@@ -59,7 +63,7 @@ export function PaymentConfirmationModal({
 
     try {
       if (orderIds.length === 0) {
-        onCustomerConfirmed?.();
+        await onCustomerConfirmed?.();
         onClose();
         return;
       }
@@ -94,7 +98,7 @@ export function PaymentConfirmationModal({
       }
 
       toast.success("Lacag bixinta waa la diray. Cashier-ka ayaa xaqiijin doona.");
-      onCustomerConfirmed?.();
+      await onCustomerConfirmed?.();
       onClose();
       if (!deferNavigation) {
         router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
@@ -109,16 +113,13 @@ export function PaymentConfirmationModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 px-6"
+      className="fixed inset-0 z-[200] flex items-center justify-center px-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="payment-confirm-title"
     >
-      <div
-        className="relative z-[201] w-full max-w-sm rounded-2xl bg-card p-6 text-center shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
+      <div className="pointer-events-none absolute inset-0 bg-black/70" aria-hidden="true" />
+      <div className="relative z-10 w-full max-w-sm rounded-2xl bg-card p-6 text-center shadow-xl pointer-events-auto">
         <p id="payment-confirm-title" className="text-lg font-bold">
           Bixinta ma xaqiijisay?
         </p>
@@ -137,28 +138,20 @@ export function PaymentConfirmationModal({
             Offline mode — order will sync when you reconnect.
           </p>
         )}
-        {brand ? (
-          <OrderPrimaryButton
-            type="button"
-            size="lg"
-            onClick={handlePaymentConfirmed}
-            className="mt-6 w-full cursor-pointer"
-          >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-            Haa, waan bixiyay
-          </OrderPrimaryButton>
-        ) : (
-          <Button
-            type="button"
-            size="lg"
-            onClick={handlePaymentConfirmed}
-            className="mt-6 w-full cursor-pointer border-0 hover:opacity-90"
-            style={confirmStyle}
-          >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-            Haa, waan bixiyay
-          </Button>
-        )}
+        <Button
+          type="button"
+          size="lg"
+          disabled={submitting}
+          onClick={() => void handlePaymentConfirmed()}
+          className={cn(
+            "relative z-20 mt-6 w-full cursor-pointer border-0 transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60",
+            confirmUsesBrand && "text-white"
+          )}
+          style={confirmStyle}
+        >
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+          Haa, waan bixiyay
+        </Button>
       </div>
     </div>,
     document.body

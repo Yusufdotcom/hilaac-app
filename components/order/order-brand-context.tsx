@@ -3,8 +3,10 @@
 import { createContext, useContext } from "react";
 import {
   type CustomerBrandingRestaurant,
+  HILAAC_NAVY,
   isCustomerBrandingActive,
   resolveCustomerAccent,
+  SIDEBAR_TEXT_COLOR,
 } from "@/lib/brand/restaurant-brand";
 
 type OrderBrandContextValue = {
@@ -32,6 +34,9 @@ export function OrderBrandProvider({
         style={{
           ["--order-accent" as string]: accent,
           ["--brand-accent" as string]: accent,
+          ["--brand-accent-foreground" as string]: customBrandingActive
+            ? SIDEBAR_TEXT_COLOR
+            : HILAAC_NAVY,
         }}
       >
         {children}
