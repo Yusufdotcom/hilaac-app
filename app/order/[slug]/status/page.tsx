@@ -46,7 +46,6 @@ export default function OrderStatusPage({
   const [brandingRestaurant, setBrandingRestaurant] = useState<{
     brand_color?: string | null;
     custom_branding_enabled?: boolean;
-    subscription_tier?: string;
   }>({});
   const [waitingForSync, setWaitingForSync] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -116,7 +115,7 @@ export default function OrderStatusPage({
     async function fetchRestaurant() {
       const { data } = await supabase
         .from("restaurants")
-        .select("name, is_active, brand_color, custom_branding_enabled, subscription_tier")
+        .select("name, is_active, brand_color, custom_branding_enabled")
         .eq("slug", params.slug)
         .maybeSingle();
 
@@ -237,7 +236,10 @@ export default function OrderStatusPage({
           <OrderStatusExtras />
         </div>
       )}
-      <OrderBrandProvider restaurant={brandingRestaurant}>
+      <OrderBrandProvider
+        brandColor={brandingRestaurant.brand_color}
+        customBrandingEnabled={brandingRestaurant.custom_branding_enabled ?? false}
+      >
         <OrderConfirmation
           orderId={orderId}
           restaurant={{ name: restaurantName }}

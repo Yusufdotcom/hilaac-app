@@ -14,7 +14,6 @@ import {
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
 import {
   customerPrimaryButtonStyle,
-  isCustomerBrandingActive,
 } from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -49,9 +48,9 @@ export function PaymentConfirmationModal({
   const brand = useOrderBrandOptional();
   const primaryOrderId = orderIds[0];
   const confirmStyle = brand
-    ? customerPrimaryButtonStyle(brand.restaurant)
+    ? customerPrimaryButtonStyle(brand.branding)
     : customerPrimaryButtonStyle({});
-  const confirmUsesBrand = brand ? isCustomerBrandingActive(brand.restaurant) : false;
+  const confirmUsesBrand = brand?.customBrandingActive ?? false;
 
   useEffect(() => setMounted(true), []);
 

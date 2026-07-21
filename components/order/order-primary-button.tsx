@@ -5,7 +5,6 @@ import {
   customerPaymentButtonStyle,
   customerPlaceOrderButtonStyle,
   customerPrimaryButtonStyle,
-  isCustomerBrandingActive,
 } from "@/lib/brand/restaurant-brand";
 import { cn } from "@/lib/utils";
 import { useOrderBrand } from "@/components/order/order-brand-context";
@@ -33,9 +32,8 @@ export function OrderPrimaryButton({
   kind = "primary",
   ...props
 }: ButtonProps & { kind?: OrderButtonKind }) {
-  const { restaurant } = useOrderBrand();
-  const inlineStyle = styleForKind(restaurant, kind);
-  const customBrandingActive = isCustomerBrandingActive(restaurant);
+  const { restaurant: branding, customBrandingActive } = useOrderBrand();
+  const inlineStyle = styleForKind(branding, kind);
 
   return (
     <Button

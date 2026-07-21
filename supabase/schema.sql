@@ -393,7 +393,8 @@ revoke all on public.restaurants from anon, authenticated;
 grant select (
   id, name, slug, branch_name, owner_id, logo_url, address, phone, payment_mode, subscription_tier,
   subscription_status, subscription_end_date, evc_ussd_code, edahab_ussd_code,
-  dine_in_enabled, takeaway_enabled, is_active, is_demo, demo_expires_at, created_at
+  dine_in_enabled, takeaway_enabled, brand_color, custom_branding_enabled,
+  is_active, is_demo, demo_expires_at, created_at
 ) on public.restaurants to anon, authenticated;
 grant select (
   evc_merchant_id_encrypted, evc_api_key_encrypted, edahab_merchant_id_encrypted, edahab_api_key_encrypted

@@ -6,25 +6,43 @@ export const HILAAC_GOLD = "#D4A373";
 export const HILAAC_NAVY = "#0F172A";
 export const SIDEBAR_TEXT_COLOR = "#FFFFFF";
 
-export type CustomerBrandingRestaurant = {
+/** Fields that control customer-facing vs dashboard branding. */
+export type RestaurantBranding = {
   brand_color?: string | null;
   custom_branding_enabled?: boolean | null;
-  subscription_tier?: SubscriptionTier | string | null;
 };
 
-export function isCustomerBrandingActive(restaurant: CustomerBrandingRestaurant): boolean {
-  return restaurant.subscription_tier === "pro" && restaurant.custom_branding_enabled === true;
+export type CustomerBrandingRestaurant = RestaurantBranding;
+
+/** Dashboard (admin/staff) always uses brand_color from settings. */
+export function resolveDashboardAccent(brandColor: string | null | undefined): string {
+  return resolveBrandColor(brandColor);
 }
 
-export function resolveCustomerAccent(restaurant: CustomerBrandingRestaurant): string {
+/** Customer menu uses brand_color only when custom branding is enabled; otherwise Hilaac gold. */
+export function isCustomerBrandingActive(restaurant: RestaurantBranding): boolean {
+  return restaurant.custom_branding_enabled === true;
+}
+
+export function resolveCustomerAccent(restaurant: RestaurantBranding): string {
   if (isCustomerBrandingActive(restaurant)) {
     return resolveBrandColor(restaurant.brand_color);
   }
   return HILAAC_GOLD;
 }
 
-/** Primary CTA on customer menu — gold (navy text) by default, brand + white when Pro custom branding. */
-export function customerPrimaryButtonStyle(restaurant: CustomerBrandingRestaurant): CSSProperties {
+export function buildRestaurantBranding(
+  brandColor?: string | null,
+  customBrandingEnabled?: boolean | null
+): RestaurantBranding {
+  return {
+    brand_color: brandColor ?? null,
+    custom_branding_enabled: customBrandingEnabled ?? false,
+  };
+}
+
+/** Primary CTA on customer menu — gold (navy text) by default, brand + white when custom branding is on. */
+export function customerPrimaryButtonStyle(restaurant: RestaurantBranding): CSSProperties {
   if (isCustomerBrandingActive(restaurant)) {
     return {
       backgroundColor: resolveBrandColor(restaurant.brand_color),
@@ -37,8 +55,8 @@ export function customerPrimaryButtonStyle(restaurant: CustomerBrandingRestauran
   };
 }
 
-/** Place Order / navy actions — navy by default, brand when Pro custom branding. */
-export function customerPlaceOrderButtonStyle(restaurant: CustomerBrandingRestaurant): CSSProperties {
+/** Place Order — navy by default, brand when custom branding is on. */
+export function customerPlaceOrderButtonStyle(restaurant: RestaurantBranding): CSSProperties {
   if (isCustomerBrandingActive(restaurant)) {
     return {
       backgroundColor: resolveBrandColor(restaurant.brand_color),
@@ -51,8 +69,8 @@ export function customerPlaceOrderButtonStyle(restaurant: CustomerBrandingRestau
   };
 }
 
-/** Payment buttons — gold by default; brand + white when Pro custom branding. */
-export function customerPaymentButtonStyle(restaurant: CustomerBrandingRestaurant): CSSProperties {
+/** Payment buttons — gold by default; brand + white when custom branding is on. */
+export function customerPaymentButtonStyle(restaurant: RestaurantBranding): CSSProperties {
   if (isCustomerBrandingActive(restaurant)) {
     return {
       backgroundColor: resolveBrandColor(restaurant.brand_color),
@@ -65,8 +83,8 @@ export function customerPaymentButtonStyle(restaurant: CustomerBrandingRestauran
   };
 }
 
-/** Active category tab — gold tint by default, brand when Pro custom branding. */
-export function customerActiveTabStyle(restaurant: CustomerBrandingRestaurant): CSSProperties {
+/** Active category tab — gold tint by default, solid brand when custom branding is on. */
+export function customerActiveTabStyle(restaurant: RestaurantBranding): CSSProperties {
   const accent = resolveCustomerAccent(restaurant);
   if (isCustomerBrandingActive(restaurant)) {
     return {
@@ -82,13 +100,13 @@ export function customerActiveTabStyle(restaurant: CustomerBrandingRestaurant): 
   };
 }
 
-export function customerAccentTextStyle(restaurant: CustomerBrandingRestaurant): CSSProperties {
+export function customerAccentTextStyle(restaurant: RestaurantBranding): CSSProperties {
   return { color: resolveCustomerAccent(restaurant) };
 }
 
 /** Landing / selection cards — neutral when unselected, accent when selected. */
 export function customerSelectionCardStyle(
-  restaurant: CustomerBrandingRestaurant,
+  restaurant: RestaurantBranding,
   selected: boolean
 ): CSSProperties {
   if (!selected) {
@@ -103,7 +121,7 @@ export function customerSelectionCardStyle(
 
 /** Icon tile inside a selection card. */
 export function customerSelectionIconStyle(
-  restaurant: CustomerBrandingRestaurant,
+  restaurant: RestaurantBranding,
   selected: boolean
 ): CSSProperties {
   if (!selected) {
@@ -168,7 +186,7 @@ export function subscriptionPlanLabel(tier: SubscriptionTier | string): string {
 
 /** Sidebar shell — solid brand background, white labels. */
 export function sidebarBrandStyles(brandColor: string | null | undefined): CSSProperties {
-  const accent = resolveBrandColor(brandColor);
+  const accent = resolveDashboardAccent(brandColor);
   return {
     backgroundColor: accent,
     color: SIDEBAR_TEXT_COLOR,
@@ -178,14 +196,14 @@ export function sidebarBrandStyles(brandColor: string | null | undefined): CSSPr
 /** Primary admin button — solid brand background, white label. */
 export function brandPrimaryButtonStyle(brandColor: string | null | undefined): CSSProperties {
   return {
-    backgroundColor: resolveBrandColor(brandColor),
+    backgroundColor: resolveDashboardAccent(brandColor),
     color: SIDEBAR_TEXT_COLOR,
   };
 }
 
 /** Active nav item — ~20% brand tint on white for background, brand-colored label. */
 export function activeNavItemStyle(brandColor: string | null | undefined): CSSProperties {
-  const accent = resolveBrandColor(brandColor);
+  const accent = resolveDashboardAccent(brandColor);
   return {
     backgroundColor: `color-mix(in srgb, ${accent} 20%, white)`,
     color: accent,

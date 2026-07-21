@@ -5,7 +5,8 @@ import { Loader2, Minus, Plus, Trash2, ShoppingBasket, Phone, ArrowLeft, Smartph
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { OrderPrimaryButton } from "@/components/order/order-primary-button";
-import { customerAccentTextStyle } from "@/lib/brand/restaurant-brand";
+import { useOrderBrandOptional } from "@/components/order/order-brand-context";
+import { buildRestaurantBranding, customerAccentTextStyle } from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,7 +72,11 @@ export function CartSheet({
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentDialCode, setPaymentDialCode] = useState("");
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
-  const accentStyle = customerAccentTextStyle(restaurant);
+  const brand = useOrderBrandOptional();
+  const accentStyle = customerAccentTextStyle(
+    brand?.branding ??
+      buildRestaurantBranding(restaurant.brand_color, restaurant.custom_branding_enabled)
+  );
 
   const total = useMemo(() => cartTotal(cart), [cart]);
   const billingModel = useMemo(

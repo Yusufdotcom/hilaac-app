@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 import {
-  type CustomerBrandingRestaurant,
+  type RestaurantBranding,
+  buildRestaurantBranding,
   HILAAC_NAVY,
   isCustomerBrandingActive,
   resolveCustomerAccent,
@@ -10,7 +11,7 @@ import {
 } from "@/lib/brand/restaurant-brand";
 
 type OrderBrandContextValue = {
-  restaurant: CustomerBrandingRestaurant;
+  branding: RestaurantBranding;
   accent: string;
   customBrandingActive: boolean;
 };
@@ -18,17 +19,23 @@ type OrderBrandContextValue = {
 const OrderBrandContext = createContext<OrderBrandContextValue | null>(null);
 
 export function OrderBrandProvider({
-  restaurant,
+  brandColor,
+  customBrandingEnabled = false,
   children,
 }: {
-  restaurant: CustomerBrandingRestaurant;
+  brandColor?: string | null;
+  customBrandingEnabled?: boolean;
   children: React.ReactNode;
 }) {
-  const accent = resolveCustomerAccent(restaurant);
-  const customBrandingActive = isCustomerBrandingActive(restaurant);
+  const branding = useMemo(
+    () => buildRestaurantBranding(brandColor, customBrandingEnabled),
+    [brandColor, customBrandingEnabled]
+  );
+  const accent = resolveCustomerAccent(branding);
+  const customBrandingActive = isCustomerBrandingActive(branding);
 
   return (
-    <OrderBrandContext.Provider value={{ restaurant, accent, customBrandingActive }}>
+    <OrderBrandContext.Provider value={{ branding, accent, customBrandingActive }}>
       <div
         className="contents"
         style={{
@@ -45,15 +52,27 @@ export function OrderBrandProvider({
   );
 }
 
+/** @deprecated Use `useOrderBranding` — kept for gradual migration inside order components. */
 export function useOrderBrand() {
   const ctx = useContext(OrderBrandContext);
   if (!ctx) {
     throw new Error("useOrderBrand must be used within OrderBrandProvider");
   }
+  return {
+    restaurant: ctx.branding,
+    accent: ctx.accent,
+    customBrandingActive: ctx.customBrandingActive,
+  };
+}
+
+export function useOrderBranding() {
+  const ctx = useContext(OrderBrandContext);
+  if (!ctx) {
+    throw new Error("useOrderBranding must be used within OrderBrandProvider");
+  }
   return ctx;
 }
 
-/** Safe fallback when provider is not mounted (e.g. legacy pages). */
 export function useOrderBrandOptional() {
   return useContext(OrderBrandContext);
 }

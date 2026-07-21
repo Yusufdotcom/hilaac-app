@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BrandRadioOption } from "@/components/admin/brand-radio-option";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { createClient } from "@/lib/supabase/client";
-import { DEFAULT_BRAND_COLOR, normalizeHex, resolveBrandColor } from "@/lib/brand/restaurant-brand";
+import { DEFAULT_BRAND_COLOR, normalizeHex, resolveDashboardAccent } from "@/lib/brand/restaurant-brand";
 import type { BillingModel, Restaurant } from "@/types/database";
 
 export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
@@ -28,7 +28,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     logo_url: restaurant.logo_url ?? "",
   });
   const [brandColor, setBrandColor] = useState(
-    resolveBrandColor(restaurant.brand_color ?? DEFAULT_BRAND_COLOR)
+    resolveDashboardAccent(restaurant.brand_color ?? DEFAULT_BRAND_COLOR)
   );
   const [customBrandingEnabled, setCustomBrandingEnabled] = useState(
     restaurant.custom_branding_enabled ?? false
@@ -51,7 +51,6 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
 
   const [savingGeneral, setSavingGeneral] = useState(false);
   const [savingBrandColor, setSavingBrandColor] = useState(false);
-  const [savingCustomBranding, setSavingCustomBranding] = useState(false);
   const [savingOrderTypes, setSavingOrderTypes] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [savingBillingRules, setSavingBillingRules] = useState(false);
@@ -189,33 +188,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     }
   }
 
-  async function handleToggleCustomBranding(enabled: boolean) {
-    if (!isPro) {
-      toast.error("Upgrade to Pro to enable custom customer menu branding");
-      return;
-    }
-
-    setCustomBrandingEnabled(enabled);
-    setSavingCustomBranding(true);
-    try {
-      const { error } = await supabase
-        .from("restaurants")
-        .update({ custom_branding_enabled: enabled })
-        .eq("id", restaurant.id);
-
-      if (error) throw error;
-
-      toast.success(enabled ? "Custom customer branding enabled" : "Custom customer branding disabled");
-      router.refresh();
-    } catch (err: unknown) {
-      setCustomBrandingEnabled(!enabled);
-      toast.error(err instanceof Error ? err.message : "Failed to update branding setting");
-    } finally {
-      setSavingCustomBranding(false);
-    }
-  }
-
-  async function handleSaveBrandColor(e: React.FormEvent) {
+  async function handleSaveBrandSettings(e: React.FormEvent) {
     e.preventDefault();
     const normalized = normalizeHex(brandColor);
     if (!normalized) {
@@ -227,19 +200,31 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     try {
       const { error } = await supabase
         .from("restaurants")
-        .update({ brand_color: normalized })
+        .update({
+          brand_color: normalized,
+          custom_branding_enabled: isPro ? customBrandingEnabled : false,
+        })
         .eq("id", restaurant.id);
 
       if (error) throw error;
 
       setBrandColor(normalized);
       toast.success("Brand settings saved");
+      router.push(`/admin/${restaurant.slug}/dashboard`);
       router.refresh();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to save brand color");
+      toast.error(err instanceof Error ? err.message : "Failed to save brand settings");
     } finally {
       setSavingBrandColor(false);
     }
+  }
+
+  function handleCustomBrandingToggle(enabled: boolean) {
+    if (!isPro) {
+      toast.error("Upgrade to Pro to enable custom customer menu branding");
+      return;
+    }
+    setCustomBrandingEnabled(enabled);
   }
 
   return (
@@ -301,7 +286,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSaveBrandColor} className="space-y-5">
+          <form onSubmit={handleSaveBrandSettings} className="space-y-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div className="space-y-2">
                 <Label htmlFor="brand-color">Dashboard color</Label>
@@ -341,8 +326,8 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
               <Switch
                 id="custom-branding-toggle"
                 checked={customBrandingEnabled}
-                disabled={!isPro || savingCustomBranding}
-                onCheckedChange={handleToggleCustomBranding}
+                disabled={!isPro}
+                onCheckedChange={handleCustomBrandingToggle}
               />
             </div>
 

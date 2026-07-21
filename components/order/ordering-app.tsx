@@ -12,7 +12,6 @@ import { CartSheet } from "@/components/order/cart-sheet";
 import { ItemCustomizeSheet } from "@/components/order/item-customize-sheet";
 import { OrderConfirmation } from "@/components/order/order-confirmation";
 import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
-import { OrderBrandProvider } from "@/components/order/order-brand-context";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 
 type Step = "landing" | "table" | "menu" | "confirmation";
@@ -127,18 +126,16 @@ export function OrderingApp({
 
   if (step === "confirmation" && placedOrderId) {
     return (
-      <OrderBrandProvider restaurant={restaurant}>
-        <OrderConfirmation
-          orderId={placedOrderId}
-          restaurant={restaurant}
-          onNewOrder={handleNewOrder}
-        />
-      </OrderBrandProvider>
+      <OrderConfirmation
+        orderId={placedOrderId}
+        restaurant={restaurant}
+        onNewOrder={handleNewOrder}
+      />
     );
   }
 
   return (
-    <OrderBrandProvider restaurant={restaurant}>
+    <>
       <div className="flex h-[100dvh] flex-col overflow-hidden bg-muted/20">
         {step === "landing" && (
           <LandingStep restaurant={restaurant} onSelect={handleSelectOrderType} />
@@ -208,7 +205,7 @@ export function OrderingApp({
           onClose={() => setUssdPayment(null)}
         />
       )}
-    </OrderBrandProvider>
+    </>
   );
 }
 
