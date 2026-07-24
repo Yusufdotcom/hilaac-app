@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { OfflineSyncProvider } from "@/components/offline-sync-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <OfflineSyncProvider>{children}</OfflineSyncProvider>
           <Toaster richColors position="top-center" />
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
