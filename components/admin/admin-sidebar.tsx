@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
+  LayoutGrid,
   Utensils,
   Table,
   ListOrdered,
@@ -69,22 +70,31 @@ export function AdminSidebar({
     window.location.href = "/login";
   }
 
-  function navLinkClass(href: string) {
-    const active = pathname === href || pathname.startsWith(`${href}/`);
+  function isNavActive(href: string) {
+    if (href === `/staff/${slug}`) {
+      return pathname === href || pathname.startsWith(`/staff/${slug}/`);
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  function navLinkClass(href: string, collapsed = false) {
+    const active = isNavActive(href);
     return cn(
-      "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors duration-200",
+      "flex items-center rounded-lg text-sm font-medium transition-colors duration-200",
+      collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-4 py-2.5",
       active ? "font-semibold" : "hover:bg-white/10"
     );
   }
 
   function navLinkStyle(href: string): React.CSSProperties | undefined {
-    const active = pathname === href || pathname.startsWith(`${href}/`);
+    const active = isNavActive(href);
     if (!active) return { color: SIDEBAR_TEXT_COLOR };
     return activeNavItemStyle(brandColor);
   }
 
   const navItems = [
     { href: `/admin/${slug}/dashboard`, label: "Dashboard", icon: LayoutDashboard },
+    { href: `/staff/${slug}`, label: "Staff Hub", icon: LayoutGrid },
     { href: `/admin/${slug}/menu`, label: "Menu", icon: Utensils },
     { href: `/admin/${slug}/tables`, label: "Tables", icon: Table },
     { href: `/admin/${slug}/orders`, label: "Orders", icon: ListOrdered },
@@ -140,7 +150,7 @@ export function AdminSidebar({
               type="button"
               onClick={handleLogout}
               className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors duration-200 hover:bg-white/10"
-            style={{ color: SIDEBAR_TEXT_COLOR }}
+              style={{ color: SIDEBAR_TEXT_COLOR }}
             >
               <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
               Logout
@@ -148,15 +158,41 @@ export function AdminSidebar({
           </div>
         </>
       ) : (
-        <div className="relative z-30 flex h-full flex-col items-center py-4">
+        <div className="relative z-30 flex h-full flex-col items-center py-3">
           <button
             type="button"
             onClick={onToggle}
-            className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+            className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-white/10"
             style={{ color: SIDEBAR_TEXT_COLOR }}
             aria-label="Expand sidebar"
           >
             <ChevronRight className="h-5 w-5" aria-hidden="true" />
+          </button>
+
+          <nav className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-2">
+            {navItems.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className={navLinkClass(href, true)}
+                style={navLinkStyle(href)}
+                title={label}
+                aria-label={label}
+              >
+                <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+              </Link>
+            ))}
+          </nav>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-2 flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-white/10"
+            style={{ color: SIDEBAR_TEXT_COLOR }}
+            aria-label="Logout"
+            title="Logout"
+          >
+            <LogOut className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
       )}

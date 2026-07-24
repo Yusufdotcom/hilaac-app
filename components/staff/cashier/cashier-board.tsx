@@ -154,6 +154,7 @@ export function CashierBoard({
       const fields: { payment_status: PaymentStatus; status?: OrderStatus } = {
         payment_status: "paid",
       };
+      // Pay-before orders wait here until cashier verifies, then kitchen sees them live.
       if (order.status === "awaiting_payment") {
         fields.status = "new";
       }
@@ -163,7 +164,7 @@ export function CashierBoard({
         toast.error(error.message);
         return;
       }
-      toast.success("Payment confirmed — order sent to kitchen");
+      toast.success("Payment confirmed — kitchen notified in real time");
     } finally {
       setBusyOrderId(null);
     }

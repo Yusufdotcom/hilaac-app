@@ -29,7 +29,9 @@ export default async function StaffHubPage({ params }: { params: { slug: string 
     <div className="mx-auto max-w-3xl space-y-8 py-4">
       <header className="text-center sm:text-left">
         <h1 className="text-3xl font-bold text-[#0F172A]">Staff Hub</h1>
-        <p className="mt-2 text-[#64748B]">{restaurant.name}</p>
+        <p className="mt-2 text-[#64748B]">
+          {restaurant.name} — open Kitchen, Waiter, or Cashier in one click.
+        </p>
       </header>
 
       <div className="grid gap-4 sm:gap-6">

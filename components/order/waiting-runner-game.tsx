@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const W = 280;
-const H = 72;
+const W = 360;
+const H = 80;
 const GROUND = H - 14;
 const GRAVITY = 0.55;
 const JUMP = -7.5;

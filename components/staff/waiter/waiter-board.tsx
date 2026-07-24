@@ -186,7 +186,7 @@ export function WaiterBoard({
 
     try {
       const error = await updateOrderFields(orderId, {
-        status: "completed",
+        status: "delivered",
         delivered_by: selectedWaiter,
       });
       if (error) {
@@ -199,7 +199,7 @@ export function WaiterBoard({
         ...prev,
         [selectedWaiter]: (prev[selectedWaiter] ?? 0) + 1,
       }));
-      toast.success("Order completed successfully.");
+      toast.success("Order delivered — customer notified.");
     } finally {
       setBusyOrderId(null);
     }
@@ -256,11 +256,14 @@ export function WaiterBoard({
       </div>
 
       <section className="space-y-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <UtensilsCrossed className="h-5 w-5 text-[#0F172A]" aria-hidden="true" />
-          <h2 className="text-lg font-semibold text-[#0F172A]">Tables</h2>
+          <h2 className="text-lg font-semibold text-[#0F172A]">Dine-in</h2>
           <Badge variant="secondary" className="text-xs">
-            Ready orders shown first
+            Live · Ready first
+          </Badge>
+          <Badge className="border-0 bg-blue-50 text-xs text-blue-800">
+            {activeDineIn.length} active
           </Badge>
         </div>
 
@@ -324,14 +327,20 @@ export function WaiterBoard({
       </section>
 
       <section className="space-y-4">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ShoppingBag className="h-5 w-5 text-[#0F172A]" aria-hidden="true" />
-          <h2 className="text-lg font-semibold text-[#0F172A]">Takeaway — ready for pickup</h2>
+          <h2 className="text-lg font-semibold text-[#0F172A]">Takeaway</h2>
+          <Badge variant="secondary" className="text-xs">
+            Live · Appears when kitchen marks Ready
+          </Badge>
+          <Badge className="border-0 bg-emerald-50 text-xs text-emerald-800">
+            {readyTakeaway.length} ready
+          </Badge>
         </div>
 
         {readyTakeaway.length === 0 ? (
           <p className="rounded-xl border border-dashed border-[#CBD5E1] bg-white px-4 py-10 text-center text-[#64748B]">
-            No takeaway orders ready for pickup.
+            No takeaway orders ready for pickup yet. They appear here in real time.
           </p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -28,7 +28,7 @@ interface TrackedOrderRow {
 }
 
 const PAGE_SHELL =
-  "flex h-[100dvh] max-h-[100dvh] min-h-[100dvh] flex-col overflow-hidden px-3";
+  "flex h-[100dvh] max-h-[100dvh] min-h-screen flex-col justify-center overflow-hidden px-3";
 
 export default function OrderStatusPage({
   params,
@@ -248,7 +248,7 @@ export default function OrderStatusPage({
         accentColor={branding.customerAccentColor}
         fullHeight={false}
       >
-        <div className="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col justify-center">
+        <div className="mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col justify-center overflow-hidden">
           <OrderStatusView
             orderId={orderId}
             restaurantName={restaurantName}

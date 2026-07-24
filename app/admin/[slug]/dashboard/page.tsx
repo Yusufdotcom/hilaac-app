@@ -1,9 +1,11 @@
 import { ShoppingBag, DollarSign, Table2, Clock, AlertCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
-import { formatCurrency, formatDate, daysUntil } from "@/lib/utils";
+import { DashboardRecentOrders } from "@/components/admin/dashboard/dashboard-recent-orders";
+import { formatCurrency, daysUntil } from "@/lib/utils";
+import type { OrderWithItems } from "@/types/database";
 
 type DashboardFetchError = {
   label: string;
@@ -35,10 +37,10 @@ export default async function DashboardPage({ params }: { params: { slug: string
     }),
     supabase
       .from("orders")
-      .select("id, order_type, status, payment_status, total, created_at")
+      .select("*, table:table_id(*), order_items(*, menu_item:menu_item_id(*))")
       .eq("restaurant_id", restaurant.id)
       .order("created_at", { ascending: false })
-      .limit(5),
+      .limit(20),
     supabase
       .from("tables")
       .select("*", { count: "exact", head: true })
@@ -49,7 +51,8 @@ export default async function DashboardPage({ params }: { params: { slug: string
       .select("*", { count: "exact", head: true })
       .eq("restaurant_id", restaurant.id)
       .gte("created_at", startOfDayIso)
-      .neq("status", "completed"),
+      .neq("status", "completed")
+      .neq("status", "delivered"),
   ]);
 
   if (ordersTodayResult.error) {
@@ -69,13 +72,10 @@ export default async function DashboardPage({ params }: { params: { slug: string
   }
 
   const ordersToday = Number(ordersTodayResult.data ?? 0);
-
   const revenueToday = Number(revenueTodayResult.data ?? 0);
-
-  const recentOrders = recentOrdersResult.data ?? [];
+  const recentOrders = (recentOrdersResult.data as OrderWithItems[]) ?? [];
   const activeTables = activeTablesResult.count ?? 0;
   const openOrders = openOrdersResult.count ?? 0;
-
   const trialDaysLeft = daysUntil(restaurant.subscription_end_date);
 
   const stats = [
@@ -131,47 +131,15 @@ export default async function DashboardPage({ params }: { params: { slug: string
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Recent Orders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentOrders.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-2 pr-4 font-medium">Order</th>
-                    <th className="pb-2 pr-4 font-medium">Type</th>
-                    <th className="pb-2 pr-4 font-medium">Status</th>
-                    <th className="pb-2 pr-4 font-medium">Payment</th>
-                    <th className="pb-2 pr-4 font-medium">Total</th>
-                    <th className="pb-2 font-medium">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b last:border-0">
-                      <td className="py-2 pr-4 font-mono text-xs">{order.id.slice(0, 8)}</td>
-                      <td className="py-2 pr-4 capitalize">{order.order_type}</td>
-                      <td className="py-2 pr-4 capitalize">{order.status}</td>
-                      <td className="py-2 pr-4 capitalize">{order.payment_status}</td>
-                      <td className="py-2 pr-4">{formatCurrency(Number(order.total))}</td>
-                      <td className="py-2 text-muted-foreground">{formatDate(order.created_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="py-8 text-center text-muted-foreground">
-              {fetchErrors.some((e) => e.label === "Recent orders")
-                ? "Could not load recent orders."
-                : "No orders yet."}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {fetchErrors.some((e) => e.label === "Recent orders") ? (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            Could not load recent orders.
+          </CardContent>
+        </Card>
+      ) : (
+        <DashboardRecentOrders restaurantId={restaurant.id} initialOrders={recentOrders} />
+      )}
     </div>
   );
 }

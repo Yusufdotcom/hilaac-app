@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { Check, CheckCircle2, Clock, PartyPopper } from "lucide-react";
+import { Check, CheckCircle2, Clock, PartyPopper, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
@@ -32,6 +32,14 @@ const STATUS_STEPS: { key: OrderStatus; label: string }[] = [
   { key: "completed", label: "Dhammaystiran" },
 ];
 
+function statusStepIndex(status: OrderStatus | undefined) {
+  if (!status || status === "awaiting_payment") return -1;
+  if (status === "completed") {
+    return STATUS_STEPS.findIndex((s) => s.key === "completed");
+  }
+  return STATUS_STEPS.findIndex((s) => s.key === status);
+}
+
 function StatusTimeline({
   currentIndex,
   accent,
@@ -55,7 +63,7 @@ function StatusTimeline({
                 className="absolute left-[17px] top-[34px] h-[calc(100%+2px)] w-0.5 -translate-x-1/2"
                 style={{
                   backgroundColor: isPast || isCurrent ? accent : "#E5E7EB",
-                  opacity: isFuture ? 0.4 : 1,
+                  opacity: isFuture ? 0.35 : isPast ? 0.45 : 1,
                 }}
                 aria-hidden="true"
               />
@@ -64,33 +72,30 @@ function StatusTimeline({
             <article
               className={cn(
                 "relative z-[1] flex flex-1 items-center gap-2 rounded-xl border px-2 py-1.5 transition-all duration-300",
-                isFuture && "border-gray-100 bg-gray-50/80 opacity-55",
-                isPast && "border-gray-200 bg-white",
+                isFuture && "border-gray-100 bg-gray-50/80 opacity-50",
+                isPast && "border-gray-200 bg-gray-50/90 opacity-70",
                 isCurrent && "animate-[status-pulse_2s_ease-in-out_infinite]"
               )}
               style={
                 isCurrent
                   ? {
                       borderColor: accent,
-                      backgroundColor: brandColorWithAlpha(accent, customBrandingActive ? 0.14 : 0.1),
-                      boxShadow: `0 4px 20px ${brandColorWithAlpha(accent, 0.25)}`,
+                      backgroundColor: brandColorWithAlpha(accent, customBrandingActive ? 0.16 : 0.12),
+                      boxShadow: `0 4px 18px ${brandColorWithAlpha(accent, 0.28)}`,
                     }
-                  : isPast
-                    ? { borderColor: "#E5E7EB", backgroundColor: "#FFFFFF" }
-                    : undefined
+                  : undefined
               }
             >
               <div
                 className={cn(
                   "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-300",
-                  isFuture && "bg-gray-100 text-gray-400"
+                  isFuture && "bg-gray-100 text-gray-400",
+                  isPast && "bg-gray-200 text-gray-500"
                 )}
                 style={
                   isCurrent
                     ? customerPrimaryButtonStyleFromAccent(accent, customBrandingActive)
-                    : isPast
-                      ? { backgroundColor: "#F3F4F6", color: "#9CA3AF" }
-                      : undefined
+                    : undefined
                 }
               >
                 {isPast ? (
@@ -134,25 +139,29 @@ export function OrderStatusView({
   const brand = useOrderBrandOptional();
   const accent = brand?.accent ?? resolveCustomerAccent(brand?.branding ?? {});
   const customBrandingActive = brand?.customBrandingActive ?? false;
-  const accentTextStyle = customerAccentTextStyleFromAccent(accent);
   const prevStatusRef = useRef<string | null>(null);
   const chimePlayedRef = useRef(false);
 
-  const currentIndex =
-    order?.status === "awaiting_payment"
-      ? -1
-      : STATUS_STEPS.findIndex((s) => s.key === order?.status);
+  const currentIndex = statusStepIndex(order?.status);
 
   const isCompleted = order?.status === "completed";
+  const isDelivered = order?.status === "delivered";
+  const isFinal = isDelivered || isCompleted;
   const isReady = order?.status === "ready";
   const awaitingCashier = order ? isAwaitingCashierConfirmation(order) : false;
 
+  const receiptMessage = isFinal
+    ? "Receipt ka waxa ku keenaya waiter ka. Mahadsanid!"
+    : null;
+
   const paymentMessage =
-    order?.payment_status === "pending"
-      ? "Payment pending. Please show your payment confirmation to the cashier."
-      : order?.payment_status === "paid"
-        ? "Your meal is being prepared. Ask the cashier for your bill when you are ready to pay."
-        : null;
+    receiptMessage
+      ? null
+      : order?.payment_status === "pending"
+        ? "Payment pending. Please show your payment confirmation to the cashier."
+        : order?.payment_status === "paid"
+          ? "Your meal is being prepared. Ask the cashier for your bill when you are ready to pay."
+          : null;
 
   useEffect(() => {
     const handler = () => unlockOrderSounds();
@@ -176,12 +185,13 @@ export function OrderStatusView({
     prevStatusRef.current = order.status;
   }, [order?.status, order]);
 
-  const workflowMessage = order ? customerStatusWorkflowMessage(order) : null;
+  const workflowMessage =
+    receiptMessage || paymentMessage ? null : order ? customerStatusWorkflowMessage(order) : null;
 
   return (
     <div
       className={cn(
-        "flex min-h-0 w-full max-w-sm flex-1 flex-col justify-center px-1",
+        "flex min-h-0 w-full max-w-lg flex-1 flex-col justify-center overflow-hidden px-1",
         className
       )}
       onPointerDown={() => unlockOrderSounds()}
@@ -194,38 +204,59 @@ export function OrderStatusView({
             color: accent,
           }}
         >
-          <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+          {isFinal ? (
+            <Receipt className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+          )}
         </div>
 
         {order && (
-          <div className="mx-auto mb-1 inline-block rounded-full bg-white px-3 py-0.5 text-sm font-bold tracking-wide text-gray-900 shadow-sm ring-1 ring-gray-100">
-            {formatOrderLabel(order)}
+          <div className="mx-auto mb-1 inline-flex max-w-full items-center justify-center rounded-full bg-white px-3 py-0.5 text-sm font-bold tracking-wide text-gray-900 shadow-sm ring-1 ring-gray-100">
+            <span className="truncate">{formatOrderLabel(order)}</span>
           </div>
         )}
 
-        <h1 className="text-base font-bold leading-tight text-gray-900">Dalabkaagu wuu socdaa!</h1>
+        <h1 className="text-base font-bold leading-tight text-gray-900">
+          {isFinal ? "Dalabkaagu waa la geeyay!" : "Dalabkaagu wuu socdaa!"}
+        </h1>
         <p className="text-[11px] leading-snug text-gray-500">{restaurantName}</p>
       </div>
 
-      <div className="my-1.5 flex flex-wrap items-center justify-center gap-1.5">
-        {awaitingCashier && (
-          <Badge className="border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-900 hover:bg-amber-50">
-            Waiting for cashier confirmation
-          </Badge>
-        )}
-        {order?.payment_status === "paid" && (
-          <Badge className="border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-800 hover:bg-emerald-50">
-            Lacagta waa la xaqiijiyay
-          </Badge>
-        )}
-        {isCompleted && (
-          <Badge className="border-green-200 bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-800 hover:bg-green-100">
+      {!isFinal && (
+        <div className="my-1.5 flex flex-wrap items-center justify-center gap-1.5">
+          {awaitingCashier && (
+            <Badge className="border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-900 hover:bg-amber-50">
+              Waiting for cashier confirmation
+            </Badge>
+          )}
+          {order?.payment_status === "paid" && (
+            <Badge className="border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-800 hover:bg-emerald-50">
+              Lacagta waa la xaqiijiyay
+            </Badge>
+          )}
+        </div>
+      )}
+
+      {isCompleted && (
+        <div className="my-1.5 flex justify-center">
+          <Badge className="border-green-200 bg-green-100 px-2.5 py-0.5 text-[10px] font-semibold text-green-800 hover:bg-green-100">
             Dhammaystiran
           </Badge>
-        )}
-      </div>
+        </div>
+      )}
 
-      {(isReady || isCompleted) && (
+      {receiptMessage && (
+        <p
+          className="mb-1.5 text-center text-xs font-semibold leading-snug"
+          style={customerAccentTextStyleFromAccent(accent)}
+        >
+          <Receipt className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
+          {receiptMessage}
+        </p>
+      )}
+
+      {!receiptMessage && (isReady || isFinal) && (
         <p className="mb-1 text-center text-xs font-semibold text-green-700">
           <PartyPopper className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
           Your meal is ready!
@@ -233,18 +264,18 @@ export function OrderStatusView({
       )}
 
       {paymentMessage && (
-        <p className="mb-1.5 line-clamp-3 text-center text-[11px] leading-snug text-gray-600">
+        <p className="mb-1.5 line-clamp-2 text-center text-[11px] leading-snug text-gray-600">
           {paymentMessage}
         </p>
       )}
 
-      {!paymentMessage && workflowMessage && (
+      {workflowMessage && (
         <p className="mb-1.5 line-clamp-2 text-center text-[10px] leading-snug text-gray-500">
           {workflowMessage}
         </p>
       )}
 
-      <div className="min-h-0 shrink overflow-hidden py-0.5">
+      <div className="min-h-0 shrink overflow-y-auto py-0.5">
         <StatusTimeline
           currentIndex={currentIndex}
           accent={accent}
@@ -254,7 +285,7 @@ export function OrderStatusView({
 
       <OrderCustomerPhone phone={order?.customer_phone} variant="badge" className="mt-1 shrink-0" />
 
-      <WaitingRunnerGame className="mt-1.5 shrink-0" />
+      <WaitingRunnerGame className="mt-1.5 w-full shrink-0" />
 
       <Button
         variant="outline"

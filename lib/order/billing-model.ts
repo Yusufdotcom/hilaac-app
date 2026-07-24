@@ -25,6 +25,10 @@ export function customerStatusWorkflowMessage(order: {
   payment_status: PaymentStatus;
   status: OrderStatus;
 }) {
+  if (order.status === "delivered" || order.status === "completed") {
+    return "Receipt ka waxa ku keenaya waiter ka. Mahadsanid!";
+  }
+
   if (order.billing_model === "pay_after") {
     return "Your meal is being prepared. Ask the cashier for your bill when you are ready to pay.";
   }
