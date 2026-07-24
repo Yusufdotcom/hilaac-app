@@ -73,14 +73,14 @@ export function TableManager({
   }
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="w-full space-y-6">
+      <div className="min-w-0">
         <h1 className="text-2xl font-bold">Tables</h1>
-        <p className="text-muted-foreground">Manage table numbers and your restaurant's ordering QR code.</p>
+        <p className="text-muted-foreground">Manage table numbers and your restaurant&apos;s ordering QR code.</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
+        <Card className="w-full overflow-hidden lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-lg">Ordering QR Code</CardTitle>
             <CardDescription>One QR code for your whole restaurant. Print and place it on every table.</CardDescription>
@@ -89,36 +89,41 @@ export function TableManager({
             <div ref={qrRef} className="rounded-xl border bg-white p-4">
               <QRCodeCanvas value={orderUrl} size={200} includeMargin />
             </div>
-            <p className="break-all text-center text-xs text-muted-foreground">{orderUrl}</p>
-            <div className="flex w-full gap-2">
-              <Button variant="outline" className="flex-1" onClick={handleCopyLink}>
+            <p className="w-full break-all text-center text-xs text-muted-foreground">{orderUrl}</p>
+            <div className="flex w-full flex-col gap-2 sm:flex-row">
+              <Button variant="outline" className="w-full flex-1" onClick={handleCopyLink}>
                 <Copy className="h-4 w-4" /> Copy Link
               </Button>
-              <BrandButton className="flex-1" onClick={handleDownloadQr}>
+              <BrandButton className="w-full flex-1" onClick={handleDownloadQr}>
                 <Download className="h-4 w-4" /> Download
               </BrandButton>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card className="w-full overflow-hidden lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg">Table Numbers</CardTitle>
-            <CardDescription>Customers enter this number after choosing "Fadhi" (Dine-in).</CardDescription>
+            <CardDescription>Customers enter this number after choosing &quot;Fadhi&quot; (Dine-in).</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleAdd} className="mb-6 flex gap-2">
-              <Input placeholder="e.g. 12" value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} />
-              <BrandButton type="submit" disabled={loading}>
+            <form onSubmit={handleAdd} className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row">
+              <Input
+                placeholder="e.g. 12"
+                value={tableNumber}
+                onChange={(e) => setTableNumber(e.target.value)}
+                className="w-full min-w-0"
+              />
+              <BrandButton type="submit" disabled={loading} className="w-full shrink-0 sm:w-auto">
                 <Plus className="h-4 w-4" /> Add Table
               </BrandButton>
             </form>
 
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {tables.length === 0 && <p className="text-muted-foreground">No tables yet.</p>}
               {tables.map((table) => (
-                <div key={table.id} className="flex items-center justify-between rounded-lg border p-3">
-                  <span className="font-medium">Table {table.table_number}</span>
+                <div key={table.id} className="flex w-full items-center justify-between gap-2 rounded-lg border p-3">
+                  <span className="truncate font-medium">Table {table.table_number}</span>
                   <div className="flex items-center gap-3">
                     <Switch checked={table.is_active} onCheckedChange={() => toggleActive(table)} />
                     <Button variant="ghost" size="icon" onClick={() => handleDelete(table.id)}>

@@ -306,9 +306,9 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6 overflow-x-hidden">
       {/* Restaurant details */}
-      <Card>
+      <Card className="w-full overflow-hidden">
         <CardHeader>
           <CardTitle className="text-lg">Restaurant Details</CardTitle>
           <CardDescription>Your public profile, shown on the ordering page.</CardDescription>
@@ -372,7 +372,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
       </Card>
 
       {/* Brand settings */}
-      <Card>
+      <Card className="w-full overflow-hidden">
         <CardHeader>
           <CardTitle className="text-lg">🎨 Brand Settings</CardTitle>
           <CardDescription>
@@ -434,7 +434,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
       </Card>
 
       {/* Order types */}
-      <Card>
+      <Card className="w-full overflow-hidden">
         <CardHeader>
           <CardTitle className="text-lg">Order Types</CardTitle>
           <CardDescription>Choose which ordering flows customers can pick from.</CardDescription>
@@ -458,7 +458,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
       </Card>
 
       {/* Payment rules per order type */}
-      <Card>
+      <Card className="w-full overflow-hidden">
         <CardHeader>
           <CardTitle className="text-lg">Payment Rules per Order Type</CardTitle>
           <CardDescription>
@@ -546,7 +546,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
       </Card>
 
       {/* Payment mode */}
-      <Card>
+      <Card className="w-full overflow-hidden">
         <CardHeader>
           <CardTitle className="text-lg">Payment Mode</CardTitle>
           <CardDescription>USSD is manual dial-and-confirm. API auto-confirms payments via webhook.</CardDescription>

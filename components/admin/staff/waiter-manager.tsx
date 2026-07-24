@@ -56,15 +56,15 @@ export function WaiterManager({
   }
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="w-full space-y-6">
+      <div className="min-w-0">
         <h1 className="text-2xl font-bold">Waiters</h1>
         <p className="text-muted-foreground">
           Add the names of your waiters. They select their name on the shared tablet when delivering orders.
         </p>
       </div>
 
-      <Card>
+      <Card className="w-full overflow-hidden">
         <CardHeader>
           <CardTitle className="text-lg">Waiter names</CardTitle>
           <CardDescription>
@@ -72,14 +72,15 @@ export function WaiterManager({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleAdd} className="mb-6 flex gap-2">
+          <form onSubmit={handleAdd} className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row">
             <Input
               placeholder="e.g. Ahmed"
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={80}
+              className="w-full min-w-0"
             />
-            <BrandButton type="submit" disabled={loading}>
+            <BrandButton type="submit" disabled={loading} className="w-full shrink-0 sm:w-auto">
               <Plus className="h-4 w-4" />
               Add
             </BrandButton>

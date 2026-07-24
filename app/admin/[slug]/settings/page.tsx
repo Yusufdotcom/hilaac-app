@@ -14,10 +14,12 @@ export default async function SettingsPage({ params }: { params: { slug: string 
   const branches = profile.role === "owner" && user ? await getOwnerBranches(supabase, user.id) : [];
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="w-full space-y-6">
+      <div className="min-w-0">
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your restaurant profile, order types, and payment configuration.</p>
+        <p className="text-muted-foreground">
+          Manage your restaurant profile, order types, and payment configuration.
+        </p>
       </div>
       {profile.role === "owner" && (
         <ManageBranches

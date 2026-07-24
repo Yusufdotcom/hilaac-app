@@ -64,7 +64,7 @@ export function AdminLayoutShell({
 
   return (
     <AdminBrandProvider brandColor={brandColor}>
-      <div className="min-h-screen w-full bg-[#F8FAFC]" style={sidebarCssVars}>
+      <div className="flex min-h-screen w-full max-w-full flex-col overflow-x-hidden bg-[#F8FAFC]" style={sidebarCssVars}>
         {mobileOpen && (
           <button
             type="button"
@@ -126,14 +126,16 @@ export function AdminLayoutShell({
 
         <main
           className={cn(
-            "app-light-surface relative z-0 flex min-h-screen w-full flex-col pt-14 text-[#0F172A]",
-            "ml-0 md:ml-[var(--admin-sidebar-width)]",
+            "app-light-surface relative z-0 flex min-h-screen w-full max-w-full flex-1 flex-col pt-14 text-[#0F172A]",
+            "ml-0 overflow-x-hidden md:ml-[var(--admin-sidebar-width)]",
             mobileOpen ? "overflow-hidden" : "overflow-y-auto"
           )}
           style={{ transition: `margin-left ${offsetTransition}` }}
         >
-          <div className="flex-1 p-4 sm:p-6 md:p-8">{children}</div>
-          <PoweredByHilaac className="pb-6 pt-2" />
+          <div className="mx-auto w-full max-w-7xl flex-1 overflow-x-hidden p-4 sm:p-6">
+            {children}
+          </div>
+          <PoweredByHilaac className="pb-4 pt-2 sm:pb-6" />
         </main>
       </div>
     </AdminBrandProvider>

@@ -45,63 +45,75 @@ export function AdminOrdersBoard({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold">Orders</h1>
-          <p className="text-muted-foreground">Live orders — updates automatically, no refresh needed.</p>
+          <p className="text-muted-foreground">
+            Live orders — updates automatically, no refresh needed.
+          </p>
         </div>
         <Badge className="border-0 bg-emerald-50 px-3 py-1 text-emerald-800">Live</Badge>
       </div>
 
-      <Card>
+      <Card className="w-full overflow-hidden">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full min-w-[880px] text-sm">
               <thead>
                 <tr className="border-b bg-muted/50 text-left text-muted-foreground">
-                  <th className="p-4 font-medium">Order</th>
-                  <th className="p-4 font-medium">Type</th>
-                  <th className="p-4 font-medium">Table</th>
-                  <th className="p-4 font-medium">Status</th>
-                  <th className="p-4 font-medium">Payment</th>
-                  <th className="p-4 font-medium">Delivered by</th>
-                  <th className="p-4 font-medium">Method</th>
-                  <th className="p-4 font-medium">Total</th>
-                  <th className="p-4 font-medium">Placed</th>
+                  <th className="whitespace-nowrap p-3 font-medium sm:p-4">Order</th>
+                  <th className="whitespace-nowrap p-3 font-medium sm:p-4">Type</th>
+                  <th className="whitespace-nowrap p-3 font-medium sm:p-4">Table</th>
+                  <th className="whitespace-nowrap p-3 font-medium sm:p-4">Status</th>
+                  <th className="whitespace-nowrap p-3 font-medium sm:p-4">Payment</th>
+                  <th className="whitespace-nowrap p-3 font-medium sm:p-4">Delivered by</th>
+                  <th className="whitespace-nowrap p-3 font-medium sm:p-4">Method</th>
+                  <th className="whitespace-nowrap p-3 font-medium sm:p-4">Total</th>
+                  <th className="whitespace-nowrap p-3 font-medium sm:p-4">Placed</th>
                 </tr>
               </thead>
               <tbody>
                 {sorted.map((order) => (
                   <tr key={order.id} className="border-b last:border-0">
-                    <td className="p-4 font-semibold">
+                    <td className="whitespace-nowrap p-3 font-semibold sm:p-4">
                       {formatOrderLabel(order, { prefix: false })}
                     </td>
-                    <td className="p-4 capitalize">{order.order_type}</td>
-                    <td className="p-4">{order.table?.table_number ?? "—"}</td>
-                    <td className="p-4">
-                      <Badge className={`border-0 capitalize ${STATUS_CLASS[order.status] ?? "bg-slate-100"}`}>
+                    <td className="whitespace-nowrap p-3 capitalize sm:p-4">{order.order_type}</td>
+                    <td className="whitespace-nowrap p-3 sm:p-4">
+                      {order.table?.table_number ?? "—"}
+                    </td>
+                    <td className="p-3 sm:p-4">
+                      <Badge
+                        className={`max-w-[9rem] truncate border-0 capitalize ${STATUS_CLASS[order.status] ?? "bg-slate-100"}`}
+                      >
                         {order.status.replaceAll("_", " ")}
                       </Badge>
                     </td>
-                    <td className="p-4">
+                    <td className="p-3 sm:p-4">
                       <Badge
-                        className={`border-0 capitalize ${PAYMENT_CLASS[order.payment_status] ?? "bg-slate-100"}`}
+                        className={`max-w-[10rem] truncate border-0 capitalize ${PAYMENT_CLASS[order.payment_status] ?? "bg-slate-100"}`}
                       >
                         {order.payment_status.replaceAll("_", " ")}
                       </Badge>
                     </td>
-                    <td className="p-4 text-muted-foreground">{order.delivered_by ?? "—"}</td>
-                    <td className="p-4 uppercase text-muted-foreground">
+                    <td className="max-w-[8rem] truncate p-3 text-muted-foreground sm:p-4">
+                      {order.delivered_by ?? "—"}
+                    </td>
+                    <td className="whitespace-nowrap p-3 uppercase text-muted-foreground sm:p-4">
                       {order.payment_method ?? "—"}
                     </td>
-                    <td className="p-4 font-medium">{formatCurrency(Number(order.total))}</td>
-                    <td className="p-4 text-muted-foreground">{formatDate(order.created_at)}</td>
+                    <td className="whitespace-nowrap p-3 font-medium sm:p-4">
+                      {formatCurrency(Number(order.total))}
+                    </td>
+                    <td className="whitespace-nowrap p-3 text-muted-foreground sm:p-4">
+                      {formatDate(order.created_at)}
+                    </td>
                   </tr>
                 ))}
                 {sorted.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="p-6 text-center text-muted-foreground sm:p-8">
                       No orders yet.
                     </td>
                   </tr>

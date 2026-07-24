@@ -86,9 +86,9 @@ export default async function DashboardPage({ params }: { params: { slug: string
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
+    <div className="w-full space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, here&apos;s what&apos;s happening today.</p>
         </div>
@@ -115,10 +115,10 @@ export default async function DashboardPage({ params }: { params: { slug: string
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="flex items-center justify-between p-6">
+          <Card key={stat.label} className="w-full overflow-hidden">
+            <CardContent className="flex items-center justify-between p-4 sm:p-5">
               <div>
                 <p className="text-sm text-muted-foreground">{stat.label}</p>
                 <p className="mt-1 text-2xl font-bold">{stat.value}</p>

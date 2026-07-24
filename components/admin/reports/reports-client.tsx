@@ -141,9 +141,9 @@ export function ReportsClient({
     : undefined;
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6 overflow-x-hidden">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex items-start gap-3">
+        <div className="flex min-w-0 items-start gap-3">
           <div
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0F172A]"
             style={{ color: accent }}

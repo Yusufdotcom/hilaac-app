@@ -52,7 +52,7 @@ function StaffDashboardCard({
     <Link
       href={dashboard.path}
       className={cn(
-        "group flex flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm",
+        "group flex w-full flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm",
         "transition-all duration-200 hover:scale-[1.02] hover:shadow-lg",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A373] focus-visible:ring-offset-2"
       )}
@@ -177,18 +177,18 @@ export function StaffAccessBoard({
   const activeUrl = activeDashboard ? buildFullUrl(activeDashboard.path) : "";
 
   return (
-    <div className="space-y-8">
-      <header className="rounded-2xl bg-[#0F172A] px-6 py-8 sm:px-8">
+    <div className="w-full space-y-6">
+      <header className="w-full overflow-hidden rounded-2xl bg-[#0F172A] px-4 py-6 sm:px-6 sm:py-8">
         <p className="text-sm font-medium uppercase tracking-wider" style={{ color: brandAccent }}>
           Team access
         </p>
-        <h1 className="mt-2 text-3xl font-bold text-white">Staff Access</h1>
-        <p className="mt-2 max-w-2xl text-[#94A3B8]">
+        <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Staff Access</h1>
+        <p className="mt-2 max-w-2xl text-sm text-[#94A3B8] sm:text-base">
           Open a dashboard with one click, or share the link / QR code for tablet setup.
         </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         {dashboards.map((dashboard) => (
           <StaffDashboardCard
             key={dashboard.id}

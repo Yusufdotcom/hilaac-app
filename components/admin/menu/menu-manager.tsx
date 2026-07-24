@@ -23,8 +23,8 @@ export function MenuManager({
   const [tab, setTab] = useState("items");
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="w-full space-y-6 overflow-x-hidden">
+      <div className="min-w-0">
         <h1 className="text-2xl font-bold">Menu</h1>
         <p className="text-muted-foreground">Manage your categories, dishes, and add-ons.</p>
       </div>
