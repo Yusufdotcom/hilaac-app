@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
+import {
+  isAwaitingCashierConfirmation,
+  paymentStatusAwaitingCashierWrite,
+} from "@/lib/payments/constants";
 
 /**
  * POST /api/orders/[id]/confirm-payment
  * Customer-facing endpoint: records that the customer claims they paid via USSD.
- * Sets payment_status to pending_cashier_confirmation — never paid until the cashier verifies.
+ * Sets payment_status to pending_cashier_confirmation until the cashier verifies.
  */
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createAdminClient();
@@ -28,7 +31,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "Payment failed for this order" }, { status: 400 });
   }
 
-  if (order.payment_status === PENDING_CASHIER_CONFIRMATION && order.customer_confirmed_at) {
+  if (isAwaitingCashierConfirmation(order)) {
     return NextResponse.json({ success: true, alreadyConfirmed: true });
   }
 
@@ -41,7 +44,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     .update({
       customer_confirmed_at: new Date().toISOString(),
       status: "awaiting_payment",
-      payment_status: PENDING_CASHIER_CONFIRMATION,
+      payment_status: paymentStatusAwaitingCashierWrite(),
     })
     .eq("id", params.id);
 

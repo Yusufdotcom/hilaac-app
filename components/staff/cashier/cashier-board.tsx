@@ -9,7 +9,7 @@ import { cn, formatCurrency, formatOrderLabel } from "@/lib/utils";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import type { OrderStatus, OrderWithItems, PaymentStatus } from "@/types/database";
-import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
+import { PENDING_CASHIER_CONFIRMATION, isAwaitingCashierConfirmation } from "@/lib/payments/constants";
 
 const ORDER_STATUS_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-orange-100 text-orange-900",
@@ -49,7 +49,7 @@ function formatPaymentBadge(order: OrderWithItems) {
     };
   }
 
-  if (order.payment_status === PENDING_CASHIER_CONFIRMATION) {
+  if (isAwaitingCashierConfirmation(order)) {
     return {
       label: order.customer_confirmed_at
         ? "Customer confirmed – Awaiting Cashier"
@@ -92,7 +92,7 @@ function PaymentAction({
   busy: boolean;
   onConfirmPayment: () => void;
 }) {
-  if (order.payment_status === PENDING_CASHIER_CONFIRMATION) {
+  if (isAwaitingCashierConfirmation(order)) {
     return (
       <Button
         type="button"
@@ -134,7 +134,7 @@ export function CashierBoard({
   const pendingOrders = useMemo(
     () =>
       [...orders]
-        .filter((o) => o.payment_status === PENDING_CASHIER_CONFIRMATION)
+        .filter((o) => isAwaitingCashierConfirmation(o))
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
     [orders]
   );

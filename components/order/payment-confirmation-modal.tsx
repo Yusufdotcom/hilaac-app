@@ -100,9 +100,7 @@ export function PaymentConfirmationModal({
       toast.success("Lacag bixinta waa la diray. Cashier-ka ayaa xaqiijin doona.");
       await onCustomerConfirmed?.();
       onClose();
-      if (!deferNavigation) {
-        router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
-      }
+      router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
     } finally {
       submittingRef.current = false;
       setSubmitting(false);

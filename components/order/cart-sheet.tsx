@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Loader2,
@@ -224,6 +225,7 @@ export function CartSheet({
     createPayloads: CreateOrderApiPayload[];
   }) => void;
 }) {
+  const router = useRouter();
   const [phone, setPhone] = useState("");
   const [placing, setPlacing] = useState<"evc" | "edahab" | "place" | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"evc" | "edahab" | null>(null);
@@ -334,7 +336,7 @@ export function CartSheet({
     try {
       const result = await createOrder();
       if (!result) return;
-      onOrderPlaced(result.orderId);
+      goToStatusPage(result.orderId);
     } finally {
       setPlacing(null);
     }
@@ -349,7 +351,7 @@ export function CartSheet({
     setPlacing("place");
     try {
       if (pendingOrderId) {
-        onOrderPlaced(pendingOrderId);
+        goToStatusPage(pendingOrderId);
         return;
       }
 
@@ -359,7 +361,7 @@ export function CartSheet({
       const confirmed = await confirmPaymentForOrder(result.orderId);
       if (!confirmed) return;
 
-      onOrderPlaced(result.orderId);
+      goToStatusPage(result.orderId);
     } finally {
       setPlacing(null);
     }
@@ -425,6 +427,12 @@ export function CartSheet({
   }
 
   const paymentDisabled = !!placing || cart.length === 0 || hasUnavailableItems;
+
+  function goToStatusPage(orderId: string) {
+    onOpenChange(false);
+    onOrderPlaced(orderId);
+    router.push(`/order/${restaurant.slug}/status?orderId=${orderId}`);
+  }
 
   return (
     <>

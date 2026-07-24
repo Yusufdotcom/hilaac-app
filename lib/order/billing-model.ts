@@ -1,5 +1,5 @@
 import type { BillingModel, OrderType, OrderStatus, PaymentStatus } from "@/types/database";
-import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
+import { isAwaitingCashierConfirmation } from "@/lib/payments/constants";
 
 export function billingModelForOrderType(
   orderType: OrderType,
@@ -35,7 +35,7 @@ export function customerStatusWorkflowMessage(order: {
   ) {
     if (
       order.payment_status !== "paid" &&
-      (order.payment_status === PENDING_CASHIER_CONFIRMATION ||
+      (isAwaitingCashierConfirmation(order) ||
         order.status === "awaiting_payment" ||
         order.payment_status === "pending")
     ) {

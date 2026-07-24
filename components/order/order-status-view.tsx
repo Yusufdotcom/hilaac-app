@@ -10,7 +10,7 @@ import { WaitingRunnerGame } from "@/components/order/waiting-runner-game";
 import { useOrderStatusRealtime } from "@/lib/hooks/use-order-status-realtime";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
 import { customerStatusWorkflowMessage } from "@/lib/order/billing-model";
-import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
+import { isAwaitingCashierConfirmation } from "@/lib/payments/constants";
 import {
   brandColorWithAlpha,
   customerAccentTextStyleFromAccent,
@@ -145,9 +145,14 @@ export function OrderStatusView({
 
   const isCompleted = order?.status === "completed";
   const isReady = order?.status === "ready";
-  const awaitingCashier =
-    order?.payment_status === PENDING_CASHIER_CONFIRMATION ||
-    (order?.payment_status === "pending" && !!order?.customer_confirmed_at);
+  const awaitingCashier = order ? isAwaitingCashierConfirmation(order) : false;
+
+  const paymentMessage =
+    order?.payment_status === "pending"
+      ? "Payment pending. Please show your payment confirmation to the cashier."
+      : order?.payment_status === "paid"
+        ? "Your meal is being prepared. Ask the cashier for your bill when you are ready to pay."
+        : null;
 
   useEffect(() => {
     const handler = () => unlockOrderSounds();
@@ -227,7 +232,13 @@ export function OrderStatusView({
         </p>
       )}
 
-      {workflowMessage && (
+      {paymentMessage && (
+        <p className="mb-1.5 line-clamp-3 text-center text-[11px] leading-snug text-gray-600">
+          {paymentMessage}
+        </p>
+      )}
+
+      {!paymentMessage && workflowMessage && (
         <p className="mb-1.5 line-clamp-2 text-center text-[10px] leading-snug text-gray-500">
           {workflowMessage}
         </p>

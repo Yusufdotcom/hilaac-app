@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
+import { mapProviderSuccessToPaymentStatus } from "@/lib/payments/constants";
 
 /**
  * POST /api/webhooks/evc
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   const paymentStatus = ["success", "paid", "completed"].includes(providerStatus)
-    ? PENDING_CASHIER_CONFIRMATION
+    ? mapProviderSuccessToPaymentStatus(true)
     : ["failed", "cancelled", "declined"].includes(providerStatus)
     ? "failed"
     : "pending";

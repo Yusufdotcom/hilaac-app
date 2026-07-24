@@ -1,5 +1,5 @@
 import type { BillingModel, OrderStatus, PaymentStatus } from "@/types/database";
-import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
+import { isAwaitingCashierConfirmation } from "@/lib/payments/constants";
 
 const KITCHEN_ACTIVE_STATUSES: OrderStatus[] = ["new", "preparing", "ready"];
 
@@ -16,7 +16,7 @@ export function isKitchenVisible(order: {
 }) {
   if (order.status === "awaiting_payment") return false;
   if (!KITCHEN_ACTIVE_STATUSES.includes(order.status)) return false;
-  if (order.payment_status === PENDING_CASHIER_CONFIRMATION) return false;
+  if (isAwaitingCashierConfirmation(order)) return false;
 
   if (order.billing_model === "pay_after" && order.payment_status === "pending") {
     return true;
