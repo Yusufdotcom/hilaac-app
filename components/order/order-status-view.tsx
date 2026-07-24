@@ -130,7 +130,8 @@ export function OrderStatusView({
   newOrderHref: string;
   className?: string;
 }) {
-  const order = useOrderStatusRealtime(orderId);
+  const loadState = useOrderStatusRealtime(orderId);
+  const order = loadState.status === "ready" ? loadState.order : null;
   const brand = useOrderBrandOptional();
   const accent = brand?.accent ?? resolveCustomerAccent(brand?.branding ?? {});
   const customBrandingActive = brand?.customBrandingActive ?? false;
@@ -183,6 +184,51 @@ export function OrderStatusView({
 
   const workflowMessage =
     receiptMessage || paymentMessage ? null : order ? customerStatusWorkflowMessage(order) : null;
+
+  if (loadState.status === "loading") {
+    return (
+      <div
+        className={cn(
+          "flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center gap-2 px-4 text-center",
+          className
+        )}
+      >
+        <Clock className="h-6 w-6 animate-pulse text-gray-400" aria-hidden="true" />
+        <p className="text-sm font-medium text-gray-900">Halaalabkaaga waa la diyaarinayaa...</p>
+        <p className="text-xs text-gray-500">Fadlan sug…</p>
+      </div>
+    );
+  }
+
+  if (loadState.status === "error" || !order) {
+    return (
+      <div
+        className={cn(
+          "flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 px-4 text-center",
+          className
+        )}
+      >
+        <p className="text-sm font-bold text-gray-900">
+          {loadState.status === "error" ? loadState.error : "Could not load order status."}
+        </p>
+        <p className="max-w-xs text-xs text-gray-500">
+          Dalabkaagu wuu jiraa, laakiin xaaladda lama akhriyi karin. Isku day mar kale.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-xl"
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </Button>
+        <Button variant="outline" size="sm" className="rounded-xl" asChild>
+          <Link href={newOrderHref}>Samee dalab kale</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div

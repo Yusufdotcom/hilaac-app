@@ -517,7 +517,7 @@ drop policy if exists "customers can track recent orders" on public.orders;
 create policy "customers can track recent orders"
   on public.orders
   for select
-  to anon
+  to anon, authenticated
   using (created_at >= (now() - interval '7 days'));
 
 revoke all on public.orders from anon;
@@ -552,9 +552,22 @@ grant select, update on public.orders to authenticated;
 grant select on public.order_items to authenticated;
 
 -- ---- order_items ------------------------------------------------------------
--- Same reasoning as orders: no anon policies at all, only staff SELECT.
+-- Guests may SELECT items for recent orders (status/confirmation). Staff keep full access.
 drop policy if exists "public can create order_items" on public.order_items;
 drop policy if exists "public can view order_items" on public.order_items;
+
+drop policy if exists "customers can view recent order_items" on public.order_items;
+create policy "customers can view recent order_items"
+  on public.order_items
+  for select
+  to anon, authenticated
+  using (
+    exists (
+      select 1 from public.orders o
+      where o.id = order_id
+        and o.created_at >= (now() - interval '7 days')
+    )
+  );
 
 drop policy if exists "staff can view own order_items" on public.order_items;
 create policy "staff can view own order_items" on public.order_items
@@ -564,6 +577,10 @@ create policy "staff can view own order_items" on public.order_items
       where o.id = order_id and o.restaurant_id = public.get_my_restaurant_id()
     )
   );
+
+grant select (
+  id, order_id, menu_item_id, quantity, add_ons, notes, price_at_time
+) on public.order_items to anon;
 
 -- ----------------------------------------------------------------------------
 -- 8. STORAGE BUCKETS (logos + AI-generated menu images)

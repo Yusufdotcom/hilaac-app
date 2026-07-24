@@ -112,7 +112,7 @@ function WorkflowMessage({
   order,
   compact,
 }: {
-  order: NonNullable<ReturnType<typeof useOrderStatusRealtime>>;
+  order: NonNullable<ReturnType<typeof useOrderStatusRealtime>["order"]>;
   compact?: boolean;
 }) {
   const message = customerStatusWorkflowMessage(order);
@@ -194,7 +194,8 @@ export function OrderConfirmation({
   className?: string;
   showFooter?: boolean;
 }) {
-  const order = useOrderStatusRealtime(orderId);
+  const loadState = useOrderStatusRealtime(orderId);
+  const order = loadState.status === "ready" ? loadState.order : null;
   const brand = useOrderBrandOptional();
   const accent = brand?.accent ?? resolveCustomerAccent(brand?.branding ?? {});
   const customBrandingActive = brand?.customBrandingActive ?? false;
@@ -209,6 +210,28 @@ export function OrderConfirmation({
     order?.status === "awaiting_payment"
       ? -1
       : STATUS_STEPS.findIndex((s) => s.key === order?.status);
+
+  if (loadState.status === "loading") {
+    return (
+      <div className={cn("flex flex-1 flex-col items-center justify-center gap-2 text-center", className)}>
+        <Clock className="h-6 w-6 animate-pulse text-muted-foreground" aria-hidden="true" />
+        <p className="text-sm font-medium">Loading order status…</p>
+      </div>
+    );
+  }
+
+  if (loadState.status === "error" || !order) {
+    return (
+      <div className={cn("flex flex-1 flex-col items-center justify-center gap-3 px-4 text-center", className)}>
+        <p className="text-sm font-semibold text-foreground">
+          {loadState.status === "error" ? loadState.error : "Could not load order status."}
+        </p>
+        <Button type="button" variant="outline" size="sm" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   if (compact) {
     return (

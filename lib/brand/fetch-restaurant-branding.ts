@@ -7,6 +7,7 @@ import {
 } from "@/lib/brand/restaurant-brand";
 
 export type RestaurantBrandingSnapshot = {
+  name: string;
   brand_color: string | null;
   custom_branding_enabled: boolean;
   /** Resolved color for customer UI — brand_color when custom branding is on, else gold. */
@@ -24,16 +25,17 @@ export async function fetchRestaurantBrandingBySlug(
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("restaurants")
-    .select("brand_color, custom_branding_enabled, takeaway_hotline")
+    .select("name, is_active, brand_color, custom_branding_enabled, takeaway_hotline")
     .eq("slug", slug)
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (error || !data || data.is_active === false) return null;
 
   const customBrandingEnabled = data.custom_branding_enabled === true;
   const branding = buildRestaurantBranding(data.brand_color, customBrandingEnabled);
 
   return {
+    name: data.name,
     brand_color: data.brand_color,
     custom_branding_enabled: customBrandingEnabled,
     customerAccentColor: resolveCustomerAccent(branding),

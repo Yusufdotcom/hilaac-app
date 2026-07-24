@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
 import { useOnlineStatus } from "@/lib/hooks/useOnlineStatus";
 import {
   getQueue,
@@ -41,7 +40,7 @@ interface TrackedOrderRow {
 const PAGE_SHELL =
   "flex h-[100dvh] max-h-[100dvh] min-h-screen flex-col justify-center overflow-hidden overscroll-none px-3";
 
-const ORDER_NOT_FOUND_ERROR = "Failed to create order. Please try again.";
+const ORDER_NOT_FOUND_ERROR = "Could not load order status. Please try again.";
 
 export default function OrderStatusPage({
   params,
@@ -67,7 +66,7 @@ export default function OrderStatusPage({
   const [waitingForSync, setWaitingForSync] = useState(false);
   const [loading, setLoading] = useState(true);
   const [awaitingOrder, setAwaitingOrder] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [retryNonce, setRetryNonce] = useState(0);
   const [showRetry, setShowRetry] = useState(false);
@@ -81,8 +80,18 @@ export default function OrderStatusPage({
     loading ||
     waitingForSync ||
     awaitingOrder ||
-    !!createError ||
+    !!loadError ||
     (!order && !!resolvedOrderId);
+
+  /** Public track API uses service role — works for guests / Incognito (no RLS). */
+  const fetchOrderById = useCallback(async (id: string) => {
+    const res = await fetch(`/api/orders/${id}/track`, { cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.order) {
+      return { order: null as TrackedOrderRow | null, error: data.error ?? ORDER_NOT_FOUND_ERROR };
+    }
+    return { order: data.order as TrackedOrderRow, error: null };
+  }, []);
 
   async function handleRetrySync() {
     setRetrying(true);
@@ -95,12 +104,7 @@ export default function OrderStatusPage({
             ? "Dalabkaaga waa la diray!"
             : `${synced} dalabyo waa la diray!`
         );
-        const supabase = createClient();
-        const { data } = await supabase
-          .from("orders")
-          .select("id, order_number, status, payment_status, customer_confirmed_at")
-          .eq("id", resolvedOrderId)
-          .maybeSingle();
+        const { order: data } = await fetchOrderById(resolvedOrderId);
         if (data) setOrder(data);
       } else if (failed > 0) {
         toast.error("Isku daygu ma guuleysan. Fadlan isku day mar kale.");
@@ -138,67 +142,53 @@ export default function OrderStatusPage({
     );
   }
 
-  const fetchOrderById = useCallback(async (id: string) => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("orders")
-      .select("id, order_number, status, payment_status, customer_confirmed_at")
-      .eq("id", id)
-      .maybeSingle();
-    return data;
-  }, []);
-
   useEffect(() => {
     setResolvedOrderId(orderId);
     setOrder(null);
     setLoading(true);
-    setCreateError(null);
+    setLoadError(null);
     setAwaitingOrder(false);
     setShowRetry(false);
     fulfillStartedRef.current = false;
   }, [orderId, retryNonce]);
 
+  // Restaurant context via public branding API (service role) — no client RLS.
   useEffect(() => {
-    const supabase = createClient();
-
     async function fetchRestaurant() {
-      const [restaurantRes, brandingRes] = await Promise.all([
-        supabase
-          .from("restaurants")
-          .select("name, is_active, takeaway_hotline")
-          .eq("slug", params.slug)
-          .maybeSingle(),
-        fetch(`/api/restaurants/${params.slug}/branding`, { cache: "no-store" }),
-      ]);
-
-      const { data } = restaurantRes;
-      if (!data?.is_active) return;
-
-      setRestaurantName(data.name);
-      setTakeawayHotline(data.takeaway_hotline ?? null);
-
-      if (brandingRes.ok) {
+      try {
+        const brandingRes = await fetch(`/api/restaurants/${params.slug}/branding`, {
+          cache: "no-store",
+        });
+        if (!brandingRes.ok) {
+          setLoadError("Restaurant not found or inactive.");
+          setLoading(false);
+          setShowRetry(true);
+          return;
+        }
         const brandingData = await brandingRes.json();
         setBranding(brandingData);
+        if (brandingData.name) setRestaurantName(brandingData.name);
         if (brandingData.takeaway_hotline) {
           setTakeawayHotline(brandingData.takeaway_hotline);
         }
+      } catch {
+        setLoadError("Could not load restaurant details.");
+        setShowRetry(true);
       }
     }
 
     void fetchRestaurant();
   }, [params.slug]);
 
-  // Safety-net Retry after 5s while still waiting.
   useEffect(() => {
-    if (order || createError) {
-      setShowRetry(!!createError);
+    if (order || loadError) {
+      setShowRetry(!!loadError);
       return;
     }
     if (!showPreparing) return;
     const timer = window.setTimeout(() => setShowRetry(true), ORDER_CREATE_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
-  }, [order, createError, showPreparing, retryNonce]);
+  }, [order, loadError, showPreparing, retryNonce]);
 
   // Pending handoff / resolved mapping from the 3s redirect path.
   useEffect(() => {
@@ -212,7 +202,7 @@ export default function OrderStatusPage({
 
     setAwaitingOrder(true);
     setLoading(true);
-    setCreateError(null);
+    setLoadError(null);
 
     const controller = new AbortController();
     let cancelled = false;
@@ -221,17 +211,23 @@ export default function OrderStatusPage({
       clearPendingOrderHandoff(orderId);
       clearResolvedOrderId(orderId);
       setResolvedOrderId(realId);
-      const data = await fetchOrderById(realId);
+      const { order: data, error } = await fetchOrderById(realId);
       if (cancelled) return;
-      if (data) setOrder(data);
+      if (data) {
+        setOrder(data);
+        setAwaitingOrder(false);
+        setLoading(false);
+        window.location.replace(`/order/${params.slug}/status?orderId=${realId}`);
+        return;
+      }
+      setLoadError(error ?? ORDER_NOT_FOUND_ERROR);
       setAwaitingOrder(false);
       setLoading(false);
-      window.location.replace(`/order/${params.slug}/status?orderId=${realId}`);
+      setShowRetry(true);
     }
 
     void (async () => {
       try {
-        // Prefer an id the cart already created (avoids double insert).
         let realId = loadResolvedOrderId(orderId);
         if (!realId) {
           const waitUntil = Date.now() + ORDER_CREATE_TIMEOUT_MS;
@@ -252,7 +248,6 @@ export default function OrderStatusPage({
           throw new Error(ORDER_NOT_FOUND_ERROR);
         }
 
-        // Fallback: cart create failed / never finished — create from handoff once.
         const created = await fulfillPendingOrderHandoff(activeHandoff, {
           signal: controller.signal,
         });
@@ -261,9 +256,8 @@ export default function OrderStatusPage({
         await adoptRealId(created.orderId);
       } catch (err) {
         if (cancelled) return;
-        const message =
-          err instanceof Error ? err.message : ORDER_NOT_FOUND_ERROR;
-        setCreateError(message);
+        const message = err instanceof Error ? err.message : ORDER_NOT_FOUND_ERROR;
+        setLoadError(message);
         setAwaitingOrder(false);
         setLoading(false);
         setShowRetry(true);
@@ -277,7 +271,7 @@ export default function OrderStatusPage({
     };
   }, [orderId, isPendingParam, params.slug, fetchOrderById, retryNonce]);
 
-  // Normal lookup / poll when not on the pending-handoff path.
+  // Normal lookup via track API (no client-side orders SELECT / RLS).
   useEffect(() => {
     if (!orderId) return;
     if (isPendingParam || loadPendingOrderHandoff(orderId) || loadResolvedOrderId(orderId)) {
@@ -292,15 +286,18 @@ export default function OrderStatusPage({
     setLoading(false);
 
     async function lookup() {
-      const data = await fetchOrderById(orderId);
+      const { order: data, error } = await fetchOrderById(orderId);
       if (cancelled) return false;
       if (data) {
         found = true;
         setOrder(data);
         setAwaitingOrder(false);
         setLoading(false);
-        setCreateError(null);
+        setLoadError(null);
         return true;
+      }
+      if (error) {
+        // Keep polling briefly — order may still be committing.
       }
       return false;
     }
@@ -319,7 +316,7 @@ export default function OrderStatusPage({
 
     const failTimer = window.setTimeout(() => {
       if (cancelled || found) return;
-      setCreateError(ORDER_NOT_FOUND_ERROR);
+      setLoadError(ORDER_NOT_FOUND_ERROR);
       setAwaitingOrder(false);
       setShowRetry(true);
       if (interval !== undefined) window.clearInterval(interval);
@@ -348,14 +345,8 @@ export default function OrderStatusPage({
     if (!order) {
       setWaitingForSync(true);
 
-      const supabase = createClient();
       const interval = window.setInterval(async () => {
-        const { data } = await supabase
-          .from("orders")
-          .select("id, order_number, status, payment_status, customer_confirmed_at")
-          .eq("id", resolvedOrderId)
-          .maybeSingle();
-
+        const { order: data } = await fetchOrderById(resolvedOrderId);
         if (data) {
           setOrder(data);
           window.clearInterval(interval);
@@ -378,11 +369,11 @@ export default function OrderStatusPage({
     }
 
     setWaitingForSync(false);
-  }, [isOnline, order, resolvedOrderId, params.slug, router]);
+  }, [isOnline, order, resolvedOrderId, params.slug, router, fetchOrderById]);
 
   function handleCreateRetry() {
     fulfillStartedRef.current = false;
-    setCreateError(null);
+    setLoadError(null);
     setShowRetry(false);
     setRetryNonce((n) => n + 1);
   }
@@ -408,7 +399,7 @@ export default function OrderStatusPage({
           fullHeight={false}
         >
           <div className="mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col justify-center">
-            {showExtras && !createError && (
+            {showExtras && !loadError && (
               <div className="mb-2 shrink-0">
                 <OrderStatusExtras />
               </div>
@@ -419,9 +410,9 @@ export default function OrderStatusPage({
                   ? "Waiting for connection to sync your order..."
                   : "Halaalabkaaga waa la diyaarinayaa..."
               }
-              submessage={createError ? undefined : "Fadlan sug…"}
-              error={createError}
-              onRetry={showRetry || createError ? handleCreateRetry : undefined}
+              submessage={loadError ? undefined : "Fadlan sug…"}
+              error={loadError}
+              onRetry={showRetry || loadError ? handleCreateRetry : undefined}
             />
           </div>
         </OrderBrandProvider>
@@ -442,7 +433,8 @@ export default function OrderStatusPage({
           <OrderPreparingScreen
             message="Halaalabkaaga waa la diyaarinayaa..."
             submessage="Fadlan sug…"
-            onRetry={showRetry ? handleCreateRetry : undefined}
+            error={loadError}
+            onRetry={showRetry || loadError ? handleCreateRetry : undefined}
           />
         </OrderBrandProvider>
         <PoweredByHilaac className="shrink-0 pb-2" />
