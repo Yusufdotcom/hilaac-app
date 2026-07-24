@@ -13,7 +13,7 @@ import {
   syncOfflineOrders,
 } from "@/lib/offline-queue";
 import { OrderBrandProvider } from "@/components/order/order-brand-context";
-import { OrderConfirmation } from "@/components/order/order-confirmation";
+import { OrderStatusView } from "@/components/order/order-status-view";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ interface TrackedOrderRow {
 }
 
 const PAGE_SHELL =
-  "flex h-[100dvh] max-h-[100dvh] min-h-[100dvh] flex-col items-center overflow-hidden px-4";
+  "flex h-[100dvh] max-h-[100dvh] min-h-[100dvh] flex-col overflow-hidden px-3";
 
 export default function OrderStatusPage({
   params,
@@ -86,11 +86,11 @@ export default function OrderStatusPage({
 
   function OrderStatusExtras() {
     return (
-      <div className="flex w-full max-w-sm flex-col items-center gap-1.5">
+      <div className="flex w-full max-w-sm flex-col items-center gap-1">
         {!isOnline && (
-          <Badge className="gap-1 border-amber-200 bg-amber-100 px-2 py-0.5 text-[11px] text-amber-900 hover:bg-amber-100">
+          <Badge className="gap-1 border-amber-200 bg-amber-100 px-2 py-0.5 text-[10px] text-amber-900 hover:bg-amber-100">
             <WifiOff className="h-3 w-3" aria-hidden="true" />
-            Mode Offline - Dalabka waa la keydiyay
+            Offline — dalabka waa la keydiyay
           </Badge>
         )}
         {showRetrySync && (
@@ -100,9 +100,9 @@ export default function OrderStatusPage({
             size="sm"
             disabled={retrying}
             onClick={() => void handleRetrySync()}
-            className="h-8 border-amber-200 px-3 text-xs text-amber-900 hover:bg-amber-50"
+            className="h-7 border-amber-200 px-2.5 text-[10px] text-amber-900 hover:bg-amber-50"
           >
-            {retrying ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
+            {retrying ? <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" /> : null}
             Isku day mar kale
           </Button>
         )}
@@ -196,7 +196,7 @@ export default function OrderStatusPage({
 
     if (wasQueued && order) {
       removeQueuedOrderByOrderId(orderId);
-      router.push(`/order/${params.slug}/saladda?orderId=${orderId}`);
+      router.replace(`/order/${params.slug}/status?orderId=${orderId}`);
     }
 
     setWaitingForSync(false);
@@ -208,7 +208,7 @@ export default function OrderStatusPage({
         <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
           Order not found.
         </div>
-        <PoweredByHilaac className="mt-auto shrink-0 pb-2" />
+        <PoweredByHilaac className="shrink-0 pb-2" />
       </div>
     );
   }
@@ -218,23 +218,18 @@ export default function OrderStatusPage({
       <div className={PAGE_SHELL}>
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
           {showExtras && (
-            <div className="mb-3 shrink-0">
+            <div className="mb-2 shrink-0">
               <OrderStatusExtras />
             </div>
           )}
-          <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" aria-hidden="true" />
-          <p className="mt-3 text-base font-medium leading-tight text-[#0F172A]">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+          <p className="mt-2 text-sm font-medium text-gray-900">
             {waitingForSync || !isOnline
               ? "Waiting for connection to sync your order..."
               : "Loading your order..."}
           </p>
-          {!isOnline && (
-            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-              Your order is saved on this device and will sync automatically when you reconnect.
-            </p>
-          )}
         </div>
-        <PoweredByHilaac className="mt-auto shrink-0 pb-2" />
+        <PoweredByHilaac className="shrink-0 pb-2" />
       </div>
     );
   }
@@ -242,24 +237,27 @@ export default function OrderStatusPage({
   return (
     <div className={PAGE_SHELL}>
       {showExtras && (
-        <div className="w-full max-w-sm shrink-0 pt-2">
+        <div className="mx-auto w-full max-w-sm shrink-0 pt-1">
           <OrderStatusExtras />
         </div>
       )}
+
       <OrderBrandProvider
         brandColor={branding.brand_color}
         customBrandingEnabled={branding.custom_branding_enabled ?? false}
         accentColor={branding.customerAccentColor}
+        fullHeight={false}
       >
-        <OrderConfirmation
-          orderId={orderId}
-          restaurant={{ name: restaurantName }}
-          newOrderHref={`/order/${params.slug}`}
-          compact
-          openNewOrderInNewTab
-          className="w-full max-w-sm"
-        />
+        <div className="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col justify-center">
+          <OrderStatusView
+            orderId={orderId}
+            restaurantName={restaurantName}
+            newOrderHref={`/order/${params.slug}`}
+          />
+        </div>
       </OrderBrandProvider>
+
+      <PoweredByHilaac className="mx-auto shrink-0 pb-2 pt-1" />
     </div>
   );
 }

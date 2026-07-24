@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
   Loader2,
@@ -24,6 +24,7 @@ import { cn, formatOrderLabel } from "@/lib/utils";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import { useStaffOrderNotifications } from "@/lib/hooks/use-staff-order-notifications";
+import { playWaiterReadySound } from "@/lib/sounds/play-order-sound";
 import type { OrderStatus, OrderWithItems, RestaurantTable, Waiter } from "@/types/database";
 
 const ACTIVE_STATUSES: OrderStatus[] = ["new", "preparing", "ready"];
@@ -115,6 +116,19 @@ export function WaiterBoard({
   useEffect(() => {
     syncPendingBadge(orders);
   }, [orders, syncPendingBadge]);
+
+  const prevOrderStatusRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    for (const order of orders) {
+      const prev = prevOrderStatusRef.current.get(order.id);
+      if (prev !== undefined && prev !== "ready" && order.status === "ready") {
+        playWaiterReadySound();
+      }
+      prevOrderStatusRef.current.set(order.id, order.status);
+    }
+  }, [orders]);
+
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [selectedWaiter, setSelectedWaiter] = useState("");
   const [deliveryCounts, setDeliveryCounts] = useState<Record<string, number>>(initialDeliveryCounts);

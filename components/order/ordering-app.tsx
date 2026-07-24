@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { AddOn, Category, MenuItem, OrderType, RestaurantTable } from "@/types/database";
 import type { CartItem } from "@/lib/order/cart-types";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
@@ -10,11 +11,10 @@ import { TableStep } from "@/components/order/table-step";
 import { MenuStep } from "@/components/order/menu-step";
 import { CartSheet } from "@/components/order/cart-sheet";
 import { ItemCustomizeSheet } from "@/components/order/item-customize-sheet";
-import { OrderConfirmation } from "@/components/order/order-confirmation";
 import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 
-type Step = "landing" | "table" | "menu" | "confirmation";
+type Step = "landing" | "table" | "menu";
 
 interface MinimalRestaurant {
   id: string;
@@ -46,13 +46,13 @@ export function OrderingApp({
   addOns: AddOn[];
   tables: RestaurantTable[];
 }) {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("landing");
   const [orderType, setOrderType] = useState<OrderType>("dine-in");
   const [tableNumber, setTableNumber] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [customizeItem, setCustomizeItem] = useState<MenuItem | null>(null);
-  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [ussdPayment, setUssdPayment] = useState<{
     orderIds: string[];
     code: string;
@@ -101,10 +101,9 @@ export function OrderingApp({
   }
 
   function handleOrderPlaced(orderId: string) {
-    setPlacedOrderId(orderId);
     setCart([]);
     setCartOpen(false);
-    setStep("confirmation");
+    router.push(`/order/${restaurant.slug}/status?orderId=${orderId}`);
   }
 
   function handleUssdPaymentStarted(payload: {
@@ -115,23 +114,6 @@ export function OrderingApp({
     setUssdPayment(payload);
     setCart([]);
     setCartOpen(false);
-  }
-
-  function handleNewOrder() {
-    setPlacedOrderId(null);
-    setTableNumber("");
-    setOrderType("dine-in");
-    setStep("landing");
-  }
-
-  if (step === "confirmation" && placedOrderId) {
-    return (
-      <OrderConfirmation
-        orderId={placedOrderId}
-        restaurant={restaurant}
-        onNewOrder={handleNewOrder}
-      />
-    );
   }
 
   return (

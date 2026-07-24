@@ -173,3 +173,15 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.01);
+    filter: brightness(1.03);
+  }
+}

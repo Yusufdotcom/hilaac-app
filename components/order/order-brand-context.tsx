@@ -9,6 +9,7 @@ import {
   resolveCustomerAccent,
   SIDEBAR_TEXT_COLOR,
 } from "@/lib/brand/restaurant-brand";
+import { cn } from "@/lib/utils";
 
 type OrderBrandContextValue = {
   branding: RestaurantBranding;
@@ -23,12 +24,14 @@ export function OrderBrandProvider({
   brandColor,
   customBrandingEnabled = false,
   accentColor,
+  fullHeight = true,
   children,
 }: {
   brandColor?: string | null;
   customBrandingEnabled?: boolean;
   /** Server-resolved accent passed from app/order/[slug]/page.tsx */
   accentColor?: string;
+  fullHeight?: boolean;
   children: React.ReactNode;
 }) {
   const branding = useMemo(
@@ -41,7 +44,10 @@ export function OrderBrandProvider({
   return (
     <OrderBrandContext.Provider value={{ branding, accent, customBrandingActive }}>
       <div
-        className="flex h-[100dvh] min-h-0 flex-col"
+        className={cn(
+          "flex min-h-0 w-full flex-col",
+          fullHeight && "h-[100dvh]"
+        )}
         style={{
           ["--order-accent" as string]: accent,
           ["--brand-accent" as string]: accent,
