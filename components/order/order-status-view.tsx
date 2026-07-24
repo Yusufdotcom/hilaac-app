@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Check, CheckCircle2, Clock, PartyPopper, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { WaitingRunnerGame } from "@/components/order/waiting-runner-game";
 import { useOrderStatusRealtime } from "@/lib/hooks/use-order-status-realtime";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
@@ -34,13 +33,15 @@ const STATUS_STEPS: { key: OrderStatus; label: string }[] = [
 
 function statusStepIndex(status: OrderStatus | undefined) {
   if (!status || status === "awaiting_payment") return -1;
-  if (status === "completed") {
-    return STATUS_STEPS.findIndex((s) => s.key === "completed");
-  }
   return STATUS_STEPS.findIndex((s) => s.key === status);
 }
 
-function StatusTimeline({
+function deliveryCodeLabel(order: { id: string; order_number?: number | null }) {
+  if (order.order_number != null) return `#${order.order_number}`;
+  return `#${order.id.substring(0, 3).toUpperCase()}`;
+}
+
+function HorizontalStatusStepper({
   currentIndex,
   accent,
   customBrandingActive,
@@ -50,76 +51,68 @@ function StatusTimeline({
   customBrandingActive: boolean;
 }) {
   return (
-    <div className="relative w-full space-y-1.5">
-      {STATUS_STEPS.map((step, idx) => {
-        const isPast = currentIndex >= 0 && idx < currentIndex;
-        const isCurrent = currentIndex >= 0 && idx === currentIndex;
-        const isFuture = currentIndex < 0 || idx > currentIndex;
+    <div className="w-full shrink-0 overflow-hidden py-1">
+      <div className="flex flex-row items-start gap-1 overflow-x-auto px-0.5 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2">
+        {STATUS_STEPS.map((step, idx) => {
+          const isPast = currentIndex >= 0 && idx < currentIndex;
+          const isCurrent = currentIndex >= 0 && idx === currentIndex;
+          const isFuture = currentIndex < 0 || idx > currentIndex;
+          const connectorActive = currentIndex > idx;
 
-        return (
-          <div key={step.key} className="relative flex items-stretch gap-2">
-            {idx < STATUS_STEPS.length - 1 && (
-              <div
-                className="absolute left-[17px] top-[34px] h-[calc(100%+2px)] w-0.5 -translate-x-1/2"
-                style={{
-                  backgroundColor: isPast || isCurrent ? accent : "#E5E7EB",
-                  opacity: isFuture ? 0.35 : isPast ? 0.45 : 1,
-                }}
-                aria-hidden="true"
-              />
-            )}
-
-            <article
-              className={cn(
-                "relative z-[1] flex flex-1 items-center gap-2 rounded-xl border px-2 py-1.5 transition-all duration-300",
-                isFuture && "border-gray-100 bg-gray-50/80 opacity-50",
-                isPast && "border-gray-200 bg-gray-50/90 opacity-70",
-                isCurrent && "animate-[status-pulse_2s_ease-in-out_infinite]"
-              )}
-              style={
-                isCurrent
-                  ? {
-                      borderColor: accent,
-                      backgroundColor: brandColorWithAlpha(accent, customBrandingActive ? 0.16 : 0.12),
-                      boxShadow: `0 4px 18px ${brandColorWithAlpha(accent, 0.28)}`,
-                    }
-                  : undefined
-              }
-            >
-              <div
-                className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-300",
-                  isFuture && "bg-gray-100 text-gray-400",
-                  isPast && "bg-gray-200 text-gray-500"
-                )}
-                style={
-                  isCurrent
-                    ? customerPrimaryButtonStyleFromAccent(accent, customBrandingActive)
-                    : undefined
-                }
-              >
-                {isPast ? (
-                  <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-                ) : isCurrent ? (
-                  <Clock className="h-4 w-4 animate-pulse" aria-hidden="true" />
-                ) : (
-                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                )}
+          return (
+            <div key={step.key} className="flex min-w-0 flex-1 items-start">
+              <div className="flex min-w-[3.25rem] flex-1 flex-col items-center gap-1 sm:min-w-0">
+                <div
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all duration-300",
+                    isFuture && "border-gray-200 bg-gray-50 text-gray-400",
+                    isPast && "border-gray-300 bg-gray-100 text-gray-500"
+                  )}
+                  style={
+                    isCurrent
+                      ? {
+                          ...customerPrimaryButtonStyleFromAccent(accent, customBrandingActive),
+                          borderColor: accent,
+                          boxShadow: `0 0 0 3px ${brandColorWithAlpha(accent, 0.22)}`,
+                        }
+                      : isPast
+                        ? { borderColor: accent, color: accent, backgroundColor: brandColorWithAlpha(accent, 0.08) }
+                        : undefined
+                  }
+                >
+                  {isPast ? (
+                    <Check className="h-3.5 w-3.5" strokeWidth={2.75} aria-hidden="true" />
+                  ) : isCurrent ? (
+                    <Clock className="h-3.5 w-3.5 animate-pulse" aria-hidden="true" />
+                  ) : (
+                    <span className="text-[10px] font-bold">{idx + 1}</span>
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    "max-w-[4.5rem] text-center text-[9px] font-semibold leading-tight sm:text-[10px]",
+                    isCurrent ? "text-gray-900" : isPast ? "text-gray-500" : "text-gray-400"
+                  )}
+                  style={isCurrent ? customerAccentTextStyleFromAccent(accent) : undefined}
+                >
+                  {step.label}
+                </span>
               </div>
 
-              <span
-                className={cn(
-                  "text-xs font-semibold leading-tight",
-                  isCurrent ? "text-gray-900" : isPast ? "text-gray-500" : "text-gray-400"
-                )}
-                style={isCurrent ? customerAccentTextStyleFromAccent(accent) : undefined}
-              >
-                {step.label}
-              </span>
-            </article>
-          </div>
-        );
-      })}
+              {idx < STATUS_STEPS.length - 1 && (
+                <div
+                  className="mt-4 h-0.5 min-w-[6px] flex-1 rounded-full sm:min-w-[10px]"
+                  style={{
+                    backgroundColor: connectorActive || isCurrent ? accent : "#E5E7EB",
+                    opacity: connectorActive ? 0.85 : isCurrent ? 0.45 : 1,
+                  }}
+                  aria-hidden="true"
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -148,6 +141,7 @@ export function OrderStatusView({
   const isDelivered = order?.status === "delivered";
   const isFinal = isDelivered || isCompleted;
   const isReady = order?.status === "ready";
+  const isTakeaway = order?.order_type === "takeaway";
   const awaitingCashier = order ? isAwaitingCashierConfirmation(order) : false;
 
   const receiptMessage = isFinal
@@ -191,29 +185,45 @@ export function OrderStatusView({
   return (
     <div
       className={cn(
-        "flex min-h-0 w-full max-w-lg flex-1 flex-col justify-center overflow-hidden px-1",
+        "flex h-full min-h-0 w-full max-w-lg flex-1 flex-col justify-center overflow-hidden px-1",
         className
       )}
       onPointerDown={() => unlockOrderSounds()}
     >
-      <div className="shrink-0 text-center">
+      <div className="shrink-0 space-y-1.5 text-center">
         <div
-          className="mx-auto mb-1.5 flex h-9 w-9 items-center justify-center rounded-full"
+          className="mx-auto flex h-8 w-8 items-center justify-center rounded-full"
           style={{
             backgroundColor: brandColorWithAlpha(accent, 0.15),
             color: accent,
           }}
         >
           {isFinal ? (
-            <Receipt className="h-5 w-5" aria-hidden="true" />
+            <Receipt className="h-4 w-4" aria-hidden="true" />
           ) : (
-            <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           )}
         </div>
 
-        {order && (
-          <div className="mx-auto mb-1 inline-flex max-w-full items-center justify-center rounded-full bg-white px-3 py-0.5 text-sm font-bold tracking-wide text-gray-900 shadow-sm ring-1 ring-gray-100">
+        {order && !isTakeaway && (
+          <div className="mx-auto inline-flex max-w-full items-center justify-center rounded-full bg-white px-3 py-0.5 text-sm font-bold tracking-wide text-gray-900 shadow-sm ring-1 ring-gray-100">
             <span className="truncate">{formatOrderLabel(order)}</span>
+          </div>
+        )}
+
+        {order && isTakeaway && (
+          <div
+            className="mx-auto inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-sm font-bold shadow-sm ring-1 ring-black/5"
+            style={{
+              backgroundColor: brandColorWithAlpha(accent, customBrandingActive ? 0.16 : 0.12),
+              color: accent,
+              borderColor: accent,
+            }}
+          >
+            <span className="text-[11px] font-semibold uppercase tracking-wide opacity-80">
+              Delivery Code
+            </span>
+            <span className="text-base tracking-wide text-gray-900">{deliveryCodeLabel(order)}</span>
           </div>
         )}
 
@@ -224,7 +234,7 @@ export function OrderStatusView({
       </div>
 
       {!isFinal && (
-        <div className="my-1.5 flex flex-wrap items-center justify-center gap-1.5">
+        <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
           {awaitingCashier && (
             <Badge className="border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-900 hover:bg-amber-50">
               Waiting for cashier confirmation
@@ -239,7 +249,7 @@ export function OrderStatusView({
       )}
 
       {isCompleted && (
-        <div className="my-1.5 flex justify-center">
+        <div className="mt-1.5 flex justify-center">
           <Badge className="border-green-200 bg-green-100 px-2.5 py-0.5 text-[10px] font-semibold text-green-800 hover:bg-green-100">
             Dhammaystiran
           </Badge>
@@ -248,7 +258,7 @@ export function OrderStatusView({
 
       {receiptMessage && (
         <p
-          className="mb-1.5 text-center text-xs font-semibold leading-snug"
+          className="mt-1.5 line-clamp-2 text-center text-xs font-semibold leading-snug"
           style={customerAccentTextStyleFromAccent(accent)}
         >
           <Receipt className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
@@ -256,36 +266,36 @@ export function OrderStatusView({
         </p>
       )}
 
-      {!receiptMessage && (isReady || isFinal) && (
-        <p className="mb-1 text-center text-xs font-semibold text-green-700">
+      {!receiptMessage && isReady && (
+        <p className="mt-1 text-center text-xs font-semibold text-green-700">
           <PartyPopper className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
           Your meal is ready!
         </p>
       )}
 
       {paymentMessage && (
-        <p className="mb-1.5 line-clamp-2 text-center text-[11px] leading-snug text-gray-600">
+        <p className="mt-1 line-clamp-2 text-center text-[11px] leading-snug text-gray-600">
           {paymentMessage}
         </p>
       )}
 
       {workflowMessage && (
-        <p className="mb-1.5 line-clamp-2 text-center text-[10px] leading-snug text-gray-500">
+        <p className="mt-1 line-clamp-2 text-center text-[10px] leading-snug text-gray-500">
           {workflowMessage}
         </p>
       )}
 
-      <div className="min-h-0 shrink overflow-y-auto py-0.5">
-        <StatusTimeline
+      <div className="mt-2 shrink-0">
+        <HorizontalStatusStepper
           currentIndex={currentIndex}
           accent={accent}
           customBrandingActive={customBrandingActive}
         />
       </div>
 
-      <OrderCustomerPhone phone={order?.customer_phone} variant="badge" className="mt-1 shrink-0" />
-
-      <WaitingRunnerGame className="mt-1.5 w-full shrink-0" />
+      <div className="mt-2 flex min-h-0 flex-1 flex-col justify-center overflow-hidden">
+        <WaitingRunnerGame className="w-full" />
+      </div>
 
       <Button
         variant="outline"

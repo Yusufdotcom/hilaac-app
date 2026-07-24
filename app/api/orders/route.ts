@@ -85,6 +85,19 @@ export async function POST(req: NextRequest) {
   const resolvedBilling: "pay_before" | "pay_after" = billingModel ?? "pay_before";
   const initialStatus = resolvedBilling === "pay_before" ? "awaiting_payment" : "new";
 
+  // Next daily-ish sequential number for this restaurant (used as takeaway delivery code).
+  const { data: latestOrder } = await supabase
+    .from("orders")
+    .select("order_number")
+    .eq("restaurant_id", restaurantId)
+    .not("order_number", "is", null)
+    .order("order_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextOrderNumber =
+    typeof latestOrder?.order_number === "number" ? latestOrder.order_number + 1 : 100;
+
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
@@ -95,11 +108,12 @@ export async function POST(req: NextRequest) {
       payment_status: "pending",
       billing_model: resolvedBilling,
       payment_method: paymentMethod ?? null,
+      order_number: nextOrderNumber,
       total,
       customer_phone: customerPhone || null,
       notes: notes || null,
     })
-    .select("id")
+    .select("id, order_number")
     .single();
 
   if (orderError || !order) {
@@ -115,5 +129,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: itemsError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ orderId: order.id, total });
+  return NextResponse.json({
+    orderId: order.id,
+    orderNumber: order.order_number,
+    total,
+  });
 }

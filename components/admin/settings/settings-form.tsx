@@ -79,7 +79,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
       if (error) throw error;
       const { data } = supabase.storage.from("restaurant-logos").getPublicUrl(path);
       setGeneral((g) => ({ ...g, logo_url: data.publicUrl }));
-      await patchSettings({ logo_url: data.publicUrl });
+      await patchSettings({ logo_url: data.publicUrl, restaurant_id: restaurant.id });
       toast.success("Logo updated");
       router.refresh();
     } catch (err: any) {
@@ -93,8 +93,16 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     e.preventDefault();
     setSavingGeneral(true);
     try {
-      await patchSettings(general);
+      const data = await patchSettings({ ...general, restaurant_id: restaurant.id });
       toast.success("Restaurant details saved");
+
+      if (data.slugChanged && data.newSlug && data.newSlug !== restaurant.slug) {
+        toast.message(`URL updated to /admin/${data.newSlug}`);
+        router.replace(`/admin/${data.newSlug}/settings`);
+        router.refresh();
+        return;
+      }
+
       router.refresh();
     } catch (err: any) {
       toast.error(err.message);
@@ -108,7 +116,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     setOrderTypes(next);
     setSavingOrderTypes(true);
     try {
-      await patchSettings(next);
+      await patchSettings({ ...next, restaurant_id: restaurant.id });
       router.refresh();
     } catch (err: any) {
       toast.error(err.message);
@@ -178,7 +186,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
       } else {
         Object.assign(body, api);
       }
-      await patchSettings(body);
+      await patchSettings({ ...body, restaurant_id: restaurant.id });
       toast.success("Payment settings saved");
       router.refresh();
     } catch (err: any) {
@@ -258,6 +266,9 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
               <div className="space-y-2">
                 <Label htmlFor="name">Restaurant Name</Label>
                 <Input id="name" value={general.name} onChange={(e) => setGeneral({ ...general, name: e.target.value })} />
+                <p className="text-xs text-muted-foreground">
+                  Changing the name updates your public URL slug. Printed QR codes keep working via redirect.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>

@@ -4,19 +4,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const W = 360;
-const H = 80;
-const GROUND = H - 14;
+const W = 400;
+const H = 120;
+const GROUND = H - 18;
 const GRAVITY = 0.55;
-const JUMP = -7.5;
-const SPEED = 3.2;
+const JUMP = -8.2;
+const SPEED = 3.4;
 
 /**
  * Compact offline T-Rex-style runner — pure canvas, no network required.
  */
-export function WaitingRunnerGame({ className }: { className?: string }) {
+export function WaitingRunnerGame({
+  className,
+  compact = true,
+}: {
+  className?: string;
+  compact?: boolean;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(!compact);
   const [score, setScore] = useState(0);
   const runningRef = useRef(false);
   const rafRef = useRef<number>(0);
@@ -63,7 +69,7 @@ export function WaitingRunnerGame({ className }: { className?: string }) {
     function spawnObstacle() {
       const s = stateRef.current;
       if (s.frame % 90 === 0 && Math.random() > 0.35) {
-        s.obstacles.push({ x: W + 10, w: 8 + Math.random() * 6, h: 14 + Math.random() * 10 });
+        s.obstacles.push({ x: W + 10, w: 10 + Math.random() * 8, h: 18 + Math.random() * 14 });
       }
     }
 
@@ -85,9 +91,9 @@ export function WaitingRunnerGame({ className }: { className?: string }) {
         .map((o) => ({ ...o, x: o.x - SPEED }))
         .filter((o) => o.x > -20);
 
-      const dinoX = 28;
-      const dinoH = 18;
-      const dinoW = 16;
+      const dinoX = 32;
+      const dinoH = 22;
+      const dinoW = 18;
       const dinoTop = s.dinoY - dinoH;
 
       for (const o of s.obstacles) {
@@ -120,7 +126,7 @@ export function WaitingRunnerGame({ className }: { className?: string }) {
       drawCtx.fillStyle = "#374151";
       drawCtx.fillRect(dinoX, dinoTop, dinoW, dinoH);
       drawCtx.fillStyle = "#fff";
-      drawCtx.fillRect(dinoX + 10, dinoTop + 4, 3, 3);
+      drawCtx.fillRect(dinoX + 11, dinoTop + 5, 3, 3);
 
       drawCtx.fillStyle = "#16a34a";
       for (const o of s.obstacles) {
@@ -148,28 +154,28 @@ export function WaitingRunnerGame({ className }: { className?: string }) {
   }, [expanded, jump]);
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn("flex w-full flex-col", className)}>
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white/80 py-1.5 text-[11px] font-medium text-gray-500 transition-colors hover:bg-white hover:text-gray-700"
+        className="flex w-full shrink-0 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white/80 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-white hover:text-gray-700"
       >
         <Gamepad2 className="h-3.5 w-3.5" aria-hidden="true" />
         {expanded ? "Hide game" : "Play a game while you wait"}
       </button>
 
       {expanded && (
-        <div className="mt-1.5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="mt-1.5 min-h-0 flex-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <canvas
             ref={canvasRef}
             width={W}
             height={H}
-            className="w-full cursor-pointer touch-none"
+            className="h-auto w-full max-h-[28vh] cursor-pointer touch-none"
             onPointerDown={jump}
             role="img"
             aria-label="Jump game — tap or press space to jump"
           />
-          <p className="border-t border-gray-100 py-1 text-center text-[10px] text-gray-400">
+          <p className="border-t border-gray-100 py-1.5 text-center text-[10px] text-gray-400">
             Tap or Space to jump · Score: {score}
           </p>
         </div>

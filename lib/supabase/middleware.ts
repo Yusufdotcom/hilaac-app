@@ -2,8 +2,9 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Refreshes the Supabase auth session on every request and enforces
- * route protection for /admin/* and /staff/* + trial-expiration redirects.
+ * Refreshes the Supabase auth session on every request.
+ * Login is required ONLY for /admin/* and /staff/*.
+ * Public QR ordering (/order/*) and other public routes never redirect to /login.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -34,7 +35,7 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isProtected = pathname.startsWith("/admin") || pathname.startsWith("/staff");
 
-  // Never hit Postgres (profiles/restaurants) until the user is authenticated.
+  // Public routes (including /order/[slug] QR pages) — never require auth.
   if (!user) {
     if (isProtected) {
       const url = request.nextUrl.clone();
@@ -84,9 +85,6 @@ export async function updateSession(request: NextRequest) {
       restaurant = profileRestaurant;
     }
 
-    // Trial/subscription gate: only the owner/manager billing screens stay
-    // reachable once a subscription has expired; everything else in /admin
-    // bounces to /billing so the restaurant can upgrade.
     if (restaurant) {
       const isExpired =
         restaurant.subscription_status === "expired" ||

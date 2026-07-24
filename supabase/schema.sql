@@ -52,6 +52,7 @@ create table if not exists public.restaurants (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text not null unique,
+  previous_slug text,
   branch_name text,
   owner_id uuid references auth.users (id) on delete set null,
   logo_url text,
@@ -144,6 +145,7 @@ create table if not exists public.waiters (
 
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
+  order_number integer,
   restaurant_id uuid not null references public.restaurants (id) on delete cascade,
   table_id uuid references public.tables (id) on delete set null,
   order_type public.order_type not null default 'dine-in',
@@ -391,7 +393,7 @@ create policy "owners can update own restaurants" on public.restaurants
 
 revoke all on public.restaurants from anon, authenticated;
 grant select (
-  id, name, slug, branch_name, owner_id, logo_url, address, phone, payment_mode, subscription_tier,
+  id, name, slug, previous_slug, branch_name, owner_id, logo_url, address, phone, payment_mode, subscription_tier,
   subscription_status, subscription_end_date, evc_ussd_code, edahab_ussd_code,
   dine_in_enabled, takeaway_enabled, brand_color, custom_branding_enabled,
   is_active, is_demo, demo_expires_at, created_at
@@ -520,7 +522,8 @@ create policy "customers can track recent orders"
 
 revoke all on public.orders from anon;
 grant select (
-  id, status, payment_status, order_type, total, created_at
+  id, order_number, status, payment_status, order_type, billing_model,
+  customer_confirmed_at, total, created_at, updated_at
 ) on public.orders to anon;
 
 drop policy if exists "customers can confirm payment on recent orders" on public.orders;

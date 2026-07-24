@@ -45,8 +45,11 @@ export function slugify(text: string) {
     .toString()
     .toLowerCase()
     .trim()
+    // "Baba's Grill" → "baba-s-grill"
+    .replace(/[''`]/g, "-")
     .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 

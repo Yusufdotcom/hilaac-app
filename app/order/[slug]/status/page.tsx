@@ -28,7 +28,7 @@ interface TrackedOrderRow {
 }
 
 const PAGE_SHELL =
-  "flex h-[100dvh] max-h-[100dvh] min-h-screen flex-col justify-center overflow-hidden px-3";
+  "flex h-[100dvh] max-h-[100dvh] min-h-screen flex-col justify-center overflow-hidden overscroll-none px-3";
 
 export default function OrderStatusPage({
   params,
