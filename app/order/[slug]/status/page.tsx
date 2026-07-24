@@ -43,9 +43,10 @@ export default function OrderStatusPage({
 
   const [order, setOrder] = useState<TrackedOrderRow | null>(null);
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
-  const [brandingRestaurant, setBrandingRestaurant] = useState<{
+  const [branding, setBranding] = useState<{
     brand_color?: string | null;
     custom_branding_enabled?: boolean;
+    customerAccentColor?: string;
   }>({});
   const [waitingForSync, setWaitingForSync] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -113,15 +114,24 @@ export default function OrderStatusPage({
     const supabase = createClient();
 
     async function fetchRestaurant() {
-      const { data } = await supabase
-        .from("restaurants")
-        .select("name, is_active, brand_color, custom_branding_enabled")
-        .eq("slug", params.slug)
-        .maybeSingle();
+      const [restaurantRes, brandingRes] = await Promise.all([
+        supabase
+          .from("restaurants")
+          .select("name, is_active")
+          .eq("slug", params.slug)
+          .maybeSingle(),
+        fetch(`/api/restaurants/${params.slug}/branding`, { cache: "no-store" }),
+      ]);
 
+      const { data } = restaurantRes;
       if (!data?.is_active) return;
+
       setRestaurantName(data.name);
-      setBrandingRestaurant(data);
+
+      if (brandingRes.ok) {
+        const brandingData = await brandingRes.json();
+        setBranding(brandingData);
+      }
     }
 
     void fetchRestaurant();
@@ -237,8 +247,9 @@ export default function OrderStatusPage({
         </div>
       )}
       <OrderBrandProvider
-        brandColor={brandingRestaurant.brand_color}
-        customBrandingEnabled={brandingRestaurant.custom_branding_enabled ?? false}
+        brandColor={branding.brand_color}
+        customBrandingEnabled={branding.custom_branding_enabled ?? false}
+        accentColor={branding.customerAccentColor}
       >
         <OrderConfirmation
           orderId={orderId}

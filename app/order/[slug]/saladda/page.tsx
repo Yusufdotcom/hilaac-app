@@ -23,6 +23,7 @@ export default function SaladdaPaymentPage({ params }: { params: { slug: string 
   const [branding, setBranding] = useState<{
     brand_color?: string | null;
     custom_branding_enabled?: boolean;
+    customerAccentColor?: string;
   }>({});
 
   useEffect(() => {
@@ -31,13 +32,14 @@ export default function SaladdaPaymentPage({ params }: { params: { slug: string 
     async function loadOrderContext() {
       const supabase = createClient();
 
-      const [trackRes, { data: restaurant }] = await Promise.all([
+      const [trackRes, { data: restaurant }, brandingRes] = await Promise.all([
         fetch(`/api/orders/${orderId}/track`, { cache: "no-store" }),
         supabase
           .from("restaurants")
-          .select("id, evc_ussd_code, edahab_ussd_code, brand_color, custom_branding_enabled")
+          .select("id, evc_ussd_code, edahab_ussd_code")
           .eq("slug", params.slug)
           .maybeSingle(),
+        fetch(`/api/restaurants/${params.slug}/branding`, { cache: "no-store" }),
       ]);
 
       if (!trackRes.ok || !restaurant) {
@@ -52,10 +54,11 @@ export default function SaladdaPaymentPage({ params }: { params: { slug: string 
         return;
       }
 
-      setBranding({
-        brand_color: restaurant.brand_color,
-        custom_branding_enabled: restaurant.custom_branding_enabled,
-      });
+      if (brandingRes.ok) {
+        const brandingData = await brandingRes.json();
+        setBranding(brandingData);
+      }
+
       setUssdCode(restaurant.evc_ussd_code ?? "");
 
       setCreatePayload({
@@ -91,6 +94,7 @@ export default function SaladdaPaymentPage({ params }: { params: { slug: string 
     <OrderBrandProvider
       brandColor={branding.brand_color}
       customBrandingEnabled={branding.custom_branding_enabled ?? false}
+      accentColor={branding.customerAccentColor}
     >
       <PaymentConfirmationModal
         open

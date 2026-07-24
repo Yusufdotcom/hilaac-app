@@ -7,10 +7,9 @@ import { OrderPrimaryButton } from "@/components/order/order-primary-button";
 import { useOrderBrand } from "@/components/order/order-brand-context";
 import {
   brandColorWithAlpha,
-  customerAccentTextStyle,
-  customerSelectionCardStyle,
-  customerSelectionIconStyle,
-  resolveCustomerAccent,
+  customerAccentTextStyleFromAccent,
+  customerSelectionCardStyleFromAccent,
+  customerSelectionIconStyleFromAccent,
 } from "@/lib/brand/restaurant-brand";
 import { cn } from "@/lib/utils";
 import type { OrderType } from "@/types/database";
@@ -30,7 +29,7 @@ function OrderTypeCard({
   description: string;
   onSelect: (type: OrderType) => void;
 }) {
-  const { restaurant } = useOrderBrand();
+  const { accent, customBrandingActive } = useOrderBrand();
 
   return (
     <button
@@ -40,12 +39,12 @@ function OrderTypeCard({
         "flex w-full items-center gap-4 rounded-2xl border-2 bg-background p-5 text-left",
         "transition-all duration-200 active:scale-[0.98]"
       )}
-      style={customerSelectionCardStyle(restaurant, selected)}
+      style={customerSelectionCardStyleFromAccent(accent, selected)}
       aria-pressed={selected}
     >
       <div
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-all duration-200"
-        style={customerSelectionIconStyle(restaurant, selected)}
+        style={customerSelectionIconStyleFromAccent(accent, selected, customBrandingActive)}
       >
         <Icon className="h-6 w-6" aria-hidden="true" />
       </div>
@@ -66,9 +65,8 @@ export function LandingStep({
   onSelect: (type: OrderType) => void;
   className?: string;
 }) {
-  const { restaurant: brandingRestaurant } = useOrderBrand();
-  const accent = resolveCustomerAccent(brandingRestaurant);
-  const accentTextStyle = customerAccentTextStyle(brandingRestaurant);
+  const { accent } = useOrderBrand();
+  const accentTextStyle = customerAccentTextStyleFromAccent(accent);
 
   const [selectedOrderType, setSelectedOrderType] = useState<OrderType | null>(null);
 

@@ -5,6 +5,8 @@ import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { getAdminSlugRedirect } from "@/lib/admin/resolve-user-restaurant";
 import { getOwnerBranches } from "@/lib/admin/owner-branches";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
   children,
   params,

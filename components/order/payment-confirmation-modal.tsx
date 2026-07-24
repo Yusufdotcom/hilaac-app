@@ -13,7 +13,8 @@ import {
 } from "@/lib/offline-queue";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
 import {
-  customerPrimaryButtonStyle,
+  customerPrimaryButtonStyleFromAccent,
+  HILAAC_GOLD,
 } from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,8 +49,8 @@ export function PaymentConfirmationModal({
   const brand = useOrderBrandOptional();
   const primaryOrderId = orderIds[0];
   const confirmStyle = brand
-    ? customerPrimaryButtonStyle(brand.branding)
-    : customerPrimaryButtonStyle({});
+    ? customerPrimaryButtonStyleFromAccent(brand.accent, brand.customBrandingActive)
+    : customerPrimaryButtonStyleFromAccent(HILAAC_GOLD, false);
   const confirmUsesBrand = brand?.customBrandingActive ?? false;
 
   useEffect(() => setMounted(true), []);

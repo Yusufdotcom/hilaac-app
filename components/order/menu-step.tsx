@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { OrderPrimaryButton } from "@/components/order/order-primary-button";
 import { useOrderBrand } from "@/components/order/order-brand-context";
 import {
-  customerAccentTextStyle,
-  customerActiveTabStyle,
-  customerPrimaryButtonStyle,
+  customerAccentTextStyleFromAccent,
+  customerActiveTabStyleFromAccent,
+  customerPrimaryButtonStyleFromAccent,
 } from "@/lib/brand/restaurant-brand";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Category, MenuItem } from "@/types/database";
@@ -21,10 +21,10 @@ function ItemCard({
   item: MenuItem;
   onSelect: (item: MenuItem) => void;
 }) {
-  const { restaurant } = useOrderBrand();
+  const { accent, customBrandingActive } = useOrderBrand();
   const unavailable = !item.is_available;
-  const plusStyle = customerPrimaryButtonStyle(restaurant);
-  const accentTextStyle = customerAccentTextStyle(restaurant);
+  const plusStyle = customerPrimaryButtonStyleFromAccent(accent, customBrandingActive);
+  const accentTextStyle = customerAccentTextStyleFromAccent(accent);
 
   return (
     <div
@@ -143,7 +143,7 @@ export function MenuStep({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
-  const { restaurant: brandingRestaurant } = useOrderBrand();
+  const { accent, customBrandingActive } = useOrderBrand();
 
   const tabs = useMemo(() => {
     const items: MenuTab[] = [];
@@ -231,7 +231,7 @@ export function MenuStep({
                     "shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
                     !active && "border-transparent bg-muted text-muted-foreground hover:bg-muted/80"
                   )}
-                  style={active ? customerActiveTabStyle(brandingRestaurant) : undefined}
+                  style={active ? customerActiveTabStyleFromAccent(accent, customBrandingActive) : undefined}
                 >
                   {tab.label}
                 </button>

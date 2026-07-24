@@ -210,8 +210,8 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
 
       setBrandColor(normalized);
       toast.success("Brand settings saved");
-      router.push(`/admin/${restaurant.slug}/dashboard`);
       router.refresh();
+      router.push(`/admin/${restaurant.slug}/dashboard`);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to save brand settings");
     } finally {

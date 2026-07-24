@@ -84,6 +84,75 @@ export function customerPaymentButtonStyle(restaurant: RestaurantBranding): CSSP
 }
 
 /** Active category tab — gold tint by default, solid brand when custom branding is on. */
+export function customerActiveTabStyleFromAccent(
+  accent: string,
+  customBrandingActive: boolean
+): CSSProperties {
+  if (customBrandingActive) {
+    return {
+      backgroundColor: accent,
+      color: SIDEBAR_TEXT_COLOR,
+      borderColor: accent,
+    };
+  }
+  return {
+    backgroundColor: `color-mix(in srgb, ${accent} 15%, white)`,
+    color: HILAAC_NAVY,
+    borderColor: accent,
+  };
+}
+
+export function customerAccentTextStyleFromAccent(accent: string): CSSProperties {
+  return { color: accent };
+}
+
+/** Primary CTA using a pre-resolved accent color (inline styles only). */
+export function customerPrimaryButtonStyleFromAccent(
+  accent: string,
+  customBrandingActive: boolean
+): CSSProperties {
+  return {
+    backgroundColor: accent,
+    color: customBrandingActive ? SIDEBAR_TEXT_COLOR : HILAAC_NAVY,
+  };
+}
+
+/** Landing / selection cards — neutral when unselected, accent when selected. */
+export function customerSelectionCardStyleFromAccent(
+  accent: string,
+  selected: boolean
+): CSSProperties {
+  if (!selected) {
+    return { borderColor: "#E5E7EB" };
+  }
+  return {
+    borderColor: accent,
+    backgroundColor: brandColorWithAlpha(accent, 0.08),
+  };
+}
+
+/** Icon tile inside a selection card — inline styles only. */
+export function customerSelectionIconStyleFromAccent(
+  accent: string,
+  selected: boolean,
+  customBrandingActive: boolean
+): CSSProperties {
+  if (!selected) {
+    return { backgroundColor: "#F3F4F6", color: "#6B7280" };
+  }
+  if (customBrandingActive) {
+    return {
+      backgroundColor: brandColorWithAlpha(accent, 0.2),
+      color: accent,
+    };
+  }
+  return {
+    backgroundColor: accent,
+    color: HILAAC_NAVY,
+  };
+}
+
+/** Active category tab — gold tint by default, brand when custom branding is on. */
 export function customerActiveTabStyle(restaurant: RestaurantBranding): CSSProperties {
   const accent = resolveCustomerAccent(restaurant);
   if (isCustomerBrandingActive(restaurant)) {

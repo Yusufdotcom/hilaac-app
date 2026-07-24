@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { StaffLayoutShell } from "@/components/staff/staff-layout-shell";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 
+export const dynamic = "force-dynamic";
+
 export default async function StaffLayout({
   children,
   params,

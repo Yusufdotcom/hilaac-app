@@ -13,8 +13,8 @@ import type { OrderStatus, PaymentStatus } from "@/types/database";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
 import {
   brandColorWithAlpha,
-  customerAccentTextStyle,
-  customerPrimaryButtonStyle,
+  customerAccentTextStyleFromAccent,
+  customerPrimaryButtonStyleFromAccent,
   resolveCustomerAccent,
 } from "@/lib/brand/restaurant-brand";
 import { cn, formatOrderLabel } from "@/lib/utils";
@@ -197,13 +197,13 @@ export function OrderConfirmation({
   const order = useOrderStatusRealtime(orderId);
   const brand = useOrderBrandOptional();
   const accent = brand?.accent ?? resolveCustomerAccent(brand?.branding ?? {});
+  const customBrandingActive = brand?.customBrandingActive ?? false;
   const accentIconStyle = {
     backgroundColor: brandColorWithAlpha(accent, 0.2),
     color: accent,
   };
-  const accentTextStyle = customerAccentTextStyle(brand?.branding ?? {});
-  const activeStepStyle = customerPrimaryButtonStyle(brand?.branding ?? {});
-  const customBrandingActive = brand?.customBrandingActive ?? false;
+  const accentTextStyle = customerAccentTextStyleFromAccent(accent);
+  const activeStepStyle = customerPrimaryButtonStyleFromAccent(accent, customBrandingActive);
 
   const currentIndex =
     order?.status === "awaiting_payment"

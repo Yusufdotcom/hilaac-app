@@ -12,6 +12,7 @@ import {
 
 type OrderBrandContextValue = {
   branding: RestaurantBranding;
+  /** Pre-resolved customer accent — brand_color or gold fallback. */
   accent: string;
   customBrandingActive: boolean;
 };
@@ -21,23 +22,26 @@ const OrderBrandContext = createContext<OrderBrandContextValue | null>(null);
 export function OrderBrandProvider({
   brandColor,
   customBrandingEnabled = false,
+  accentColor,
   children,
 }: {
   brandColor?: string | null;
   customBrandingEnabled?: boolean;
+  /** Server-resolved accent passed from app/order/[slug]/page.tsx */
+  accentColor?: string;
   children: React.ReactNode;
 }) {
   const branding = useMemo(
     () => buildRestaurantBranding(brandColor, customBrandingEnabled),
     [brandColor, customBrandingEnabled]
   );
-  const accent = resolveCustomerAccent(branding);
   const customBrandingActive = isCustomerBrandingActive(branding);
+  const accent = accentColor ?? resolveCustomerAccent(branding);
 
   return (
     <OrderBrandContext.Provider value={{ branding, accent, customBrandingActive }}>
       <div
-        className="contents"
+        className="flex h-[100dvh] min-h-0 flex-col"
         style={{
           ["--order-accent" as string]: accent,
           ["--brand-accent" as string]: accent,
@@ -52,7 +56,6 @@ export function OrderBrandProvider({
   );
 }
 
-/** @deprecated Use `useOrderBranding` — kept for gradual migration inside order components. */
 export function useOrderBrand() {
   const ctx = useContext(OrderBrandContext);
   if (!ctx) {
@@ -60,6 +63,7 @@ export function useOrderBrand() {
   }
   return {
     restaurant: ctx.branding,
+    branding: ctx.branding,
     accent: ctx.accent,
     customBrandingActive: ctx.customBrandingActive,
   };
