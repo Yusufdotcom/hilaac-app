@@ -31,6 +31,11 @@ import { billingModelForOrderType, payAfterMessage } from "@/lib/order/billing-m
 import { formatCurrency, cn } from "@/lib/utils";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
 import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
+import { OrderSubmittingOverlay } from "@/components/order/order-preparing-screen";
+import {
+  createTempOrderId,
+  savePendingOrderHandoff,
+} from "@/lib/order/pending-order-handoff";
 import type { OrderType, RestaurantTable } from "@/types/database";
 
 interface MinimalRestaurant {
@@ -228,6 +233,7 @@ export function CartSheet({
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [placing, setPlacing] = useState<"evc" | "edahab" | "place" | null>(null);
+  const [submittingOverlay, setSubmittingOverlay] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"evc" | "edahab" | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentDialCode, setPaymentDialCode] = useState("");
@@ -284,16 +290,6 @@ export function CartSheet({
     };
   }
 
-  async function confirmPaymentForOrder(orderId: string) {
-    const res = await fetch(`/api/orders/${orderId}/confirm-payment`, { method: "POST" });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      toast.error(data.error ?? "Could not confirm payment");
-      return false;
-    }
-    return true;
-  }
-
   function phoneDigits(value: string) {
     return value.replace(/\D/g, "");
   }
@@ -338,49 +334,59 @@ export function CartSheet({
     };
   }
 
-  async function handlePlaceOrderWithoutPayment() {
+  /** Instant redirect with temp id; status page creates the real order from sessionStorage. */
+  function beginOptimisticCheckout(options: {
+    method?: "evc" | "edahab";
+    confirmPayment?: boolean;
+  }) {
     if (hasUnavailableItems) {
       toast.error("Ka saar alaabta aan la heli karin si aad u sii wadato.");
-      return;
+      return false;
     }
     if (!isValidPhone(phone)) {
       toast.error("Fadlan geli lambarka taleefanka (ugu yaraan 10 digit)");
-      return;
+      return false;
+    }
+    if (orderType === "dine-in" && !tableNumber) {
+      toast.error("Fadlan geli lambarka miiska");
+      return false;
     }
 
-    setPlacing("place");
-    try {
-      const result = await createOrder();
-      if (!result) return;
-      goToStatusPage(result.orderId);
-    } finally {
-      setPlacing(null);
+    const payload = buildCreatePayload(options.method);
+    if (!payload) {
+      toast.error("Could not prepare order");
+      return false;
     }
+
+    const tempId = createTempOrderId();
+    savePendingOrderHandoff({
+      tempId,
+      slug: restaurant.slug,
+      payload,
+      confirmPayment: options.confirmPayment,
+      createdAt: Date.now(),
+    });
+
+    setSubmittingOverlay(true);
+    setPlacing("place");
+    goToStatusPage(tempId, { pending: true });
+    return true;
   }
 
-  async function finalizePayBeforeOrder(method: "evc" | "edahab") {
-    if (hasUnavailableItems) {
-      toast.error("Ka saar alaabta aan la heli karin si aad u sii wadato.");
+  function handlePlaceOrderWithoutPayment() {
+    beginOptimisticCheckout({});
+  }
+
+  function finalizePayBeforeOrder(method: "evc" | "edahab") {
+    // API path already created the order before the payment modal.
+    if (pendingOrderId) {
+      setSubmittingOverlay(true);
+      setPlacing("place");
+      goToStatusPage(pendingOrderId);
       return;
     }
 
-    setPlacing("place");
-    try {
-      if (pendingOrderId) {
-        goToStatusPage(pendingOrderId);
-        return;
-      }
-
-      const result = await createOrder(method);
-      if (!result) return;
-
-      const confirmed = await confirmPaymentForOrder(result.orderId);
-      if (!confirmed) return;
-
-      goToStatusPage(result.orderId);
-    } finally {
-      setPlacing(null);
-    }
+    beginOptimisticCheckout({ method, confirmPayment: true });
   }
 
   async function handleInitiatePayment(method: "evc" | "edahab") {
@@ -403,8 +409,12 @@ export function CartSheet({
 
     try {
       if (restaurant.payment_mode === "api") {
+        setSubmittingOverlay(true);
         const result = await createOrder(method);
-        if (!result) return;
+        if (!result) {
+          setSubmittingOverlay(false);
+          return;
+        }
 
         setPendingOrderId(result.orderId);
 
@@ -417,9 +427,11 @@ export function CartSheet({
         if (!res.ok) {
           toast.error(data.error ?? "Payment failed");
           setPendingOrderId(null);
+          setSubmittingOverlay(false);
           return;
         }
 
+        setSubmittingOverlay(false);
         setPaymentDialCode("");
         setPaymentModalOpen(true);
         return;
@@ -439,20 +451,22 @@ export function CartSheet({
     }
   }
 
-  async function handleCustomerPaymentConfirmed() {
+  function handleCustomerPaymentConfirmed() {
     setPaymentModalOpen(false);
     const method = paymentMethod;
     if (!method) return;
-    await finalizePayBeforeOrder(method);
+    finalizePayBeforeOrder(method);
   }
 
   const phoneValid = isValidPhone(phone);
-  const paymentDisabled = !!placing || cart.length === 0 || hasUnavailableItems || !phoneValid;
+  const paymentDisabled =
+    !!placing || submittingOverlay || cart.length === 0 || hasUnavailableItems || !phoneValid;
 
-  function goToStatusPage(orderId: string) {
+  function goToStatusPage(orderId: string, options?: { pending?: boolean }) {
     onOpenChange(false);
     onOrderPlaced(orderId);
-    router.push(`/order/${restaurant.slug}/status?orderId=${orderId}`);
+    const pendingQuery = options?.pending ? "&pending=1" : "";
+    router.push(`/order/${restaurant.slug}/status?orderId=${orderId}${pendingQuery}`);
   }
 
   return (
@@ -658,6 +672,8 @@ export function CartSheet({
           deferNavigation
         />
       )}
+
+      <OrderSubmittingOverlay open={submittingOverlay} />
     </>
   );
 }

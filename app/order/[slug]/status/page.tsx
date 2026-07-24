@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
@@ -13,10 +13,18 @@ import {
   syncOfflineOrders,
 } from "@/lib/offline-queue";
 import { OrderBrandProvider } from "@/components/order/order-brand-context";
+import { OrderPreparingScreen } from "@/components/order/order-preparing-screen";
 import { OrderStatusView } from "@/components/order/order-status-view";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  clearPendingOrderHandoff,
+  fulfillPendingOrderHandoff,
+  loadPendingOrderHandoff,
+  ORDER_CREATE_TIMEOUT_MS,
+  ORDER_POLL_INTERVAL_MS,
+} from "@/lib/order/pending-order-handoff";
 import type { PaymentStatus } from "@/types/database";
 
 interface TrackedOrderRow {
@@ -30,18 +38,22 @@ interface TrackedOrderRow {
 const PAGE_SHELL =
   "flex h-[100dvh] max-h-[100dvh] min-h-screen flex-col justify-center overflow-hidden overscroll-none px-3";
 
+const ORDER_NOT_FOUND_ERROR = "Failed to create order. Please try again.";
+
 export default function OrderStatusPage({
   params,
   searchParams,
 }: {
   params: { slug: string };
-  searchParams: { orderId?: string };
+  searchParams: { orderId?: string; pending?: string };
 }) {
   const router = useRouter();
   const isOnline = useOnlineStatus();
   const orderId = searchParams.orderId ?? "";
+  const isPendingParam = searchParams.pending === "1";
 
   const [order, setOrder] = useState<TrackedOrderRow | null>(null);
+  const [resolvedOrderId, setResolvedOrderId] = useState(orderId);
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
   const [takeawayHotline, setTakeawayHotline] = useState<string | null>(null);
   const [branding, setBranding] = useState<{
@@ -51,11 +63,22 @@ export default function OrderStatusPage({
   }>({});
   const [waitingForSync, setWaitingForSync] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [awaitingOrder, setAwaitingOrder] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
 
-  const pendingSync = isOrderPendingSync(orderId);
+  const fulfillStartedRef = useRef(false);
+
+  const pendingSync = isOrderPendingSync(resolvedOrderId);
   const showRetrySync = pendingSync || !isOnline;
   const showExtras = showRetrySync || !isOnline;
+  const showPreparing =
+    loading ||
+    waitingForSync ||
+    awaitingOrder ||
+    !!createError ||
+    (!order && !!resolvedOrderId);
 
   async function handleRetrySync() {
     setRetrying(true);
@@ -72,7 +95,7 @@ export default function OrderStatusPage({
         const { data } = await supabase
           .from("orders")
           .select("id, order_number, status, payment_status, customer_confirmed_at")
-          .eq("id", orderId)
+          .eq("id", resolvedOrderId)
           .maybeSingle();
         if (data) setOrder(data);
       } else if (failed > 0) {
@@ -111,6 +134,25 @@ export default function OrderStatusPage({
     );
   }
 
+  const fetchOrderById = useCallback(async (id: string) => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("orders")
+      .select("id, order_number, status, payment_status, customer_confirmed_at")
+      .eq("id", id)
+      .maybeSingle();
+    return data;
+  }, []);
+
+  useEffect(() => {
+    setResolvedOrderId(orderId);
+    setOrder(null);
+    setLoading(true);
+    setCreateError(null);
+    setAwaitingOrder(false);
+    fulfillStartedRef.current = false;
+  }, [orderId, retryNonce]);
+
   useEffect(() => {
     const supabase = createClient();
 
@@ -142,25 +184,122 @@ export default function OrderStatusPage({
     void fetchRestaurant();
   }, [params.slug]);
 
+  // Optimistic handoff: create order from sessionStorage, then swap to real id.
   useEffect(() => {
-    const supabase = createClient();
+    if (!orderId) return;
 
-    async function fetchOrder() {
-      const { data } = await supabase
-        .from("orders")
-        .select("id, order_number, status, payment_status, customer_confirmed_at")
-        .eq("id", orderId)
-        .maybeSingle();
-
-      setOrder(data);
-      setLoading(false);
+    const handoff = loadPendingOrderHandoff(orderId);
+    const shouldFulfill = isPendingParam || !!handoff;
+    if (!shouldFulfill || !handoff) {
+      return;
     }
 
-    void fetchOrder();
-  }, [orderId]);
+    if (fulfillStartedRef.current) return;
+    fulfillStartedRef.current = true;
+
+    setAwaitingOrder(true);
+    setLoading(true);
+    setCreateError(null);
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), ORDER_CREATE_TIMEOUT_MS);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const { orderId: realId } = await fulfillPendingOrderHandoff(handoff, {
+          signal: controller.signal,
+        });
+        if (cancelled) return;
+        clearPendingOrderHandoff(orderId);
+        setResolvedOrderId(realId);
+        const data = await fetchOrderById(realId);
+        if (cancelled) return;
+        if (data) setOrder(data);
+        setAwaitingOrder(false);
+        setLoading(false);
+        router.replace(`/order/${params.slug}/status?orderId=${realId}`);
+      } catch (err) {
+        if (cancelled) return;
+        // Keep handoff so "Isku day mar kale" can retry create.
+        const message =
+          err instanceof Error && err.name === "AbortError"
+            ? ORDER_NOT_FOUND_ERROR
+            : err instanceof Error
+              ? err.message
+              : ORDER_NOT_FOUND_ERROR;
+        setCreateError(message);
+        setAwaitingOrder(false);
+        setLoading(false);
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      fulfillStartedRef.current = false;
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [orderId, isPendingParam, params.slug, router, fetchOrderById, retryNonce]);
+
+  // Normal / poll path when not fulfilling a handoff.
+  useEffect(() => {
+    if (!orderId) return;
+    if (loadPendingOrderHandoff(orderId)) return;
+
+    let cancelled = false;
+    let interval: number | undefined;
+    const startedAt = Date.now();
+
+    async function lookup() {
+      const data = await fetchOrderById(orderId);
+      if (cancelled) return false;
+
+      if (data) {
+        setOrder(data);
+        setAwaitingOrder(false);
+        setLoading(false);
+        setCreateError(null);
+        return true;
+      }
+      return false;
+    }
+
+    setAwaitingOrder(true);
+    setLoading(false);
+
+    void (async () => {
+      const found = await lookup();
+      if (cancelled || found) return;
+
+      interval = window.setInterval(async () => {
+        if (cancelled) return;
+        const foundNow = await lookup();
+        if (foundNow) {
+          if (interval !== undefined) window.clearInterval(interval);
+          return;
+        }
+        if (Date.now() - startedAt >= ORDER_CREATE_TIMEOUT_MS) {
+          if (interval !== undefined) window.clearInterval(interval);
+          if (!cancelled) {
+            setCreateError(ORDER_NOT_FOUND_ERROR);
+            setAwaitingOrder(false);
+            setLoading(false);
+          }
+        }
+      }, ORDER_POLL_INTERVAL_MS);
+    })();
+
+    return () => {
+      cancelled = true;
+      if (interval !== undefined) window.clearInterval(interval);
+    };
+  }, [orderId, fetchOrderById, retryNonce]);
 
   useEffect(() => {
-    const pendingInQueue = isOrderPendingSync(orderId);
+    const pendingInQueue = isOrderPendingSync(resolvedOrderId);
 
     if (!isOnline) {
       setWaitingForSync(pendingInQueue);
@@ -180,14 +319,14 @@ export default function OrderStatusPage({
         const { data } = await supabase
           .from("orders")
           .select("id, order_number, status, payment_status, customer_confirmed_at")
-          .eq("id", orderId)
+          .eq("id", resolvedOrderId)
           .maybeSingle();
 
         if (data) {
           setOrder(data);
           window.clearInterval(interval);
         }
-      }, 2000);
+      }, ORDER_POLL_INTERVAL_MS);
 
       return () => window.clearInterval(interval);
     }
@@ -196,16 +335,22 @@ export default function OrderStatusPage({
     const wasQueued = queue.some(
       (item) =>
         !item.synced &&
-        (item.localOrderId === orderId || item.serverOrderId === orderId)
+        (item.localOrderId === resolvedOrderId || item.serverOrderId === resolvedOrderId)
     );
 
     if (wasQueued && order) {
-      removeQueuedOrderByOrderId(orderId);
-      router.replace(`/order/${params.slug}/status?orderId=${orderId}`);
+      removeQueuedOrderByOrderId(resolvedOrderId);
+      router.replace(`/order/${params.slug}/status?orderId=${resolvedOrderId}`);
     }
 
     setWaitingForSync(false);
-  }, [isOnline, order, orderId, params.slug, router]);
+  }, [isOnline, order, resolvedOrderId, params.slug, router]);
+
+  function handleCreateRetry() {
+    fulfillStartedRef.current = false;
+    setCreateError(null);
+    setRetryNonce((n) => n + 1);
+  }
 
   if (!orderId) {
     return (
@@ -218,22 +363,55 @@ export default function OrderStatusPage({
     );
   }
 
-  if (loading || waitingForSync || !restaurantName) {
+  if (showPreparing && !order) {
     return (
       <div className={PAGE_SHELL}>
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
-          {showExtras && (
-            <div className="mb-2 shrink-0">
-              <OrderStatusExtras />
-            </div>
-          )}
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
-          <p className="mt-2 text-sm font-medium text-gray-900">
-            {waitingForSync || !isOnline
-              ? "Waiting for connection to sync your order..."
-              : "Loading your order..."}
-          </p>
-        </div>
+        <OrderBrandProvider
+          brandColor={branding.brand_color}
+          customBrandingEnabled={branding.custom_branding_enabled ?? false}
+          accentColor={branding.customerAccentColor}
+          fullHeight={false}
+        >
+          <div className="mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col justify-center">
+            {showExtras && !createError && (
+              <div className="mb-2 shrink-0">
+                <OrderStatusExtras />
+              </div>
+            )}
+            <OrderPreparingScreen
+              message={
+                waitingForSync || !isOnline
+                  ? "Waiting for connection to sync your order..."
+                  : "Halaalabkaaga waa la diyaarinayaa..."
+              }
+              submessage={
+                createError
+                  ? undefined
+                  : waitingForSync || !isOnline
+                    ? undefined
+                    : "Fadlan sug…"
+              }
+              error={createError}
+              onRetry={createError ? handleCreateRetry : undefined}
+            />
+          </div>
+        </OrderBrandProvider>
+        <PoweredByHilaac className="shrink-0 pb-2" />
+      </div>
+    );
+  }
+
+  if (!restaurantName || !order) {
+    return (
+      <div className={PAGE_SHELL}>
+        <OrderBrandProvider
+          brandColor={branding.brand_color}
+          customBrandingEnabled={branding.custom_branding_enabled ?? false}
+          accentColor={branding.customerAccentColor}
+          fullHeight={false}
+        >
+          <OrderPreparingScreen message="Halaalabkaaga waa la diyaarinayaa..." submessage="Fadlan sug…" />
+        </OrderBrandProvider>
         <PoweredByHilaac className="shrink-0 pb-2" />
       </div>
     );
@@ -255,7 +433,7 @@ export default function OrderStatusPage({
       >
         <div className="mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col justify-center overflow-hidden">
           <OrderStatusView
-            orderId={orderId}
+            orderId={resolvedOrderId}
             restaurantName={restaurantName}
             takeawayHotline={takeawayHotline}
             newOrderHref={`/order/${params.slug}`}

@@ -81,7 +81,11 @@ export function PaymentConfirmationModal({
         });
         toast.message("Dalabka waa la keydiyay. Cashier-ka ayaa xaqiijin doona markaad isku xirto.");
         onClose();
-        router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
+        if (!deferNavigation) {
+          router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
+        } else {
+          await onCustomerConfirmed?.();
+        }
         return;
       }
 
@@ -100,7 +104,9 @@ export function PaymentConfirmationModal({
       toast.success("Lacag bixinta waa la diray. Cashier-ka ayaa xaqiijin doona.");
       await onCustomerConfirmed?.();
       onClose();
-      router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
+      if (!deferNavigation) {
+        router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
