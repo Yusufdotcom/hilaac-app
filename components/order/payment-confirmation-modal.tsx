@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useOnlineStatus } from "@/lib/hooks/useOnlineStatus";
@@ -40,7 +39,6 @@ export function PaymentConfirmationModal({
   /** When true, stay on checkout and let the parent handle navigation (Place Order flow). */
   deferNavigation?: boolean;
 }) {
-  const router = useRouter();
   const isOnline = useOnlineStatus();
   const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -81,8 +79,8 @@ export function PaymentConfirmationModal({
         });
         toast.message("Dalabka waa la keydiyay. Cashier-ka ayaa xaqiijin doona markaad isku xirto.");
         onClose();
-        if (!deferNavigation) {
-          router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
+        if (!deferNavigation && primaryOrderId) {
+          window.location.href = `/order/${slug}/status?orderId=${primaryOrderId}`;
         } else {
           await onCustomerConfirmed?.();
         }
@@ -104,8 +102,8 @@ export function PaymentConfirmationModal({
       toast.success("Lacag bixinta waa la diray. Cashier-ka ayaa xaqiijin doona.");
       await onCustomerConfirmed?.();
       onClose();
-      if (!deferNavigation) {
-        router.push(`/order/${slug}/status?orderId=${primaryOrderId}`);
+      if (!deferNavigation && primaryOrderId) {
+        window.location.href = `/order/${slug}/status?orderId=${primaryOrderId}`;
       }
     } finally {
       submittingRef.current = false;

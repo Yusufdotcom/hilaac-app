@@ -102,7 +102,9 @@ export default function SaladdaPaymentPage({ params }: { params: { slug: string 
         slug={params.slug}
         ussdCode={ussdCode}
         createPayloads={[createPayload]}
-        onClose={() => router.push(`/order/${params.slug}/status?orderId=${orderId}`)}
+        onClose={() => {
+          window.location.href = `/order/${params.slug}/status?orderId=${orderId}`;
+        }}
       />
     </OrderBrandProvider>
   );

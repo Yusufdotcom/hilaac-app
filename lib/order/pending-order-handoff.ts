@@ -1,7 +1,12 @@
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
 
 const STORAGE_PREFIX = "hilaac-pending-order:";
-export const ORDER_CREATE_TIMEOUT_MS = 10_000;
+const RESOLVED_PREFIX = "hilaac-resolved-order:";
+
+/** Guaranteed navigation to status even when create is still in flight. */
+export const ORDER_REDIRECT_DELAY_MS = 3_000;
+/** Show Retry on the loading UI if create still hasn't completed. */
+export const ORDER_CREATE_TIMEOUT_MS = 5_000;
 export const ORDER_POLL_INTERVAL_MS = 2_000;
 
 export type PendingOrderHandoff = {
@@ -16,6 +21,10 @@ function storageKey(tempId: string) {
   return `${STORAGE_PREFIX}${tempId}`;
 }
 
+function resolvedKey(tempId: string) {
+  return `${RESOLVED_PREFIX}${tempId}`;
+}
+
 export function createTempOrderId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
@@ -28,7 +37,7 @@ export function savePendingOrderHandoff(handoff: PendingOrderHandoff) {
   try {
     sessionStorage.setItem(storageKey(handoff.tempId), JSON.stringify(handoff));
   } catch {
-    // sessionStorage may be unavailable (private mode) — status page will still poll.
+    // sessionStorage may be unavailable — status page will still poll/retry.
   }
 }
 
@@ -47,6 +56,33 @@ export function clearPendingOrderHandoff(tempId: string) {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(storageKey(tempId));
+  } catch {
+    // ignore
+  }
+}
+
+export function saveResolvedOrderId(tempId: string, realOrderId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(resolvedKey(tempId), realOrderId);
+  } catch {
+    // ignore
+  }
+}
+
+export function loadResolvedOrderId(tempId: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return sessionStorage.getItem(resolvedKey(tempId));
+  } catch {
+    return null;
+  }
+}
+
+export function clearResolvedOrderId(tempId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(resolvedKey(tempId));
   } catch {
     // ignore
   }

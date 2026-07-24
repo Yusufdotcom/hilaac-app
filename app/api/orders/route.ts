@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { paymentStatusAwaitingCashierWrite } from "@/lib/payments/constants";
 
 interface IncomingItem {
   menuItemId: string;
@@ -84,6 +85,8 @@ export async function POST(req: NextRequest) {
 
   const resolvedBilling: "pay_before" | "pay_after" = billingModel ?? "pay_before";
   const initialStatus = resolvedBilling === "pay_before" ? "awaiting_payment" : "new";
+  // Cashier must approve before kitchen; never insert as paid.
+  const initialPaymentStatus = paymentStatusAwaitingCashierWrite();
 
   // Next daily-ish sequential number for this restaurant (used as takeaway delivery code).
   const { data: latestOrder } = await supabase
@@ -105,7 +108,7 @@ export async function POST(req: NextRequest) {
       table_id: orderType === "dine-in" ? tableId : null,
       order_type: orderType,
       status: initialStatus,
-      payment_status: "pending",
+      payment_status: initialPaymentStatus,
       billing_model: resolvedBilling,
       payment_method: paymentMethod ?? null,
       order_number: nextOrderNumber,

@@ -20,10 +20,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   clearPendingOrderHandoff,
+  clearResolvedOrderId,
   fulfillPendingOrderHandoff,
   loadPendingOrderHandoff,
+  loadResolvedOrderId,
   ORDER_CREATE_TIMEOUT_MS,
   ORDER_POLL_INTERVAL_MS,
+  saveResolvedOrderId,
 } from "@/lib/order/pending-order-handoff";
 import type { PaymentStatus } from "@/types/database";
 
@@ -67,6 +70,7 @@ export default function OrderStatusPage({
   const [createError, setCreateError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [retryNonce, setRetryNonce] = useState(0);
+  const [showRetry, setShowRetry] = useState(false);
 
   const fulfillStartedRef = useRef(false);
 
@@ -150,6 +154,7 @@ export default function OrderStatusPage({
     setLoading(true);
     setCreateError(null);
     setAwaitingOrder(false);
+    setShowRetry(false);
     fulfillStartedRef.current = false;
   }, [orderId, retryNonce]);
 
@@ -184,16 +189,24 @@ export default function OrderStatusPage({
     void fetchRestaurant();
   }, [params.slug]);
 
-  // Optimistic handoff: create order from sessionStorage, then swap to real id.
+  // Safety-net Retry after 5s while still waiting.
+  useEffect(() => {
+    if (order || createError) {
+      setShowRetry(!!createError);
+      return;
+    }
+    if (!showPreparing) return;
+    const timer = window.setTimeout(() => setShowRetry(true), ORDER_CREATE_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [order, createError, showPreparing, retryNonce]);
+
+  // Pending handoff / resolved mapping from the 3s redirect path.
   useEffect(() => {
     if (!orderId) return;
 
     const handoff = loadPendingOrderHandoff(orderId);
-    const shouldFulfill = isPendingParam || !!handoff;
-    if (!shouldFulfill || !handoff) {
-      return;
-    }
-
+    const alreadyResolved = loadResolvedOrderId(orderId);
+    if (!isPendingParam && !handoff && !alreadyResolved) return;
     if (fulfillStartedRef.current) return;
     fulfillStartedRef.current = true;
 
@@ -202,37 +215,58 @@ export default function OrderStatusPage({
     setCreateError(null);
 
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), ORDER_CREATE_TIMEOUT_MS);
     let cancelled = false;
+
+    async function adoptRealId(realId: string) {
+      clearPendingOrderHandoff(orderId);
+      clearResolvedOrderId(orderId);
+      setResolvedOrderId(realId);
+      const data = await fetchOrderById(realId);
+      if (cancelled) return;
+      if (data) setOrder(data);
+      setAwaitingOrder(false);
+      setLoading(false);
+      window.location.replace(`/order/${params.slug}/status?orderId=${realId}`);
+    }
 
     void (async () => {
       try {
-        const { orderId: realId } = await fulfillPendingOrderHandoff(handoff, {
+        // Prefer an id the cart already created (avoids double insert).
+        let realId = loadResolvedOrderId(orderId);
+        if (!realId) {
+          const waitUntil = Date.now() + ORDER_CREATE_TIMEOUT_MS;
+          while (!realId && Date.now() < waitUntil) {
+            if (cancelled) return;
+            await new Promise((r) => window.setTimeout(r, 400));
+            realId = loadResolvedOrderId(orderId);
+          }
+        }
+
+        if (realId) {
+          await adoptRealId(realId);
+          return;
+        }
+
+        const activeHandoff = loadPendingOrderHandoff(orderId);
+        if (!activeHandoff) {
+          throw new Error(ORDER_NOT_FOUND_ERROR);
+        }
+
+        // Fallback: cart create failed / never finished — create from handoff once.
+        const created = await fulfillPendingOrderHandoff(activeHandoff, {
           signal: controller.signal,
         });
         if (cancelled) return;
-        clearPendingOrderHandoff(orderId);
-        setResolvedOrderId(realId);
-        const data = await fetchOrderById(realId);
-        if (cancelled) return;
-        if (data) setOrder(data);
-        setAwaitingOrder(false);
-        setLoading(false);
-        router.replace(`/order/${params.slug}/status?orderId=${realId}`);
+        saveResolvedOrderId(orderId, created.orderId);
+        await adoptRealId(created.orderId);
       } catch (err) {
         if (cancelled) return;
-        // Keep handoff so "Isku day mar kale" can retry create.
         const message =
-          err instanceof Error && err.name === "AbortError"
-            ? ORDER_NOT_FOUND_ERROR
-            : err instanceof Error
-              ? err.message
-              : ORDER_NOT_FOUND_ERROR;
+          err instanceof Error ? err.message : ORDER_NOT_FOUND_ERROR;
         setCreateError(message);
         setAwaitingOrder(false);
         setLoading(false);
-      } finally {
-        window.clearTimeout(timeout);
+        setShowRetry(true);
       }
     })();
 
@@ -240,24 +274,28 @@ export default function OrderStatusPage({
       cancelled = true;
       fulfillStartedRef.current = false;
       controller.abort();
-      window.clearTimeout(timeout);
     };
-  }, [orderId, isPendingParam, params.slug, router, fetchOrderById, retryNonce]);
+  }, [orderId, isPendingParam, params.slug, fetchOrderById, retryNonce]);
 
-  // Normal / poll path when not fulfilling a handoff.
+  // Normal lookup / poll when not on the pending-handoff path.
   useEffect(() => {
     if (!orderId) return;
-    if (loadPendingOrderHandoff(orderId)) return;
+    if (isPendingParam || loadPendingOrderHandoff(orderId) || loadResolvedOrderId(orderId)) {
+      return;
+    }
 
     let cancelled = false;
     let interval: number | undefined;
-    const startedAt = Date.now();
+    let found = false;
+
+    setAwaitingOrder(true);
+    setLoading(false);
 
     async function lookup() {
       const data = await fetchOrderById(orderId);
       if (cancelled) return false;
-
       if (data) {
+        found = true;
         setOrder(data);
         setAwaitingOrder(false);
         setLoading(false);
@@ -267,36 +305,32 @@ export default function OrderStatusPage({
       return false;
     }
 
-    setAwaitingOrder(true);
-    setLoading(false);
-
     void (async () => {
-      const found = await lookup();
-      if (cancelled || found) return;
+      if (await lookup()) return;
+      if (cancelled) return;
 
       interval = window.setInterval(async () => {
         if (cancelled) return;
-        const foundNow = await lookup();
-        if (foundNow) {
+        if (await lookup()) {
           if (interval !== undefined) window.clearInterval(interval);
-          return;
-        }
-        if (Date.now() - startedAt >= ORDER_CREATE_TIMEOUT_MS) {
-          if (interval !== undefined) window.clearInterval(interval);
-          if (!cancelled) {
-            setCreateError(ORDER_NOT_FOUND_ERROR);
-            setAwaitingOrder(false);
-            setLoading(false);
-          }
         }
       }, ORDER_POLL_INTERVAL_MS);
     })();
 
+    const failTimer = window.setTimeout(() => {
+      if (cancelled || found) return;
+      setCreateError(ORDER_NOT_FOUND_ERROR);
+      setAwaitingOrder(false);
+      setShowRetry(true);
+      if (interval !== undefined) window.clearInterval(interval);
+    }, ORDER_CREATE_TIMEOUT_MS);
+
     return () => {
       cancelled = true;
       if (interval !== undefined) window.clearInterval(interval);
+      window.clearTimeout(failTimer);
     };
-  }, [orderId, fetchOrderById, retryNonce]);
+  }, [orderId, isPendingParam, fetchOrderById, retryNonce]);
 
   useEffect(() => {
     const pendingInQueue = isOrderPendingSync(resolvedOrderId);
@@ -349,6 +383,7 @@ export default function OrderStatusPage({
   function handleCreateRetry() {
     fulfillStartedRef.current = false;
     setCreateError(null);
+    setShowRetry(false);
     setRetryNonce((n) => n + 1);
   }
 
@@ -384,15 +419,9 @@ export default function OrderStatusPage({
                   ? "Waiting for connection to sync your order..."
                   : "Halaalabkaaga waa la diyaarinayaa..."
               }
-              submessage={
-                createError
-                  ? undefined
-                  : waitingForSync || !isOnline
-                    ? undefined
-                    : "Fadlan sug…"
-              }
+              submessage={createError ? undefined : "Fadlan sug…"}
               error={createError}
-              onRetry={createError ? handleCreateRetry : undefined}
+              onRetry={showRetry || createError ? handleCreateRetry : undefined}
             />
           </div>
         </OrderBrandProvider>
@@ -410,7 +439,11 @@ export default function OrderStatusPage({
           accentColor={branding.customerAccentColor}
           fullHeight={false}
         >
-          <OrderPreparingScreen message="Halaalabkaaga waa la diyaarinayaa..." submessage="Fadlan sug…" />
+          <OrderPreparingScreen
+            message="Halaalabkaaga waa la diyaarinayaa..."
+            submessage="Fadlan sug…"
+            onRetry={showRetry ? handleCreateRetry : undefined}
+          />
         </OrderBrandProvider>
         <PoweredByHilaac className="shrink-0 pb-2" />
       </div>

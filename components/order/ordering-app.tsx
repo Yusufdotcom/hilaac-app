@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { AddOn, Category, MenuItem, OrderType, RestaurantTable } from "@/types/database";
 import type { CartItem } from "@/lib/order/cart-types";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
@@ -46,7 +45,6 @@ export function OrderingApp({
   addOns: AddOn[];
   tables: RestaurantTable[];
 }) {
-  const router = useRouter();
   const [step, setStep] = useState<Step>("landing");
   const [orderType, setOrderType] = useState<OrderType>("dine-in");
   const [tableNumber, setTableNumber] = useState("");
@@ -100,10 +98,10 @@ export function OrderingApp({
     setCart((prev) => prev.filter((i) => i.cartId !== cartId));
   }
 
-  function handleOrderPlaced(orderId: string) {
+  function handleOrderPlaced(_orderId: string) {
+    // Navigation is owned by CartSheet via window.location.href after create succeeds.
     setCart([]);
     setCartOpen(false);
-    router.push(`/order/${restaurant.slug}/status?orderId=${orderId}`);
   }
 
   function handleUssdPaymentStarted(payload: {

@@ -29,22 +29,19 @@ export function customerStatusWorkflowMessage(order: {
     return "Receipt ka waxa ku keenaya waiter ka. Mahadsanid!";
   }
 
-  if (order.billing_model === "pay_after") {
-    return "Your meal is being prepared. Ask the cashier for your bill when you are ready to pay.";
-  }
-
-  if (
-    order.billing_model === "pay_before" ||
-    order.status === "awaiting_payment"
-  ) {
+  if (order.payment_status !== "paid") {
     if (
-      order.payment_status !== "paid" &&
-      (isAwaitingCashierConfirmation(order) ||
-        order.status === "awaiting_payment" ||
-        order.payment_status === "pending")
+      isAwaitingCashierConfirmation(order) ||
+      order.status === "awaiting_payment" ||
+      order.payment_status === "pending" ||
+      order.billing_model === "pay_after"
     ) {
       return "Waiting for cashier to confirm your payment before the kitchen starts cooking.";
     }
+  }
+
+  if (order.billing_model === "pay_after") {
+    return "Your meal is being prepared. Ask the cashier for your bill when you are ready to pay.";
   }
 
   return null;

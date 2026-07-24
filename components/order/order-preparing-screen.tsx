@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
 import {
@@ -10,6 +11,8 @@ import {
 } from "@/lib/brand/restaurant-brand";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+
+export const ORDER_SUBMIT_RETRY_MS = 5_000;
 
 export function OrderPreparingScreen({
   message = "Halaalabkaaga waa la diyaarinayaa...",
@@ -66,7 +69,7 @@ export function OrderPreparingScreen({
               style={{ backgroundColor: accent, color: "#fff" }}
               onClick={onRetry}
             >
-              Isku day mar kale
+              Retry
             </Button>
           )}
         </>
@@ -82,33 +85,70 @@ export function OrderPreparingScreen({
               style={{ backgroundColor: brandColorWithAlpha(accent, 0.18) }}
             />
             <div
-              className="mx-auto h-3 w-4/5 animate-pulse rounded-full"
+              className="mx-auto h-3 w-[80%] animate-pulse rounded-full"
               style={{ backgroundColor: brandColorWithAlpha(accent, 0.12) }}
             />
             <div
-              className="mx-auto h-3 w-3/5 animate-pulse rounded-full"
+              className="mx-auto h-3 w-[60%] animate-pulse rounded-full"
               style={{ backgroundColor: brandColorWithAlpha(accent, 0.08) }}
             />
           </div>
+          {onRetry && (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-6 rounded-xl px-6"
+              onClick={onRetry}
+            >
+              Retry
+            </Button>
+          )}
         </>
       )}
     </div>
   );
 }
 
-/** Full-viewport portal overlay used while leaving checkout. */
+/** Full-viewport overlay used while creating an order before hard navigation. */
 export function OrderSubmittingOverlay({
   open,
   message = "Halaalabkaaga waa la diyaarinayaa...",
+  error,
+  onRetry,
+  showRetryAfterMs = ORDER_SUBMIT_RETRY_MS,
 }: {
   open: boolean;
   message?: string;
+  error?: string | null;
+  onRetry?: () => void;
+  showRetryAfterMs?: number;
 }) {
+  const [showRetry, setShowRetry] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setShowRetry(false);
+      return;
+    }
+    if (error) {
+      setShowRetry(true);
+      return;
+    }
+    setShowRetry(false);
+    const timer = window.setTimeout(() => setShowRetry(true), showRetryAfterMs);
+    return () => window.clearTimeout(timer);
+  }, [open, error, showRetryAfterMs]);
+
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[300] flex flex-col bg-white/95 backdrop-blur-sm">
-      <OrderPreparingScreen message={message} submessage="Fadlan sug…" />
+      <OrderPreparingScreen
+        message={message}
+        submessage={error ? undefined : "Fadlan sug…"}
+        error={error}
+        onRetry={showRetry || error ? onRetry : undefined}
+      />
     </div>
   );
 }
