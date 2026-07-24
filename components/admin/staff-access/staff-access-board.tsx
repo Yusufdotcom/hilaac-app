@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { QRCodeCanvas } from "qrcode.react";
 import {
   ChefHat,
@@ -22,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 type StaffDashboard = {
   id: string;
@@ -47,16 +49,24 @@ function StaffDashboardCard({
   const Icon = dashboard.icon;
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
+    <Link
+      href={dashboard.path}
+      className={cn(
+        "group flex flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm",
+        "transition-all duration-200 hover:scale-[1.02] hover:shadow-lg",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A373] focus-visible:ring-offset-2"
+      )}
+    >
       <div className="bg-[#0F172A] px-6 py-8">
         <div
-          className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
+          className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-105"
           style={{ backgroundColor: brandAccent }}
         >
           <Icon className="h-8 w-8 text-white" aria-hidden="true" />
         </div>
         <h2 className="text-2xl font-bold text-white">{dashboard.title}</h2>
         <p className="mt-2 text-sm leading-relaxed text-[#94A3B8]">{dashboard.description}</p>
+        <p className="mt-3 text-xs font-medium text-white/60">Click to open dashboard →</p>
       </div>
 
       <div className="flex flex-1 flex-col gap-4 p-6">
@@ -66,7 +76,11 @@ function StaffDashboardCard({
         <div className="mt-auto grid gap-3 sm:grid-cols-2">
           <BrandButton
             type="button"
-            onClick={onCopyLink}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onCopyLink();
+            }}
             className="h-14 rounded-xl text-base font-semibold"
           >
             <Copy className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -75,7 +89,11 @@ function StaffDashboardCard({
           <Button
             type="button"
             variant="outline"
-            onClick={onShowQr}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onShowQr();
+            }}
             className="h-14 rounded-xl border-[#0F172A] text-base font-semibold text-[#0F172A] hover:bg-[#F8FAFC]"
           >
             <QrCode className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -84,7 +102,7 @@ function StaffDashboardCard({
         </div>
         <p className="text-center text-xs text-[#94A3B8]">{fullUrl}</p>
       </div>
-    </article>
+    </Link>
   );
 }
 
@@ -166,8 +184,7 @@ export function StaffAccessBoard({
         </p>
         <h1 className="mt-2 text-3xl font-bold text-white">Staff Access</h1>
         <p className="mt-2 max-w-2xl text-[#94A3B8]">
-          Share dedicated dashboard links with your kitchen, waiters, and cashier. Each link opens
-          the right view for that role — bookmark on tablets or scan the QR code.
+          Open a dashboard with one click, or share the link / QR code for tablet setup.
         </p>
       </header>
 

@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
-  LayoutGrid,
   Utensils,
   Table,
   ListOrdered,
@@ -35,7 +34,6 @@ import type { OwnerBranch } from "@/lib/admin/owner-branches";
 
 const NAV_DEFS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: (s: string) => `/admin/${s}/dashboard` },
-  { key: "staff-hub", label: "Staff Hub", icon: LayoutGrid, href: (s: string) => `/staff/${s}` },
   { key: "menu", label: "Menu", icon: Utensils, href: (s: string) => `/admin/${s}/menu` },
   { key: "tables", label: "Tables", icon: Table, href: (s: string) => `/admin/${s}/tables` },
   { key: "orders", label: "Orders", icon: ListOrdered, href: (s: string) => `/admin/${s}/orders` },
