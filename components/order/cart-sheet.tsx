@@ -294,9 +294,21 @@ export function CartSheet({
     return true;
   }
 
+  function phoneDigits(value: string) {
+    return value.replace(/\D/g, "");
+  }
+
+  function isValidPhone(value: string) {
+    return phoneDigits(value).length >= 10;
+  }
+
   async function createOrder(method?: "evc" | "edahab") {
     if (cart.length === 0) {
       toast.error("Your cart is empty");
+      return null;
+    }
+    if (!isValidPhone(phone)) {
+      toast.error("Fadlan geli lambarka taleefanka (ugu yaraan 10 digit)");
       return null;
     }
     if (orderType === "dine-in" && !tableNumber) {
@@ -329,6 +341,10 @@ export function CartSheet({
   async function handlePlaceOrderWithoutPayment() {
     if (hasUnavailableItems) {
       toast.error("Ka saar alaabta aan la heli karin si aad u sii wadato.");
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      toast.error("Fadlan geli lambarka taleefanka (ugu yaraan 10 digit)");
       return;
     }
 
@@ -370,6 +386,10 @@ export function CartSheet({
   async function handleInitiatePayment(method: "evc" | "edahab") {
     if (hasUnavailableItems) {
       toast.error("Ka saar alaabta aan la heli karin si aad u sii wadato.");
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      toast.error("Fadlan geli lambarka taleefanka (ugu yaraan 10 digit)");
       return;
     }
     if (orderType === "dine-in" && !tableNumber) {
@@ -426,7 +446,8 @@ export function CartSheet({
     await finalizePayBeforeOrder(method);
   }
 
-  const paymentDisabled = !!placing || cart.length === 0 || hasUnavailableItems;
+  const phoneValid = isValidPhone(phone);
+  const paymentDisabled = !!placing || cart.length === 0 || hasUnavailableItems || !phoneValid;
 
   function goToStatusPage(orderId: string) {
     onOpenChange(false);
@@ -515,7 +536,7 @@ export function CartSheet({
                 <div className="space-y-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="cart-phone" className="text-sm font-medium text-gray-700">
-                      Lambarka taleefanka (ikhtiyaari)
+                      Lambarka taleefanka <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
                       <Phone
@@ -524,12 +545,19 @@ export function CartSheet({
                       />
                       <Input
                         id="cart-phone"
-                        placeholder="061..."
+                        type="tel"
+                        inputMode="tel"
+                        required
+                        placeholder="0612345678"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         className="rounded-lg border-gray-200 bg-gray-50 pl-10 focus-visible:bg-white"
+                        aria-invalid={phone.length > 0 && !phoneValid}
                       />
                     </div>
+                    {phone.length > 0 && !phoneValid && (
+                      <p className="text-xs text-red-600">Geli ugu yaraan 10 digit.</p>
+                    )}
                   </div>
 
                   {showTableInput && (
@@ -594,7 +622,7 @@ export function CartSheet({
                     </p>
                     <button
                       type="button"
-                      disabled={!!placing || cart.length === 0 || hasUnavailableItems}
+                      disabled={paymentDisabled}
                       onClick={handlePlaceOrderWithoutPayment}
                       className={cn(
                         "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold text-white",

@@ -24,6 +24,7 @@ export interface Restaurant {
   logo_url: string | null;
   address: string | null;
   phone: string | null;
+  takeaway_hotline?: string | null;
   payment_mode: PaymentMode;
   subscription_tier: SubscriptionTier;
   subscription_status: SubscriptionStatus;

@@ -119,34 +119,39 @@ export function OrderingApp({
   return (
     <>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-muted/20">
-        {step === "landing" && (
-          <LandingStep restaurant={restaurant} onSelect={handleSelectOrderType} />
-        )}
+        <div
+          key={step}
+          className="flex min-h-0 flex-1 flex-col transition-all duration-300 ease-out animate-in fade-in slide-in-from-right-4"
+        >
+          {step === "landing" && (
+            <LandingStep restaurant={restaurant} onSelect={handleSelectOrderType} />
+          )}
 
-        {step === "table" && (
-          <TableStep
-            restaurant={restaurant}
-            tables={tables}
-            onConfirm={handleTableConfirmed}
-            onBack={() => setStep("landing")}
-          />
-        )}
+          {step === "table" && (
+            <TableStep
+              restaurant={restaurant}
+              tables={tables}
+              onConfirm={handleTableConfirmed}
+              onBack={() => setStep("landing")}
+            />
+          )}
 
-        {step === "menu" && (
-          <MenuStep
-            key={`${orderType}-${tableNumber}`}
-            restaurant={restaurant}
-            categories={categories}
-            menuItems={liveMenuItems}
-            topPicks={topPicks}
-            orderType={orderType}
-            tableNumber={tableNumber}
-            cartCount={cart.reduce((sum, i) => sum + i.quantity, 0)}
-            onBack={() => setStep(orderType === "dine-in" ? "table" : "landing")}
-            onSelectItem={setCustomizeItem}
-            onOpenCart={() => setCartOpen(true)}
-          />
-        )}
+          {step === "menu" && (
+            <MenuStep
+              key={`${orderType}-${tableNumber}`}
+              restaurant={restaurant}
+              categories={categories}
+              menuItems={liveMenuItems}
+              topPicks={topPicks}
+              orderType={orderType}
+              tableNumber={tableNumber}
+              cartCount={cart.reduce((sum, i) => sum + i.quantity, 0)}
+              onBack={() => setStep(orderType === "dine-in" ? "table" : "landing")}
+              onSelectItem={setCustomizeItem}
+              onOpenCart={() => setCartOpen(true)}
+            />
+          )}
+        </div>
 
         {isFullScreenStep && <PoweredByHilaac className="shrink-0 pb-4 pt-2" />}
       </div>

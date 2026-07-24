@@ -58,6 +58,7 @@ export async function PATCH(req: NextRequest) {
     "name",
     "address",
     "phone",
+    "takeaway_hotline",
     "logo_url",
     "dine_in_enabled",
     "takeaway_enabled",

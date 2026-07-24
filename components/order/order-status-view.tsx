@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { Check, CheckCircle2, Clock, PartyPopper, Receipt } from "lucide-react";
+import { Check, CheckCircle2, Clock, PartyPopper, Phone, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WaitingRunnerGame } from "@/components/order/waiting-runner-game";
@@ -120,11 +120,13 @@ function HorizontalStatusStepper({
 export function OrderStatusView({
   orderId,
   restaurantName,
+  takeawayHotline,
   newOrderHref,
   className,
 }: {
   orderId: string;
   restaurantName: string;
+  takeawayHotline?: string | null;
   newOrderHref: string;
   className?: string;
 }) {
@@ -232,6 +234,24 @@ export function OrderStatusView({
         </h1>
         <p className="text-[11px] leading-snug text-gray-500">{restaurantName}</p>
       </div>
+
+      {isTakeaway && takeawayHotline && (
+        <a
+          href={`tel:${takeawayHotline.replace(/\s+/g, "")}`}
+          className="mt-2 flex shrink-0 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-center text-xs font-semibold transition-all duration-200 hover:opacity-90"
+          style={{
+            borderColor: brandColorWithAlpha(accent, 0.35),
+            backgroundColor: brandColorWithAlpha(accent, customBrandingActive ? 0.12 : 0.08),
+            color: accent,
+          }}
+        >
+          <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>
+            For takeaway tracking, call:{" "}
+            <span className="font-bold text-gray-900">{takeawayHotline}</span>
+          </span>
+        </a>
+      )}
 
       {!isFinal && (
         <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">

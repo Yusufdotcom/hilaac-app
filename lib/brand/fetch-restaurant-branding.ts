@@ -11,6 +11,7 @@ export type RestaurantBrandingSnapshot = {
   custom_branding_enabled: boolean;
   /** Resolved color for customer UI — brand_color when custom branding is on, else gold. */
   customerAccentColor: string;
+  takeaway_hotline: string | null;
 };
 
 /**
@@ -23,7 +24,7 @@ export async function fetchRestaurantBrandingBySlug(
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("restaurants")
-    .select("brand_color, custom_branding_enabled")
+    .select("brand_color, custom_branding_enabled, takeaway_hotline")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -36,6 +37,7 @@ export async function fetchRestaurantBrandingBySlug(
     brand_color: data.brand_color,
     custom_branding_enabled: customBrandingEnabled,
     customerAccentColor: resolveCustomerAccent(branding),
+    takeaway_hotline: data.takeaway_hotline ?? null,
   };
 }
 

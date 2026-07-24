@@ -43,6 +43,7 @@ export default function OrderStatusPage({
 
   const [order, setOrder] = useState<TrackedOrderRow | null>(null);
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
+  const [takeawayHotline, setTakeawayHotline] = useState<string | null>(null);
   const [branding, setBranding] = useState<{
     brand_color?: string | null;
     custom_branding_enabled?: boolean;
@@ -117,7 +118,7 @@ export default function OrderStatusPage({
       const [restaurantRes, brandingRes] = await Promise.all([
         supabase
           .from("restaurants")
-          .select("name, is_active")
+          .select("name, is_active, takeaway_hotline")
           .eq("slug", params.slug)
           .maybeSingle(),
         fetch(`/api/restaurants/${params.slug}/branding`, { cache: "no-store" }),
@@ -127,10 +128,14 @@ export default function OrderStatusPage({
       if (!data?.is_active) return;
 
       setRestaurantName(data.name);
+      setTakeawayHotline(data.takeaway_hotline ?? null);
 
       if (brandingRes.ok) {
         const brandingData = await brandingRes.json();
         setBranding(brandingData);
+        if (brandingData.takeaway_hotline) {
+          setTakeawayHotline(brandingData.takeaway_hotline);
+        }
       }
     }
 
@@ -252,6 +257,7 @@ export default function OrderStatusPage({
           <OrderStatusView
             orderId={orderId}
             restaurantName={restaurantName}
+            takeawayHotline={takeawayHotline}
             newOrderHref={`/order/${params.slug}`}
           />
         </div>

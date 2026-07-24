@@ -58,6 +58,7 @@ create table if not exists public.restaurants (
   logo_url text,
   address text,
   phone text,
+  takeaway_hotline text,
   payment_mode public.payment_mode not null default 'ussd',
   subscription_tier public.subscription_tier not null default 'trial',
   subscription_status public.subscription_status not null default 'active',
@@ -393,7 +394,8 @@ create policy "owners can update own restaurants" on public.restaurants
 
 revoke all on public.restaurants from anon, authenticated;
 grant select (
-  id, name, slug, previous_slug, branch_name, owner_id, logo_url, address, phone, payment_mode, subscription_tier,
+  id, name, slug, previous_slug, branch_name, owner_id, logo_url, address, phone, takeaway_hotline,
+  payment_mode, subscription_tier,
   subscription_status, subscription_end_date, evc_ussd_code, edahab_ussd_code,
   dine_in_enabled, takeaway_enabled, brand_color, custom_branding_enabled,
   is_active, is_demo, demo_expires_at, created_at

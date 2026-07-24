@@ -25,6 +25,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     name: restaurant.name,
     address: restaurant.address ?? "",
     phone: restaurant.phone ?? "",
+    takeaway_hotline: restaurant.takeaway_hotline ?? "",
     logo_url: restaurant.logo_url ?? "",
   });
   const [brandColor, setBrandColor] = useState(
@@ -128,6 +129,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
         name: restaurantName,
         address: general.address.trim() || null,
         phone: general.phone.trim() || null,
+        takeaway_hotline: general.takeaway_hotline.trim() || null,
         logo_url: general.logo_url.trim() || null,
       };
 
@@ -346,6 +348,19 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
               <Input id="address" value={general.address} onChange={(e) => setGeneral({ ...general, address: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="takeaway_hotline">Takeaway Hotline</Label>
+              <Input
+                id="takeaway_hotline"
+                type="tel"
+                placeholder="e.g. 0612345678"
+                value={general.takeaway_hotline}
+                onChange={(e) => setGeneral({ ...general, takeaway_hotline: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Shown on the customer status page for takeaway orders so they can call for tracking.
+              </p>
             </div>
 
             <BrandButton type="submit" disabled={savingGeneral}>

@@ -217,8 +217,12 @@ export function CashierBoard({
                     {formatOrderLabel(order, { prefix: false })}
                   </td>
                   <td className="px-4 py-3 font-medium text-[#0F172A]">{formatLocation(order)}</td>
-                  <td className="px-4 py-3">
-                    <OrderCustomerPhone phone={order.customer_phone} variant="compact" />
+                  <td className="px-4 py-3 font-medium text-[#0F172A]">
+                    {order.customer_phone ? (
+                      <OrderCustomerPhone phone={order.customer_phone} variant="compact" className="text-sm font-semibold text-[#0F172A]" />
+                    ) : (
+                      <span className="text-sm text-[#94A3B8]">—</span>
+                    )}
                   </td>
                   <td className="max-w-xs px-4 py-3 text-[#64748B]">
                     <p className="line-clamp-2">{formatItems(order)}</p>
