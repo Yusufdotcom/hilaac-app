@@ -507,11 +507,9 @@ create policy "managers can manage waiters" on public.waiters
   );
 
 -- ---- orders --------------------------------------------------------------------
--- Customers never talk to this table directly for writes (no anon INSERT
--- policies): order creation goes through POST /api/orders. For live status
--- tracking, anon may SELECT recent orders via column grants (status fields
--- only — same surface as GET /api/orders/[id]/track) so Realtime UPDATE
--- events can reach the customer confirmation screen.
+-- Prefer POST /api/orders (service role) for creation. Anon INSERT is also
+-- allowed for guest / Incognito clients. Live status tracking uses column
+-- grants (status fields only) so Realtime UPDATE events reach customers.
 drop policy if exists "public can create orders" on public.orders;
 drop policy if exists "public can view order by id" on public.orders;
 
@@ -527,6 +525,14 @@ grant select (
   id, order_number, status, payment_status, order_type, billing_model,
   customer_confirmed_at, total, created_at, updated_at
 ) on public.orders to anon;
+grant insert on public.orders to anon;
+
+drop policy if exists "anon_can_insert_orders" on public.orders;
+create policy "anon_can_insert_orders"
+  on public.orders
+  for insert
+  to anon
+  with check (auth.role() = 'anon');
 
 drop policy if exists "customers can confirm payment on recent orders" on public.orders;
 
