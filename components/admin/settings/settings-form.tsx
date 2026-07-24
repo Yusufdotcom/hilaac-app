@@ -91,21 +91,89 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
 
   async function handleSaveGeneral(e: React.FormEvent) {
     e.preventDefault();
+
+    const restaurantName = general.name.trim();
+    if (!restaurantName) {
+      toast.error("Restaurant name is required.");
+      return;
+    }
+
     setSavingGeneral(true);
     try {
-      const data = await patchSettings({ ...general, restaurant_id: restaurant.id });
-      toast.success("Restaurant details saved");
+      // 1. Generate the new slug from the new name (e.g. "Baba's Grill" → "baba-s-grill")
+      const baseSlug = restaurantName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
 
-      if (data.slugChanged && data.newSlug && data.newSlug !== restaurant.slug) {
-        toast.message(`URL updated to /admin/${data.newSlug}`);
-        router.replace(`/admin/${data.newSlug}/settings`);
-        router.refresh();
+      if (!baseSlug) {
+        toast.error("Restaurant name must include letters or numbers.");
+        return;
+      }
+
+      // Keep slug unique if another restaurant already owns it
+      let newSlug = baseSlug;
+      for (let attempt = 2; attempt < 50; attempt++) {
+        const { data: clash } = await supabase
+          .from("restaurants")
+          .select("id")
+          .eq("slug", newSlug)
+          .neq("id", restaurant.id)
+          .maybeSingle();
+        if (!clash) break;
+        newSlug = `${baseSlug}-${attempt}`;
+      }
+
+      const payload: Record<string, string | null> = {
+        name: restaurantName,
+        address: general.address.trim() || null,
+        phone: general.phone.trim() || null,
+        logo_url: general.logo_url.trim() || null,
+      };
+
+      // Only rewrite slug (and remember the old one for QR redirects) when it changes
+      if (newSlug !== restaurant.slug) {
+        payload.slug = newSlug;
+        payload.previous_slug = restaurant.slug;
+      }
+
+      // 2. Update the database
+      let { data: updatedRestaurant, error } = await supabase
+        .from("restaurants")
+        .update(payload)
+        .eq("id", restaurant.id)
+        .select("id, name, slug")
+        .single();
+
+      // If previous_slug column is missing on older DBs, retry without it
+      if (error && payload.previous_slug && /previous_slug/i.test(error.message)) {
+        const { previous_slug: _ignored, ...withoutPrevious } = payload;
+        ({ data: updatedRestaurant, error } = await supabase
+          .from("restaurants")
+          .update(withoutPrevious)
+          .eq("id", restaurant.id)
+          .select("id, name, slug")
+          .single());
+      }
+
+      if (error || !updatedRestaurant) {
+        console.error("Supabase error:", error);
+        toast.error(error?.message ?? "Failed to save details. Please try again.");
+        return;
+      }
+
+      toast.success("Restaurant details saved successfully!");
+
+      // 3. Redirect ONLY if the slug actually changed
+      if (updatedRestaurant.slug !== restaurant.slug) {
+        router.push(`/admin/${updatedRestaurant.slug}/settings`);
         return;
       }
 
       router.refresh();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to save details. Please try again.");
     } finally {
       setSavingGeneral(false);
     }
