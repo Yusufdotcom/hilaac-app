@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AddOn, Category, MenuItem, OrderType, RestaurantTable } from "@/types/database";
 import type { CartItem } from "@/lib/order/cart-types";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
+import { ensureGuestId } from "@/lib/order/guest-id";
 import { useRealtimeMenuItems } from "@/lib/hooks/use-realtime-menu-items";
 import { LandingStep } from "@/components/order/landing-step";
 import { TableStep } from "@/components/order/table-step";
@@ -56,6 +57,13 @@ export function OrderingApp({
     code: string;
     createPayloads: CreateOrderApiPayload[];
   } | null>(null);
+  const [guestReady, setGuestReady] = useState(false);
+
+  // Force a guest id on page load (Incognito / new devices) before checkout.
+  useEffect(() => {
+    ensureGuestId();
+    setGuestReady(true);
+  }, []);
 
   const { menuItems: liveMenuItems } = useRealtimeMenuItems(restaurant.id, menuItems);
 
@@ -178,6 +186,7 @@ export function OrderingApp({
         onRemoveItem={handleRemoveCartItem}
         onOrderPlaced={handleOrderPlaced}
         onUssdPaymentStarted={handleUssdPaymentStarted}
+        guestReady={guestReady}
       />
 
       {ussdPayment && (

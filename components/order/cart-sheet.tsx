@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   Loader2,
@@ -38,6 +38,8 @@ import {
   savePendingOrderHandoff,
   saveResolvedOrderId,
 } from "@/lib/order/pending-order-handoff";
+import { ensureGuestId, getGuestId } from "@/lib/order/guest-id";
+import { createClient } from "@/lib/supabase/client";
 import type { OrderType, RestaurantTable } from "@/types/database";
 
 interface MinimalRestaurant {
@@ -213,6 +215,7 @@ export function CartSheet({
   onRemoveItem,
   onOrderPlaced,
   onUssdPaymentStarted,
+  guestReady = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -231,8 +234,11 @@ export function CartSheet({
     code: string;
     createPayloads: CreateOrderApiPayload[];
   }) => void;
+  /** True once the parent menu page has bootstrapped a guest id. */
+  guestReady?: boolean;
 }) {
   const [phone, setPhone] = useState("");
+  const [isReady, setIsReady] = useState(false);
   const [placing, setPlacing] = useState<"evc" | "edahab" | "place" | null>(null);
   const [submittingOverlay, setSubmittingOverlay] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -251,6 +257,36 @@ export function CartSheet({
   const customBrandingActive = brand?.customBrandingActive ?? false;
   const accentStyle = customerAccentTextStyleFromAccent(accent);
   const placeOrderStyle = customerPrimaryButtonStyleFromAccent(accent, customBrandingActive);
+
+  // Wait for a valid auth session OR guest id before enabling Place Order / Ku bixi.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function resolveReady() {
+      const guestId = ensureGuestId();
+
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (data.session?.user || guestId || getGuestId() || guestReady) {
+          setIsReady(true);
+          return;
+        }
+      } catch {
+        // Auth client may fail on first paint in Incognito — guest id is enough.
+      }
+
+      if (!cancelled && (guestId || getGuestId() || guestReady)) {
+        setIsReady(true);
+      }
+    }
+
+    void resolveReady();
+    return () => {
+      cancelled = true;
+    };
+  }, [guestReady]);
 
   const total = useMemo(() => cartTotal(cart), [cart]);
   const billingModel = useMemo(
@@ -596,7 +632,12 @@ export function CartSheet({
 
   const phoneValid = isValidPhone(phone);
   const paymentDisabled =
-    !!placing || submittingOverlay || cart.length === 0 || hasUnavailableItems || !phoneValid;
+    !isReady ||
+    !!placing ||
+    submittingOverlay ||
+    cart.length === 0 ||
+    hasUnavailableItems ||
+    !phoneValid;
 
   return (
     <>
@@ -726,6 +767,13 @@ export function CartSheet({
                   </span>
                 </div>
 
+                {!isReady && (
+                  <p className="flex items-center justify-center gap-2 text-center text-xs text-gray-500">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    Diyaarinta…
+                  </p>
+                )}
+
                 {isPayBefore ? (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Button
@@ -735,7 +783,7 @@ export function CartSheet({
                       onClick={() => handleInitiatePayment("evc")}
                       className="h-12 w-full gap-2 rounded-xl border-0 bg-[#10B981] text-base font-semibold text-white shadow-md shadow-emerald-200/50 transition-all duration-300 hover:bg-[#059669] active:scale-[0.98]"
                     >
-                      {placing === "evc" ? (
+                      {placing === "evc" || !isReady ? (
                         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                       ) : (
                         <Smartphone className="h-5 w-5 shrink-0" aria-hidden="true" />
@@ -750,7 +798,7 @@ export function CartSheet({
                       onClick={() => handleInitiatePayment("edahab")}
                       className="h-12 w-full gap-2 rounded-xl border-0 bg-[#F59E0B] text-base font-semibold text-white shadow-md shadow-amber-200/50 transition-all duration-300 hover:bg-[#D97706] active:scale-[0.98]"
                     >
-                      {placing === "edahab" ? (
+                      {placing === "edahab" || !isReady ? (
                         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                       ) : (
                         <Wallet className="h-5 w-5 shrink-0" aria-hidden="true" />
@@ -774,7 +822,7 @@ export function CartSheet({
                       )}
                       style={placeOrderStyle}
                     >
-                      {placing === "place" ? (
+                      {placing === "place" || !isReady ? (
                         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                       ) : null}
                       Place Order
