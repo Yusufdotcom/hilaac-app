@@ -1,12 +1,27 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2, Minus, Plus, Trash2, ShoppingBasket, Phone, ArrowLeft, Smartphone, Wallet } from "lucide-react";
+import Image from "next/image";
+import {
+  Loader2,
+  Minus,
+  Plus,
+  Trash2,
+  ShoppingBasket,
+  Phone,
+  ArrowLeft,
+  Smartphone,
+  Wallet,
+  UtensilsCrossed,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { OrderPrimaryButton } from "@/components/order/order-primary-button";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
-import { customerAccentTextStyleFromAccent, HILAAC_GOLD } from "@/lib/brand/restaurant-brand";
+import {
+  customerAccentTextStyleFromAccent,
+  customerPrimaryButtonStyleFromAccent,
+  HILAAC_GOLD,
+} from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +46,149 @@ interface MinimalRestaurant {
   brand_color?: string | null;
   custom_branding_enabled?: boolean;
   subscription_tier?: string;
+}
+
+const ORDER_TYPE_LABELS: Record<OrderType, string> = {
+  "dine-in": "Fadhi · Dine-in",
+  takeaway: "Qaadasho · Takeaway",
+};
+
+function CartItemCard({
+  item,
+  isUnavailable,
+  onRemove,
+  onAdjustQuantity,
+}: {
+  item: CartItem;
+  isUnavailable: boolean;
+  onRemove: () => void;
+  onAdjustQuantity: (delta: number) => void;
+}) {
+  return (
+    <article
+      className={cn(
+        "relative rounded-xl border border-gray-100 bg-white p-3 shadow-xl shadow-gray-200/50 transition-all duration-300",
+        isUnavailable && "border-amber-200 bg-amber-50/30"
+      )}
+    >
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+        aria-label={`Remove ${item.menuItem.name}`}
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+
+      <div className="flex gap-3 pr-6">
+        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+          {item.menuItem.image_url ? (
+            <Image
+              src={item.menuItem.image_url}
+              alt={item.menuItem.name}
+              fill
+              className={cn("object-cover", isUnavailable && "grayscale opacity-70")}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-gray-400">
+              <UtensilsCrossed className="h-8 w-8" aria-hidden="true" />
+            </div>
+          )}
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
+          <div>
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="text-lg font-bold leading-tight text-gray-900">{item.menuItem.name}</h3>
+              <span className="shrink-0 text-base font-semibold text-gray-900">
+                {formatCurrency(cartItemTotal(item))}
+              </span>
+            </div>
+
+            {isUnavailable && (
+              <p className="mt-1 text-xs font-medium text-amber-700">
+                Out of stock — remove to continue
+              </p>
+            )}
+
+            {item.selectedAddOns.length > 0 && (
+              <p className="mt-0.5 text-sm text-gray-500">
+                {item.selectedAddOns.map((a) => a.name).join(", ")}
+              </p>
+            )}
+
+            {item.notes && (
+              <p className="mt-0.5 text-xs italic text-gray-400">&ldquo;{item.notes}&rdquo;</p>
+            )}
+          </div>
+
+          <div className="inline-flex w-fit items-center rounded-full border border-gray-200 bg-gray-50 p-0.5">
+            <button
+              type="button"
+              onClick={() => onAdjustQuantity(-1)}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+              aria-label="Decrease quantity"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+            <span className="min-w-[2rem] px-1 text-center text-sm font-semibold text-gray-900">
+              {item.quantity}
+            </span>
+            <button
+              type="button"
+              onClick={() => onAdjustQuantity(1)}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+              aria-label="Increase quantity"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CartSection({
+  title,
+  items,
+  unavailableMenuIds,
+  onRemoveItem,
+  onUpdateItem,
+}: {
+  title: string;
+  items: CartItem[];
+  unavailableMenuIds: Set<string>;
+  onRemoveItem: (cartId: string) => void;
+  onUpdateItem: (cartId: string, updates: Partial<CartItem>) => void;
+}) {
+  if (items.length === 0) return null;
+
+  function adjustQuantity(item: CartItem, delta: number) {
+    const next = item.quantity + delta;
+    if (next <= 0) {
+      onRemoveItem(item.cartId);
+    } else {
+      onUpdateItem(item.cartId, { quantity: next });
+    }
+  }
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-sm font-medium uppercase tracking-widest text-gray-500">{title}</h2>
+      <div className="space-y-3">
+        {items.map((item) => (
+          <CartItemCard
+            key={item.cartId}
+            item={item}
+            isUnavailable={unavailableMenuIds.has(item.menuItem.id)}
+            onRemove={() => onRemoveItem(item.cartId)}
+            onAdjustQuantity={(delta) => adjustQuantity(item, delta)}
+          />
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export function CartSheet({
@@ -72,8 +230,12 @@ export function CartSheet({
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentDialCode, setPaymentDialCode] = useState("");
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+
   const brand = useOrderBrandOptional();
-  const accentStyle = customerAccentTextStyleFromAccent(brand?.accent ?? HILAAC_GOLD);
+  const accent = brand?.accent ?? HILAAC_GOLD;
+  const customBrandingActive = brand?.customBrandingActive ?? false;
+  const accentStyle = customerAccentTextStyleFromAccent(accent);
+  const placeOrderStyle = customerPrimaryButtonStyleFromAccent(accent, customBrandingActive);
 
   const total = useMemo(() => cartTotal(cart), [cart]);
   const billingModel = useMemo(
@@ -82,19 +244,15 @@ export function CartSheet({
   );
   const isPayBefore = billingModel === "pay_before";
 
+  const dineInItems = useMemo(() => cart.filter((i) => i.orderType === "dine-in"), [cart]);
+  const takeawayItems = useMemo(() => cart.filter((i) => i.orderType === "takeaway"), [cart]);
+  const showGroupedSections = dineInItems.length > 0 && takeawayItems.length > 0;
+  const showTableInput = orderType === "dine-in" || dineInItems.length > 0;
+
   const hasUnavailableItems = useMemo(
     () => cart.some((item) => unavailableMenuIds.has(item.menuItem.id)),
     [cart, unavailableMenuIds]
   );
-
-  function adjustQuantity(item: CartItem, delta: number) {
-    const next = item.quantity + delta;
-    if (next <= 0) {
-      onRemoveItem(item.cartId);
-    } else {
-      onUpdateItem(item.cartId, { quantity: next });
-    }
-  }
 
   function ussdDialString(code: string, amount: number) {
     const trimmed = code.endsWith("#") ? code.slice(0, -1) : code;
@@ -270,206 +428,200 @@ export function CartSheet({
 
   return (
     <>
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="bottom"
-        className="mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col gap-0 overflow-hidden rounded-none p-0 sm:rounded-t-2xl"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <SheetHeader className="relative shrink-0 space-y-0 border-b px-6 pb-4 pt-5 pr-12 text-left">
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="absolute left-4 top-5 flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Back to menu"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <SheetTitle className="flex items-center justify-center gap-2.5 pl-6">
-            <ShoppingBasket className="h-5 w-5" style={accentStyle} aria-hidden="true" />
-            Saladda
-          </SheetTitle>
-        </SheetHeader>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="bottom"
+          overlayClassName="bg-black/40 backdrop-blur-sm"
+          className={cn(
+            "mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col gap-0 overflow-hidden",
+            "rounded-none border-0 bg-gray-50 p-0 shadow-xl shadow-gray-200/50",
+            "transition-all duration-300 sm:rounded-t-2xl"
+          )}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          {/* Header */}
+          <SheetHeader className="relative shrink-0 space-y-0 border-b border-gray-100 bg-white px-5 pb-4 pt-5 pr-12 text-left">
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="absolute left-4 top-5 flex items-center gap-1.5 rounded-lg px-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
+              aria-label="Back to menu"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <SheetTitle className="flex items-center justify-center gap-2.5 pl-6 text-xl font-bold text-gray-900">
+              <ShoppingBasket className="h-5 w-5" style={accentStyle} aria-hidden="true" />
+              Saladda
+            </SheetTitle>
+          </SheetHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 overflow-y-auto px-6 pb-4">
-            {cart.length === 0 ? (
-              <p className="py-12 text-center text-muted-foreground">Salaadu waxba kuma jiran.</p>
-            ) : (
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  {cart.map((item) => {
-                    const isUnavailable = unavailableMenuIds.has(item.menuItem.id);
-                    return (
-                      <div
-                        key={item.cartId}
-                        className={cn(
-                          "rounded-xl border p-3",
-                          isUnavailable && "border-amber-300 bg-amber-50/50"
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold">{item.menuItem.name}</p>
-                            {isUnavailable && (
-                              <p className="mt-1 text-xs font-medium text-amber-800">
-                                This item is out of stock. Please remove it from your cart to continue.
-                              </p>
-                            )}
-                            {item.selectedAddOns.length > 0 && (
-                              <p className="text-xs text-muted-foreground">
-                                + {item.selectedAddOns.map((a) => a.name).join(", ")}
-                              </p>
-                            )}
-                            {item.notes && (
-                              <p className="text-xs italic text-muted-foreground">
-                                &ldquo;{item.notes}&rdquo;
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <span className="font-semibold">{formatCurrency(cartItemTotal(item))}</span>
-                            <Button variant="ghost" size="icon" onClick={() => onRemoveItem(item.cartId)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="mt-2 flex items-center gap-3">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => adjustQuantity(item, -1)}
-                          >
-                            <Minus className="h-3.5 w-3.5" />
-                          </Button>
-                          <span className="w-5 text-center text-sm font-medium">{item.quantity}</span>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => adjustQuantity(item, 1)}
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cart-phone" className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    Lambarka taleefanka (ikhtiyaari)
-                  </Label>
-                  <div className="relative">
-                    <Phone
-                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                    <Input
-                      id="cart-phone"
-                      placeholder="061..."
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="pl-10"
-                    />
+          <div className="flex min-h-0 flex-1 flex-col">
+            {/* Scrollable items */}
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              {cart.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-xl shadow-gray-200/50">
+                    <ShoppingBasket className="h-8 w-8 text-gray-300" aria-hidden="true" />
                   </div>
+                  <p className="text-gray-500">Salaadu waxba kuma jiran.</p>
+                </div>
+              ) : showGroupedSections ? (
+                <div className="space-y-6">
+                  <CartSection
+                    title={ORDER_TYPE_LABELS["dine-in"]}
+                    items={dineInItems}
+                    unavailableMenuIds={unavailableMenuIds}
+                    onRemoveItem={onRemoveItem}
+                    onUpdateItem={onUpdateItem}
+                  />
+                  <CartSection
+                    title={ORDER_TYPE_LABELS.takeaway}
+                    items={takeawayItems}
+                    unavailableMenuIds={unavailableMenuIds}
+                    onRemoveItem={onRemoveItem}
+                    onUpdateItem={onUpdateItem}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {cart.map((item) => (
+                    <CartItemCard
+                      key={item.cartId}
+                      item={item}
+                      isUnavailable={unavailableMenuIds.has(item.menuItem.id)}
+                      onRemove={() => onRemoveItem(item.cartId)}
+                      onAdjustQuantity={(delta) => {
+                        const next = item.quantity + delta;
+                        if (next <= 0) onRemoveItem(item.cartId);
+                        else onUpdateItem(item.cartId, { quantity: next });
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Checkout footer */}
+            {cart.length > 0 && (
+              <div className="shrink-0 space-y-4 rounded-t-2xl border-t border-gray-100 bg-white px-5 py-5 shadow-[0_-8px_32px_rgba(0,0,0,0.06)]">
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="cart-phone" className="text-sm font-medium text-gray-700">
+                      Lambarka taleefanka (ikhtiyaari)
+                    </Label>
+                    <div className="relative">
+                      <Phone
+                        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                        aria-hidden="true"
+                      />
+                      <Input
+                        id="cart-phone"
+                        placeholder="061..."
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="rounded-lg border-gray-200 bg-gray-50 pl-10 focus-visible:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {showTableInput && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cart-table" className="text-sm font-medium text-gray-700">
+                        Lambarka miiska
+                      </Label>
+                      <Input
+                        id="cart-table"
+                        placeholder="e.g. 12"
+                        value={tableNumber}
+                        onChange={(e) => onTableNumberChange(e.target.value)}
+                        className="rounded-lg border-gray-200 bg-gray-50 focus-visible:bg-white"
+                      />
+                    </div>
+                  )}
                 </div>
 
-                {orderType === "dine-in" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="cart-table">Lambarka miiska</Label>
-                    <Input
-                      id="cart-table"
-                      placeholder="e.g. 12"
-                      value={tableNumber}
-                      onChange={(e) => onTableNumberChange(e.target.value)}
-                    />
+                <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                  <span className="text-base font-medium text-gray-600">Wadarta</span>
+                  <span className="text-2xl font-bold" style={accentStyle}>
+                    {formatCurrency(total)}
+                  </span>
+                </div>
+
+                {isPayBefore ? (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Button
+                      type="button"
+                      size="lg"
+                      disabled={paymentDisabled}
+                      onClick={() => handleInitiatePayment("evc")}
+                      className="h-12 w-full gap-2 rounded-xl border-0 bg-[#10B981] text-base font-semibold text-white shadow-md shadow-emerald-200/50 transition-all duration-300 hover:bg-[#059669] active:scale-[0.98]"
+                    >
+                      {placing === "evc" ? (
+                        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Smartphone className="h-5 w-5 shrink-0" aria-hidden="true" />
+                      )}
+                      Ku bixi EVC
+                    </Button>
+
+                    <Button
+                      type="button"
+                      size="lg"
+                      disabled={paymentDisabled}
+                      onClick={() => handleInitiatePayment("edahab")}
+                      className="h-12 w-full gap-2 rounded-xl border-0 bg-[#F59E0B] text-base font-semibold text-white shadow-md shadow-amber-200/50 transition-all duration-300 hover:bg-[#D97706] active:scale-[0.98]"
+                    >
+                      {placing === "edahab" ? (
+                        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Wallet className="h-5 w-5 shrink-0" aria-hidden="true" />
+                      )}
+                      Ku bixi eDahab
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="rounded-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-center text-sm text-gray-600">
+                      {payAfterMessage(orderType)}
+                    </p>
+                    <button
+                      type="button"
+                      disabled={!!placing || cart.length === 0 || hasUnavailableItems}
+                      onClick={handlePlaceOrderWithoutPayment}
+                      className={cn(
+                        "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold text-white",
+                        "shadow-lg transition-all duration-300 hover:opacity-90 active:scale-[0.98]",
+                        "disabled:cursor-not-allowed disabled:opacity-50"
+                      )}
+                      style={placeOrderStyle}
+                    >
+                      {placing === "place" ? (
+                        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                      ) : null}
+                      Place Order
+                    </button>
                   </div>
                 )}
               </div>
             )}
           </div>
+        </SheetContent>
+      </Sheet>
 
-          <div className="sticky bottom-0 shrink-0 space-y-3 border-t bg-background px-6 py-4">
-            <div className="flex items-center justify-between text-lg font-bold">
-              <span>Wadarta</span>
-              <span>{formatCurrency(total)}</span>
-            </div>
-
-            {isPayBefore ? (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Button
-                  type="button"
-                  size="lg"
-                  disabled={paymentDisabled}
-                  onClick={() => handleInitiatePayment("evc")}
-                  className="h-12 w-full gap-2 rounded-xl border-0 bg-[#10B981] text-base font-semibold text-white hover:bg-[#059669] active:scale-[0.98]"
-                >
-                  {placing === "evc" ? (
-                    <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Smartphone className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  )}
-                  Ku bixi EVC
-                </Button>
-
-                <Button
-                  type="button"
-                  size="lg"
-                  disabled={paymentDisabled}
-                  onClick={() => handleInitiatePayment("edahab")}
-                  className="h-12 w-full gap-2 rounded-xl border-0 bg-[#F59E0B] text-base font-semibold text-white hover:bg-[#D97706] active:scale-[0.98]"
-                >
-                  {placing === "edahab" ? (
-                    <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Wallet className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  )}
-                  Ku bixi eDahab
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-center text-sm text-[#64748B]">
-                  {payAfterMessage(orderType)}
-                </p>
-                <OrderPrimaryButton
-                  type="button"
-                  size="lg"
-                  kind="place-order"
-                  disabled={!!placing || cart.length === 0 || hasUnavailableItems}
-                  onClick={handlePlaceOrderWithoutPayment}
-                  className="h-12 w-full rounded-xl text-base font-semibold"
-                >
-                  {placing === "place" ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Place Order
-                </OrderPrimaryButton>
-              </div>
-            )}
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-
-    {paymentModalOpen && paymentMethod && (
-      <PaymentConfirmationModal
-        open
-        slug={restaurant.slug}
-        ussdCode={paymentDialCode}
-        orderIds={pendingOrderId ? [pendingOrderId] : []}
-        createPayloads={
-          pendingOrderId
-            ? [buildCreatePayload(paymentMethod)!].filter(Boolean)
-            : []
-        }
-        onCustomerConfirmed={handleCustomerPaymentConfirmed}
-        onClose={() => setPaymentModalOpen(false)}
-        deferNavigation
-      />
-    )}
+      {paymentModalOpen && paymentMethod && (
+        <PaymentConfirmationModal
+          open
+          slug={restaurant.slug}
+          ussdCode={paymentDialCode}
+          orderIds={pendingOrderId ? [pendingOrderId] : []}
+          createPayloads={
+            pendingOrderId ? [buildCreatePayload(paymentMethod)!].filter(Boolean) : []
+          }
+          onCustomerConfirmed={handleCustomerPaymentConfirmed}
+          onClose={() => setPaymentModalOpen(false)}
+          deferNavigation
+        />
+      )}
     </>
   );
 }
