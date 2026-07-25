@@ -112,8 +112,10 @@ function WaitingGameModal({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const maybeCtx = canvas.getContext("2d");
+    if (!maybeCtx) return;
+    // Capture a definite non-null context for nested draw helpers (TS control-flow).
+    const ctx: CanvasRenderingContext2D = maybeCtx;
 
     gameOverRef.current = false;
     runningRef.current = true;
