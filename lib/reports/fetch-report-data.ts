@@ -10,7 +10,11 @@ import type {
   SpikedItem,
   WaiterPerformanceStat,
 } from "@/lib/reports/types";
-import { getDateRange, getPreviousDateRange } from "@/lib/reports/timeframes";
+import {
+  getChartBucketGranularity,
+  getDateRange,
+  getPreviousDateRange,
+} from "@/lib/reports/timeframes";
 
 function mapRpcError(label: string, error: { message: string } | null, params?: Record<string, unknown>) {
   if (error) {
@@ -162,6 +166,9 @@ export async function fetchReportData(
     p_end_date: endIso,
   });
 
+  // Chart buckets are finer than the selected window (e.g. daily points inside a week).
+  const chartGranularity = getChartBucketGranularity(granularity);
+
   const [
     kpiRes,
     prevKpiRes,
@@ -177,8 +184,11 @@ export async function fetchReportData(
   ] = await Promise.all([
     supabase.rpc("get_kpi_summary", rpcBase),
     supabase.rpc("get_kpi_summary", prevRpcBase),
-    supabase.rpc("get_revenue_by_period", { ...rpcBase, p_granularity: granularity }),
-    supabase.rpc("get_revenue_by_period", { ...prevRpcBase, p_granularity: granularity }),
+    supabase.rpc("get_revenue_by_period", { ...rpcBase, p_granularity: chartGranularity }),
+    supabase.rpc("get_revenue_by_period", {
+      ...prevRpcBase,
+      p_granularity: chartGranularity,
+    }),
     supabase.rpc("get_top_items", { ...rpcBase, p_limit: 10 }),
     supabase.rpc("get_top_items", { ...prevRpcBase, p_limit: 25 }),
     supabase.rpc("get_least_ordered_items", { ...rpcBase, p_limit: 5 }),
@@ -190,8 +200,14 @@ export async function fetchReportData(
 
   mapRpcError("get_kpi_summary", kpiRes.error, rpcBase);
   mapRpcError("get_kpi_summary(prev)", prevKpiRes.error, prevRpcBase);
-  mapRpcError("get_revenue_by_period", revenueRes.error, { ...rpcBase, granularity });
-  mapRpcError("get_revenue_by_period(prev)", prevRevenueRes.error, { ...prevRpcBase, granularity });
+  mapRpcError("get_revenue_by_period", revenueRes.error, {
+    ...rpcBase,
+    granularity: chartGranularity,
+  });
+  mapRpcError("get_revenue_by_period(prev)", prevRevenueRes.error, {
+    ...prevRpcBase,
+    granularity: chartGranularity,
+  });
   mapRpcError("get_top_items", topItemsRes.error, { ...rpcBase, p_limit: 10 });
   mapRpcError("get_top_items(prev)", prevTopItemsRes.error, { ...prevRpcBase, p_limit: 25 });
   mapRpcError("get_least_ordered_items", leastItemsRes.error, { ...rpcBase, p_limit: 5 });

@@ -1,4 +1,4 @@
-export type ReportGranularity = "daily" | "weekly" | "monthly" | "yearly";
+export type ReportGranularity = "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
 
 export type RevenueBucket = {
   period_start: string;

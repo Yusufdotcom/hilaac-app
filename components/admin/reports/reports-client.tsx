@@ -322,7 +322,7 @@ export function ReportsClient({
             <div>
               <p className="font-semibold">Upgrade to Pro for advanced analytics</p>
               <p className="mt-1 text-slate-500">
-                Unlock weekly & yearly timeframes plus PDF/Excel exports.{" "}
+                Unlock weekly, biweekly & yearly timeframes plus PDF/Excel exports.{" "}
                 <Link href={`/admin/${slug}/billing`} className="font-medium text-slate-900 underline">
                   Upgrade now
                 </Link>
