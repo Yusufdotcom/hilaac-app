@@ -23,8 +23,10 @@ export function ItemCustomizeSheet({
   categoryAddOns,
   menuItemAddOns,
   orderType,
+  initialCartItem,
   onClose,
   onAdd,
+  onSave,
 }: {
   item: MenuItem;
   categories: Category[];
@@ -32,12 +34,17 @@ export function ItemCustomizeSheet({
   categoryAddOns: CategoryAddOn[];
   menuItemAddOns: MenuItemAddOn[];
   orderType: "dine-in" | "takeaway";
+  /** When set, sheet opens in edit mode with existing cart values. */
+  initialCartItem?: CartItem | null;
   onClose: () => void;
   onAdd: (cartItem: CartItem) => void;
+  onSave?: (cartId: string, updates: Partial<CartItem>) => void;
 }) {
-  const [quantity, setQuantity] = useState(1);
-  const [selected, setSelected] = useState<AddOn[]>([]);
-  const [notes, setNotes] = useState("");
+  const isEditing = Boolean(initialCartItem);
+
+  const [quantity, setQuantity] = useState(initialCartItem?.quantity ?? 1);
+  const [selected, setSelected] = useState<AddOn[]>(initialCartItem?.selectedAddOns ?? []);
+  const [notes, setNotes] = useState(initialCartItem?.notes ?? "");
 
   const category = useMemo(
     () => categories.find((c) => c.id === item.category_id) ?? null,
@@ -66,7 +73,17 @@ export function ItemCustomizeSheet({
   const unitPrice = Number(item.price) + selected.reduce((sum, a) => sum + Number(a.price), 0);
   const total = unitPrice * quantity;
 
-  function handleAdd() {
+  function handleSubmit() {
+    if (isEditing && initialCartItem && onSave) {
+      onSave(initialCartItem.cartId, {
+        quantity,
+        selectedAddOns: selected,
+        notes,
+      });
+      onClose();
+      return;
+    }
+
     onAdd({
       cartId: crypto.randomUUID(),
       menuItem: item,
@@ -174,10 +191,10 @@ export function ItemCustomizeSheet({
               className="h-14 w-full rounded-2xl text-base font-bold shadow-md"
               onClick={(e) => {
                 e.currentTarget.blur();
-                handleAdd();
+                handleSubmit();
               }}
             >
-              Ku rido · {formatCurrency(total)}
+              {isEditing ? `Cusubo · ${formatCurrency(total)}` : `Ku rido · ${formatCurrency(total)}`}
             </OrderPrimaryButton>
           </div>
         </div>

@@ -7,6 +7,7 @@ import {
   Minus,
   Plus,
   Trash2,
+  Pencil,
   ShoppingBasket,
   Phone,
   ArrowLeft,
@@ -69,11 +70,13 @@ function CartItemCard({
   item,
   isUnavailable,
   onRemove,
+  onEdit,
   onAdjustQuantity,
 }: {
   item: CartItem;
   isUnavailable: boolean;
   onRemove: () => void;
+  onEdit: () => void;
   onAdjustQuantity: (delta: number) => void;
 }) {
   return (
@@ -134,25 +137,35 @@ function CartItemCard({
             </div>
           </div>
 
-          <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-slate-50 p-0.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-slate-50 p-0.5">
+              <button
+                type="button"
+                onClick={() => onAdjustQuantity(-1)}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-colors active:bg-white"
+                aria-label="Decrease quantity"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="min-w-[2rem] px-1 text-center text-base font-bold tabular-nums text-slate-900">
+                {item.quantity}
+              </span>
+              <button
+                type="button"
+                onClick={() => onAdjustQuantity(1)}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-colors active:bg-white"
+                aria-label="Increase quantity"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
             <button
               type="button"
-              onClick={() => onAdjustQuantity(-1)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-colors active:bg-white"
-              aria-label="Decrease quantity"
+              onClick={onEdit}
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900"
             >
-              <Minus className="h-4 w-4" />
-            </button>
-            <span className="min-w-[2rem] px-1 text-center text-base font-bold tabular-nums text-slate-900">
-              {item.quantity}
-            </span>
-            <button
-              type="button"
-              onClick={() => onAdjustQuantity(1)}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-colors active:bg-white"
-              aria-label="Increase quantity"
-            >
-              <Plus className="h-4 w-4" />
+              <Pencil className="h-3 w-3" aria-hidden="true" />
+              Edit
             </button>
           </div>
         </div>
@@ -167,12 +180,14 @@ function CartSection({
   unavailableMenuIds,
   onRemoveItem,
   onUpdateItem,
+  onEditItem,
 }: {
   title: string;
   items: CartItem[];
   unavailableMenuIds: Set<string>;
   onRemoveItem: (cartId: string) => void;
   onUpdateItem: (cartId: string, updates: Partial<CartItem>) => void;
+  onEditItem: (item: CartItem) => void;
 }) {
   if (items.length === 0) return null;
 
@@ -195,6 +210,7 @@ function CartSection({
             item={item}
             isUnavailable={unavailableMenuIds.has(item.menuItem.id)}
             onRemove={() => onRemoveItem(item.cartId)}
+            onEdit={() => onEditItem(item)}
             onAdjustQuantity={(delta) => adjustQuantity(item, delta)}
           />
         ))}
@@ -214,6 +230,7 @@ export function CartSheet({
   tableNumber,
   onUpdateItem,
   onRemoveItem,
+  onEditItem,
   onOrderPlaced,
   onUssdPaymentStarted,
   guestReady = false,
@@ -229,6 +246,7 @@ export function CartSheet({
   tableNumber: string;
   onUpdateItem: (cartId: string, updates: Partial<CartItem>) => void;
   onRemoveItem: (cartId: string) => void;
+  onEditItem: (item: CartItem) => void;
   onOrderPlaced: (orderId: string) => void;
   onUssdPaymentStarted: (payload: {
     orderIds: string[];
@@ -693,6 +711,7 @@ export function CartSheet({
                     unavailableMenuIds={unavailableMenuIds}
                     onRemoveItem={onRemoveItem}
                     onUpdateItem={onUpdateItem}
+                    onEditItem={onEditItem}
                   />
                   <CartSection
                     title={ORDER_TYPE_LABELS.takeaway}
@@ -700,6 +719,7 @@ export function CartSheet({
                     unavailableMenuIds={unavailableMenuIds}
                     onRemoveItem={onRemoveItem}
                     onUpdateItem={onUpdateItem}
+                    onEditItem={onEditItem}
                   />
                 </div>
               ) : (
@@ -710,6 +730,7 @@ export function CartSheet({
                       item={item}
                       isUnavailable={unavailableMenuIds.has(item.menuItem.id)}
                       onRemove={() => onRemoveItem(item.cartId)}
+                      onEdit={() => onEditItem(item)}
                       onAdjustQuantity={(delta) => {
                         const next = item.quantity + delta;
                         if (next <= 0) onRemoveItem(item.cartId);

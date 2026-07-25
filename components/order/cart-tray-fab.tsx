@@ -9,8 +9,8 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * Compact plate/tray cart trigger with live count badge.
- * bumpKey increments when an item is added — plays a short non-queued pulse.
+ * Centered plate/tray cart trigger with live count badge.
+ * bumpKey increments when an item is added — plays a short bounce (not queued).
  */
 export function CartTrayFab({
   count,
@@ -47,25 +47,38 @@ export function CartTrayFab({
     const t = window.setTimeout(() => {
       setPulse(false);
       animatingRef.current = false;
-    }, 380);
+    }, 420);
     return () => window.clearTimeout(t);
   }, [bumpKey, reducedMotion]);
 
   if (count <= 0) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-end px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
+      <style>{`
+        @keyframes tray-catch {
+          0% { transform: scale(1) translateY(0); }
+          35% { transform: scale(1.18) translateY(-6px); }
+          65% { transform: scale(0.96) translateY(1px); }
+          100% { transform: scale(1) translateY(0); }
+        }
+        @keyframes tray-badge-pop {
+          0% { transform: scale(1); }
+          40% { transform: scale(1.35); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
       <button
         type="button"
         onClick={onOpen}
         className={cn(
           "pointer-events-auto relative flex h-14 w-14 items-center justify-center rounded-full",
-          "shadow-lg transition-transform active:scale-95",
-          pulse && "motion-safe:scale-110"
+          "shadow-lg transition-transform active:scale-95"
         )}
         style={{
           ...style,
           boxShadow: `0 10px 28px ${brandColorWithAlpha(accent, 0.35)}`,
+          animation: pulse ? "tray-catch 0.42s cubic-bezier(0.34, 1.45, 0.64, 1)" : undefined,
         }}
         aria-label={`Open cart, ${count} items`}
       >
@@ -86,17 +99,14 @@ export function CartTrayFab({
         </svg>
 
         <span
-          className={cn(
-            "absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full px-1.5",
-            "bg-slate-900 text-[11px] font-bold text-white ring-2 ring-white",
-            "transition-transform duration-300",
-            pulse && "motion-safe:scale-125"
-          )}
+          className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-900 px-1.5 text-[11px] font-bold text-white ring-2 ring-white"
+          style={{
+            animation: pulse ? "tray-badge-pop 0.42s cubic-bezier(0.34, 1.45, 0.64, 1)" : undefined,
+          }}
         >
           {count > 99 ? "99+" : count}
         </span>
 
-        {/* Landing ripple — skipped when animation already running */}
         {pulse && (
           <span
             className="pointer-events-none absolute inset-0 rounded-full motion-safe:animate-ping"

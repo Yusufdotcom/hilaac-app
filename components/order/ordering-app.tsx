@@ -66,6 +66,7 @@ export function OrderingApp({
   const [cartOpen, setCartOpen] = useState(false);
   const [cartBumpKey, setCartBumpKey] = useState(0);
   const [customizeItem, setCustomizeItem] = useState<MenuItem | null>(null);
+  const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
   const [showDrinksUpsell, setShowDrinksUpsell] = useState(false);
   const [drinksUpsellDismissed, setDrinksUpsellDismissed] = useState(false);
   const [ussdPayment, setUssdPayment] = useState<{
@@ -117,6 +118,7 @@ export function OrderingApp({
     setCart((prev) => [...prev, item]);
     setCartBumpKey((k) => k + 1);
     setCustomizeItem(null);
+    setEditingCartItem(null);
 
     if (
       addingFood &&
@@ -135,6 +137,26 @@ export function OrderingApp({
 
   function handleRemoveCartItem(cartId: string) {
     setCart((prev) => prev.filter((i) => i.cartId !== cartId));
+  }
+
+  function handleEditCartItem(item: CartItem) {
+    setCartOpen(false);
+    setEditingCartItem(item);
+    setCustomizeItem(item.menuItem);
+  }
+
+  function handleSaveCartItem(cartId: string, updates: Partial<CartItem>) {
+    handleUpdateCartItem(cartId, updates);
+    setEditingCartItem(null);
+    setCustomizeItem(null);
+    setCartOpen(true);
+  }
+
+  function handleCloseCustomize() {
+    const wasEditing = Boolean(editingCartItem);
+    setCustomizeItem(null);
+    setEditingCartItem(null);
+    if (wasEditing) setCartOpen(true);
   }
 
   function handleOrderPlaced(_orderId: string) {
@@ -206,14 +228,17 @@ export function OrderingApp({
 
       {customizeItem && (
         <ItemCustomizeSheet
+          key={editingCartItem?.cartId ?? customizeItem.id}
           item={customizeItem}
           categories={categories}
           addOns={addOns}
           categoryAddOns={categoryAddOns}
           menuItemAddOns={menuItemAddOns}
           orderType={orderType}
-          onClose={() => setCustomizeItem(null)}
+          initialCartItem={editingCartItem}
+          onClose={handleCloseCustomize}
           onAdd={(cartItem) => handleAddToCart(cartItem)}
+          onSave={handleSaveCartItem}
         />
       )}
 
@@ -228,6 +253,7 @@ export function OrderingApp({
         tableNumber={tableNumber}
         onUpdateItem={handleUpdateCartItem}
         onRemoveItem={handleRemoveCartItem}
+        onEditItem={handleEditCartItem}
         onOrderPlaced={handleOrderPlaced}
         onUssdPaymentStarted={handleUssdPaymentStarted}
         guestReady={guestReady}

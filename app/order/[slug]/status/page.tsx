@@ -102,14 +102,14 @@ export default function OrderStatusPage({
         toast.success(
           synced === 1
             ? "Dalabkaaga waa la diray!"
-            : `${synced} dalabyo waa la diray!`
+            : `${synced} dalabka waa la diray!`
         );
         const { order: data } = await fetchOrderById(resolvedOrderId);
         if (data) setOrder(data);
       } else if (failed > 0) {
-        toast.error("Isku daygu ma guuleysan. Fadlan isku day mar kale.");
+        toast.error("Isku daygaga ma guuleysan. Fadlan isku day mar kale.");
       } else {
-        toast.message("Ma jiro dalab sugaya in la dirayo.");
+        toast.message("Ma jiro dalab sugaya in la diro.");
       }
     } finally {
       setRetrying(false);
@@ -122,7 +122,7 @@ export default function OrderStatusPage({
         {!isOnline && (
           <Badge className="gap-1 border-amber-200 bg-amber-100 px-2 py-0.5 text-[10px] text-amber-900 hover:bg-amber-100">
             <WifiOff className="h-3 w-3" aria-hidden="true" />
-            Offline — dalabka waa la keydiyay
+            Offline — Dalabkaaga waa la keydiyay
           </Badge>
         )}
         {showRetrySync && (
@@ -408,9 +408,9 @@ export default function OrderStatusPage({
               message={
                 waitingForSync || !isOnline
                   ? "Waiting for connection to sync your order..."
-                  : "Halaalabkaaga waa la diyaarinayaa..."
+                  : "Dalabkaga waa la diyaarinayaa..."
               }
-              submessage={loadError ? undefined : "Fadlan sug…"}
+              submessage={loadError ? undefined : "Fadlan aayar sug…"}
               error={loadError}
               onRetry={showRetry || loadError ? handleCreateRetry : undefined}
             />
@@ -431,7 +431,7 @@ export default function OrderStatusPage({
           fullHeight={false}
         >
           <OrderPreparingScreen
-            message="Halaalabkaaga waa la diyaarinayaa..."
+            message="Dalabkaga waa la diyaarinayaa..."
             submessage="Fadlan sug…"
             error={loadError}
             onRetry={showRetry || loadError ? handleCreateRetry : undefined}

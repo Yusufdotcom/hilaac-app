@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 export const ORDER_SUBMIT_RETRY_MS = 5_000;
 
 export function OrderPreparingScreen({
-  message = "Halaalabkaaga waa la diyaarinayaa...",
+  message = "Dalabkaga waa la diyaarinayaa...",
   submessage,
   error,
   onRetry,
@@ -112,7 +112,7 @@ export function OrderPreparingScreen({
 /** Full-viewport overlay used while creating an order before hard navigation. */
 export function OrderSubmittingOverlay({
   open,
-  message = "Halaalabkaaga waa la diyaarinayaa...",
+  message = "Dalabkaga waa la diyaarinayaa...",
   error,
   onRetry,
   showRetryAfterMs = ORDER_SUBMIT_RETRY_MS,
