@@ -368,7 +368,7 @@ export function ReportsClient({
                   </div>
                   <p className="text-lg font-semibold text-slate-900">No data available</p>
                   <p className="mt-1 max-w-sm text-sm text-slate-500">
-                    Start serving customers to see insights.
+                    No data available for this period.
                   </p>
                 </div>
               ) : (

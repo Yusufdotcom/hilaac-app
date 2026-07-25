@@ -19,6 +19,13 @@ export type PeakHourStat = {
   revenue: number;
 };
 
+export type PeakDayStat = {
+  day_of_week: number;
+  day_label: string;
+  order_count: number;
+  revenue: number;
+};
+
 export type PaymentSplitStat = {
   payment_method: string;
   order_count: number;
@@ -42,7 +49,8 @@ export type KpiSummary = {
   total_orders: number;
   total_revenue: number;
   avg_order_value: number;
-  top_item_name: string;
+  /** Null when nothing was sold in the selected timeframe. */
+  top_item_name: string | null;
   top_item_quantity: number;
   trends: {
     orders: KpiTrend;
@@ -65,6 +73,7 @@ export type ReportData = {
   topItems: ItemStat[];
   leastItems: ItemStat[];
   peakHours: PeakHourStat[];
+  peakDays: PeakDayStat[];
   paymentSplit: PaymentSplitStat[];
   waiterPerformance: WaiterPerformanceStat[];
   spikedItems: SpikedItem[];

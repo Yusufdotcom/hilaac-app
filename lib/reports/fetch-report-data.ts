@@ -3,6 +3,7 @@ import type {
   ItemStat,
   KpiTrend,
   PaymentSplitStat,
+  PeakDayStat,
   ReportData,
   ReportGranularity,
   RevenueBucket,
@@ -71,7 +72,6 @@ function normalizePayment(rows: unknown[]): PaymentSplitStat[] {
     };
   });
 
-  // Guarantee canonical methods even if RPC is stale.
   const ensure = ["EVC", "eDahab", "Cash"] as const;
   return ensure.map((m) => {
     const found = mapped.find((r) => r.payment_method.toLowerCase() === m.toLowerCase());
@@ -85,6 +85,18 @@ function normalizeWaiters(rows: unknown[]): WaiterPerformanceStat[] {
     return {
       waiter_name: String(row.waiter_name ?? "Unknown"),
       deliveries: Number(row.deliveries ?? 0) || 0,
+      revenue: Number(row.revenue ?? 0) || 0,
+    };
+  });
+}
+
+function normalizePeakDays(rows: unknown[]): PeakDayStat[] {
+  return (rows ?? []).map((raw) => {
+    const row = raw as Record<string, unknown>;
+    return {
+      day_of_week: Number(row.day_of_week ?? 0),
+      day_label: String(row.day_label ?? ""),
+      order_count: Number(row.order_count ?? 0) || 0,
       revenue: Number(row.revenue ?? 0) || 0,
     };
   });
@@ -112,6 +124,10 @@ function computeSpikedItems(current: ItemStat[], previous: ItemStat[]): SpikedIt
     .slice(0, 2);
 }
 
+/**
+ * Fetches all Insights datasets for one timeframe using a single shared
+ * { start, end } window — never mix lifetime / alternate ranges.
+ */
 export async function fetchReportData(
   supabase: SupabaseClient,
   restaurantId: string,
@@ -125,6 +141,7 @@ export async function fetchReportData(
   const prevStartIso = prev.start.toISOString();
   const prevEndIso = prev.end.toISOString();
 
+  // Exact same bounds for every RPC in this request.
   const rpcBase = {
     p_restaurant_id: restaurantId,
     p_start_date: startIso,
@@ -137,6 +154,14 @@ export async function fetchReportData(
     p_end_date: prevEndIso,
   };
 
+  console.info("[reports] fetchReportData", {
+    restaurantId,
+    granularity,
+    periodOffset,
+    p_start_date: startIso,
+    p_end_date: endIso,
+  });
+
   const [
     kpiRes,
     prevKpiRes,
@@ -146,6 +171,7 @@ export async function fetchReportData(
     prevTopItemsRes,
     leastItemsRes,
     peakHoursRes,
+    peakDaysRes,
     paymentSplitRes,
     waiterPerfRes,
   ] = await Promise.all([
@@ -157,6 +183,7 @@ export async function fetchReportData(
     supabase.rpc("get_top_items", { ...prevRpcBase, p_limit: 25 }),
     supabase.rpc("get_least_ordered_items", { ...rpcBase, p_limit: 5 }),
     supabase.rpc("get_peak_hours", rpcBase),
+    supabase.rpc("get_peak_days", rpcBase),
     supabase.rpc("get_payment_split", rpcBase),
     supabase.rpc("get_waiter_performance", rpcBase),
   ]);
@@ -165,10 +192,11 @@ export async function fetchReportData(
   mapRpcError("get_kpi_summary(prev)", prevKpiRes.error, prevRpcBase);
   mapRpcError("get_revenue_by_period", revenueRes.error, { ...rpcBase, granularity });
   mapRpcError("get_revenue_by_period(prev)", prevRevenueRes.error, { ...prevRpcBase, granularity });
-  mapRpcError("get_top_items", topItemsRes.error, rpcBase);
-  mapRpcError("get_top_items(prev)", prevTopItemsRes.error, prevRpcBase);
-  mapRpcError("get_least_ordered_items", leastItemsRes.error, rpcBase);
+  mapRpcError("get_top_items", topItemsRes.error, { ...rpcBase, p_limit: 10 });
+  mapRpcError("get_top_items(prev)", prevTopItemsRes.error, { ...prevRpcBase, p_limit: 25 });
+  mapRpcError("get_least_ordered_items", leastItemsRes.error, { ...rpcBase, p_limit: 5 });
   mapRpcError("get_peak_hours", peakHoursRes.error, rpcBase);
+  mapRpcError("get_peak_days", peakDaysRes.error, rpcBase);
   mapRpcError("get_payment_split", paymentSplitRes.error, rpcBase);
   mapRpcError("get_waiter_performance", waiterPerfRes.error, rpcBase);
 
@@ -177,20 +205,36 @@ export async function fetchReportData(
 
   const totalOrders = Number(kpiRow.total_orders ?? 0);
   const totalRevenue = Number(kpiRow.total_revenue ?? 0);
-  // Support both canonical and legacy remote column names.
-  const avgOrderValue = Number(
-    kpiRow.avg_order_value ?? kpiRow.average_order_value ?? 0
-  );
+  const avgOrderValue = Number(kpiRow.avg_order_value ?? kpiRow.average_order_value ?? 0);
 
   const prevOrders = Number(prevKpiRow.total_orders ?? 0);
   const prevRevenue = Number(prevKpiRow.total_revenue ?? 0);
   const prevAov = Number(prevKpiRow.avg_order_value ?? prevKpiRow.average_order_value ?? 0);
 
-  const topItems = normalizeItems(topItemsRes.data ?? []);
+  const topItems = normalizeItems(topItemsRes.data ?? []).filter((i) => i.quantity_sold > 0);
   const prevTopItems = normalizeItems(prevTopItemsRes.data ?? []);
-  const leastItems = normalizeItems(leastItemsRes.data ?? []);
+  const leastItems = normalizeItems(leastItemsRes.data ?? []).filter((i) => i.quantity_sold > 0);
   const revenue = normalizeRevenue(revenueRes.data ?? []);
   const previousRevenue = normalizeRevenue(prevRevenueRes.data ?? []);
+  const peakDays = normalizePeakDays(peakDaysRes.data ?? []);
+
+  // Top selling item: only if sold in this timeframe (prefer top_items for alignment).
+  const topSold = topItems[0];
+  const top_item_name =
+    topSold && topSold.quantity_sold > 0
+      ? topSold.item_name
+      : (() => {
+          const raw = kpiRow.top_item_name ?? kpiRow.top_selling_item;
+          if (raw == null || raw === "" || raw === "—") return null;
+          const qty = Number(kpiRow.top_item_quantity ?? 0) || 0;
+          return qty > 0 ? String(raw) : null;
+        })();
+  const top_item_quantity =
+    topSold && topSold.quantity_sold > 0
+      ? topSold.quantity_sold
+      : top_item_name
+        ? Number(kpiRow.top_item_quantity ?? 0) || 0
+        : 0;
 
   const chartSum = revenue.reduce((sum, row) => sum + row.revenue, 0);
   if (Math.abs(chartSum - totalRevenue) > 0.05) {
@@ -212,8 +256,8 @@ export async function fetchReportData(
       total_orders: totalOrders,
       total_revenue: totalRevenue,
       avg_order_value: avgOrderValue,
-      top_item_name: String(kpiRow.top_item_name ?? kpiRow.top_selling_item ?? "—"),
-      top_item_quantity: Number(kpiRow.top_item_quantity ?? 0) || 0,
+      top_item_name,
+      top_item_quantity,
       trends: {
         orders: trendFromValues(totalOrders, prevOrders),
         revenue: trendFromValues(totalRevenue, prevRevenue),
@@ -229,6 +273,7 @@ export async function fetchReportData(
       order_count: Number(h.order_count) || 0,
       revenue: Number(h.revenue) || 0,
     })),
+    peakDays,
     paymentSplit: normalizePayment(paymentSplitRes.data ?? []),
     waiterPerformance: normalizeWaiters(waiterPerfRes.data ?? []),
     spikedItems: computeSpikedItems(topItems, prevTopItems),

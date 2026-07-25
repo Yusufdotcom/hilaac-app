@@ -146,11 +146,11 @@ export function KpiCards({
     },
     {
       label: "Top Selling Item",
-      value: kpi.top_item_name || "—",
+      value: kpi.top_item_name && kpi.top_item_quantity > 0 ? kpi.top_item_name : "No sales yet",
       sub:
-        kpi.top_item_quantity > 0
+        kpi.top_item_name && kpi.top_item_quantity > 0
           ? `${Number(kpi.top_item_quantity)} sold`
-          : "No sales yet",
+          : "in this period",
       trend: null as KpiTrend | null,
       format: null as ((n: number) => string) | null,
     },

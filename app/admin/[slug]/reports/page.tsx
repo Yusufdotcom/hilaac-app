@@ -15,7 +15,7 @@ function emptyReport(granularity: ReportGranularity): ReportData {
       total_orders: 0,
       total_revenue: 0,
       avg_order_value: 0,
-      top_item_name: "—",
+      top_item_name: null,
       top_item_quantity: 0,
       trends: { orders: flat, revenue: flat, aov: flat },
     },
@@ -24,6 +24,7 @@ function emptyReport(granularity: ReportGranularity): ReportData {
     topItems: [],
     leastItems: [],
     peakHours: [],
+    peakDays: [],
     paymentSplit: [
       { payment_method: "EVC", order_count: 0, revenue: 0 },
       { payment_method: "eDahab", order_count: 0, revenue: 0 },
