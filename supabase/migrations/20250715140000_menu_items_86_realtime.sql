@@ -13,4 +13,15 @@ create policy "public can view menu items for active restaurants"
   );
 
 -- Enable realtime availability updates for customer + kitchen screens.
-alter publication supabase_realtime add table public.menu_items;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'menu_items'
+  ) then
+    alter publication supabase_realtime add table public.menu_items;
+  end if;
+end $$;

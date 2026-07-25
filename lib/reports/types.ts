@@ -1,4 +1,4 @@
-export type ReportGranularity = "daily" | "weekly" | "biweekly" | "monthly";
+export type ReportGranularity = "daily" | "weekly" | "monthly" | "yearly";
 
 export type RevenueBucket = {
   period_start: string;
@@ -32,9 +32,10 @@ export type WaiterPerformanceStat = {
 };
 
 export type KpiTrend = {
-  /** Percent change vs previous period. Null when previous was zero / unavailable. */
   percent: number | null;
   direction: "up" | "down" | "flat";
+  current: number;
+  previous: number;
 };
 
 export type KpiSummary = {
@@ -60,6 +61,7 @@ export type SpikedItem = {
 export type ReportData = {
   kpi: KpiSummary;
   revenue: RevenueBucket[];
+  previousRevenue: RevenueBucket[];
   topItems: ItemStat[];
   leastItems: ItemStat[];
   peakHours: PeakHourStat[];
@@ -70,6 +72,7 @@ export type ReportData = {
     startDate: string;
     endDate: string;
     granularity: ReportGranularity;
+    periodOffset: number;
   };
 };
 

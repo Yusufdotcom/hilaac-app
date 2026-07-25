@@ -1,18 +1,22 @@
 "use client";
 
+import { useMemo, useState, useEffect } from "react";
 import {
   Area,
   AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
+  Cell,
+  Line,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { BarChart3, Flame, Receipt, TrendingUp } from "lucide-react";
+import { BarChart3, Flame, TrendingUp, Users } from "lucide-react";
 import { useAdminBrandColor } from "@/components/admin/admin-brand-context";
 import { resolveBrandColor } from "@/lib/brand/restaurant-brand";
 import type { ReportData } from "@/lib/reports/types";
@@ -21,23 +25,47 @@ import { formatCurrency } from "@/lib/utils";
 const NAVY = "#0F172A";
 const INDIGO = "#6366F1";
 const GOLD = "#D4A373";
+const PAYMENT_COLORS: Record<string, string> = {
+  EVC: "#10B981",
+  eDahab: "#0F172A",
+  Cash: "#D4A373",
+};
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return reduced;
+}
 
 function ChartCard({
   title,
   children,
   chartId,
   empty,
+  emptyMessage,
+  headerRight,
 }: {
   title: string;
   children: React.ReactNode;
   chartId: string;
   empty?: boolean;
+  emptyMessage?: string;
+  headerRight?: React.ReactNode;
 }) {
   return (
-    <article className="min-w-0 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-6">
-      <h3 className="mb-4 text-base font-semibold text-[#0F172A]">{title}</h3>
+    <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+        {headerRight}
+      </div>
       {empty ? (
-        <EmptyChartState />
+        <EmptyChartState message={emptyMessage} />
       ) : (
         <div id={chartId} className="h-64 w-full min-w-0 sm:h-72">
           {children}
@@ -47,48 +75,27 @@ function ChartCard({
   );
 }
 
-function EmptyChartState({ message = "No data yet for this period." }: { message?: string }) {
+function EmptyChartState({
+  message = "No data available. Start serving customers to see insights.",
+}: {
+  message?: string;
+}) {
   return (
-    <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[#E2E8F0] bg-[#F8FAFC] text-center sm:h-72">
-      <BarChart3 className="mb-3 h-9 w-9 text-[#CBD5E1]" aria-hidden="true" />
-      <p className="text-sm font-semibold text-[#0F172A]">No data yet</p>
-      <p className="mt-1 max-w-xs text-xs text-[#94A3B8]">{message}</p>
+    <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 text-center sm:h-72">
+      <BarChart3 className="mb-3 h-9 w-9 text-slate-300" aria-hidden="true" />
+      <p className="text-sm font-semibold text-slate-900">No data available</p>
+      <p className="mt-1 max-w-xs text-xs text-slate-400">{message}</p>
     </div>
   );
 }
 
-function buildPaymentStackData(paymentSplit: ReportData["paymentSplit"]) {
-  const totals = { evc: 0, edahab: 0 };
-
-  for (const row of paymentSplit) {
-    const method = row.payment_method.toLowerCase();
-    const revenue = Number(row.revenue);
-    if (method === "evc") totals.evc += revenue;
-    if (method === "edahab") totals.edahab += revenue;
-  }
-
-  return [
-    {
-      payment_method: "Revenue",
-      evc: totals.evc,
-      edahab: totals.edahab,
-    },
-  ];
-}
-
-function SpikedSection({
-  items,
-  accent,
-}: {
-  items: ReportData["spikedItems"];
-  accent: string;
-}) {
+function SpikedSection({ items }: { items: ReportData["spikedItems"] }) {
   if (!items.length) {
     return (
-      <article className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-6">
+      <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="mb-3 flex items-center gap-2">
-          <Flame className="h-5 w-5" style={{ color: accent }} aria-hidden="true" />
-          <h3 className="text-base font-semibold text-[#0F172A]">Trending / Spiked</h3>
+          <Flame className="h-5 w-5 text-slate-400" aria-hidden="true" />
+          <h3 className="text-base font-semibold text-slate-900">Trending / Spiked</h3>
         </div>
         <EmptyChartState message="No items with notable growth vs the previous period." />
       </article>
@@ -96,27 +103,30 @@ function SpikedSection({
   }
 
   return (
-    <article className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:p-6">
-      <div className="mb-4 flex items-center gap-2">
-        <Flame className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-        <h3 className="text-base font-semibold text-[#0F172A]">Trending / Spiked</h3>
-        <span className="text-xs text-[#94A3B8]">Highest % growth vs previous period</span>
+    <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Flame className="h-5 w-5 text-[#10B981]" aria-hidden="true" />
+        <h3 className="text-base font-semibold text-slate-900">Trending / Spiked</h3>
+        <span className="text-xs text-slate-400">Highest % growth vs previous period</span>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((item) => (
           <div
             key={item.item_name}
-            className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-4"
+            className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4"
           >
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-[#0F172A]">{item.item_name}</p>
-              <p className="mt-0.5 text-xs text-[#64748B]">
-                {item.quantity_sold} sold · was {item.previous_quantity}
+              <p className="truncate text-sm font-bold text-slate-900">{item.item_name}</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {Number(item.quantity_sold)} sold · was {Number(item.previous_quantity)}
               </p>
             </div>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">
+            <span
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold ring-1 ring-emerald-100"
+              style={{ color: "#10B981" }}
+            >
               <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
-              Spiked {item.growth_percent}%
+              <span>+{item.growth_percent}%</span>
             </span>
           </div>
         ))}
@@ -125,52 +135,128 @@ function SpikedSection({
   );
 }
 
-export function ReportCharts({ data }: { data: ReportData }) {
+export function ReportCharts({
+  data,
+  waiterError,
+  onRetryWaiter,
+}: {
+  data: ReportData;
+  waiterError?: string | null;
+  onRetryWaiter?: () => void;
+}) {
   const brandAccent = resolveBrandColor(useAdminBrandColor());
   const accent = brandAccent || GOLD;
+  const reduceMotion = usePrefersReducedMotion();
+  const [showPrevious, setShowPrevious] = useState(true);
 
-  const revenueData = data.revenue.map((row) => ({
-    period: row.period_label,
-    revenue: Number(row.revenue),
-    orders: Number(row.order_count),
-  }));
+  const revenueData = useMemo(() => {
+    const prev = data.previousRevenue ?? [];
+    return data.revenue.map((row, idx) => ({
+      // Unique key so Recharts never collapses same calendar labels across months.
+      periodKey: row.period_start || `${row.period_label}-${idx}`,
+      period: row.period_label,
+      // Period total (SUM of order totals) — not an average.
+      revenue: Number(row.revenue) || 0,
+      orders: Number(row.order_count) || 0,
+      previousRevenue: Number(prev[idx]?.revenue ?? 0) || 0,
+    }));
+  }, [data.revenue, data.previousRevenue]);
 
-  const topItemsData = data.topItems.map((item) => ({
-    item_name: item.item_name.length > 14 ? `${item.item_name.slice(0, 14)}…` : item.item_name,
-    fullName: item.item_name,
-    quantity: Number(item.quantity_sold),
-    revenue: Number(item.revenue),
-  }));
-
-  const peakHoursData = data.peakHours.map((hour) => ({
-    hour: `${String(hour.hour_of_day).padStart(2, "0")}:00`,
-    orders: Number(hour.order_count),
-  }));
-
-  const hasNoPaymentOrders =
-    data.paymentSplit.length === 0 ||
-    (data.paymentSplit.length === 1 && data.paymentSplit[0].payment_method === "no_orders");
-
-  const paymentStackData = buildPaymentStackData(
-    data.paymentSplit.filter((row) => row.payment_method !== "no_orders")
+  const revenuePeriodTotal = useMemo(
+    () => revenueData.reduce((sum, row) => sum + row.revenue, 0),
+    [revenueData]
   );
 
-  const waiterData = data.waiterPerformance.map((waiter) => ({
-    name: waiter.waiter_name,
-    deliveries: Number(waiter.deliveries),
-  }));
+  const topItemsData = useMemo(
+    () =>
+      data.topItems.map((item) => ({
+        item_name: item.item_name.length > 14 ? `${item.item_name.slice(0, 14)}…` : item.item_name,
+        fullName: item.item_name,
+        quantity: Number(item.quantity_sold) || 0,
+        revenue: Number(item.revenue) || 0,
+      })),
+    [data.topItems]
+  );
 
-  const revenueMax = revenueData.reduce((max, row) => Math.max(max, row.revenue), 0);
-  const hasRevenue = revenueData.some((r) => r.revenue > 0);
+  const peakHoursData = useMemo(
+    () =>
+      data.peakHours.map((hour) => ({
+        hour: `${String(hour.hour_of_day).padStart(2, "0")}:00`,
+        orders: Number(hour.order_count) || 0,
+      })),
+    [data.peakHours]
+  );
+
+  const paymentData = useMemo(() => {
+    const methods = ["EVC", "eDahab", "Cash"] as const;
+    return methods.map((m) => {
+      const found = data.paymentSplit.find(
+        (r) => r.payment_method.toLowerCase() === m.toLowerCase()
+      );
+      return {
+        payment_method: m,
+        order_count: Number(found?.order_count ?? 0) || 0,
+        revenue: Number(found?.revenue ?? 0) || 0,
+      };
+    });
+  }, [data.paymentSplit]);
+
+  const paymentPieSlices = useMemo(
+    () => paymentData.filter((p) => p.revenue > 0),
+    [paymentData]
+  );
+
+  const waiterData = useMemo(
+    () =>
+      data.waiterPerformance.map((waiter) => ({
+        name: waiter.waiter_name,
+        deliveries: Number(waiter.deliveries) || 0,
+        revenue: Number(waiter.revenue) || 0,
+      })),
+    [data.waiterPerformance]
+  );
+
+  const revenueMax = useMemo(
+    () =>
+      revenueData.reduce(
+        (max, row) => Math.max(max, row.revenue, showPrevious ? row.previousRevenue : 0),
+        0
+      ),
+    [revenueData, showPrevious]
+  );
+
+  const hasRevenue = revenueData.some((r) => r.revenue > 0 || r.previousRevenue > 0);
   const hasTopItems = topItemsData.length > 0;
   const hasPeak = peakHoursData.some((h) => h.orders > 0);
+  const hasPaymentRevenue = paymentData.some((p) => p.revenue > 0);
   const hasWaiters = waiterData.length > 0;
-  const gradientId = "revenueAreaFill";
+  const gradientId = "insightsRevenueFill";
 
   return (
-    <div className="min-w-0 space-y-6">
+    <div className="min-w-0 space-y-6 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500">
       <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-        <ChartCard title="Revenue trend" chartId="chart-revenue" empty={!hasRevenue}>
+        <ChartCard
+          title="Revenue trend"
+          chartId="chart-revenue"
+          empty={!hasRevenue}
+          emptyMessage="No data available. Start serving customers to see insights."
+          headerRight={
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-slate-500">
+                Period total {formatCurrency(revenuePeriodTotal)}
+              </span>
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-500">
+                <input
+                  type="checkbox"
+                  checked={showPrevious}
+                  onChange={(e) => setShowPrevious(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-slate-300"
+                />
+                Previous period
+              </label>
+            </div>
+          }
+        >
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={revenueData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
               <defs>
@@ -181,10 +267,11 @@ export function ReportCharts({ data }: { data: ReportData }) {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis
-                dataKey="period"
+                dataKey="periodKey"
                 tick={{ fill: "#64748B", fontSize: 11 }}
                 tickLine={false}
                 axisLine={{ stroke: "#E2E8F0" }}
+                tickFormatter={(_value, index) => revenueData[index]?.period ?? ""}
               />
               <YAxis
                 tick={{ fill: "#64748B", fontSize: 11 }}
@@ -192,23 +279,47 @@ export function ReportCharts({ data }: { data: ReportData }) {
                 axisLine={{ stroke: "#E2E8F0" }}
                 tickFormatter={(value) => formatCurrency(Number(value))}
                 domain={[0, Math.max(revenueMax * 1.15, 1)]}
-                allowDecimals={false}
-                width={64}
+                allowDecimals
+                width={72}
               />
               <Tooltip
-                formatter={(value) => [formatCurrency(Number(value ?? 0)), "Revenue"]}
-                labelFormatter={(label) => String(label)}
-                contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0", boxShadow: "0 8px 24px rgba(15,23,42,0.08)" }}
+                formatter={(value, name) => {
+                  const amount = formatCurrency(Number(value ?? 0));
+                  if (name === "previousRevenue") {
+                    return [`Previous period: ${amount}`, ""];
+                  }
+                  return [`Revenue: ${amount}`, ""];
+                }}
+                labelFormatter={(_label, payload) =>
+                  String(payload?.[0]?.payload?.period ?? _label)
+                }
+                contentStyle={{
+                  borderRadius: 12,
+                  borderColor: "#E2E8F0",
+                  boxShadow: "0 8px 24px rgba(15,23,42,0.08)",
+                }}
               />
+              {showPrevious && (
+                <Line
+                  type="monotone"
+                  dataKey="previousRevenue"
+                  name="previousRevenue"
+                  stroke="#94A3B8"
+                  strokeWidth={1.5}
+                  strokeDasharray="6 4"
+                  dot={false}
+                  isAnimationActive={!reduceMotion}
+                />
+              )}
               <Area
                 type="monotone"
                 dataKey="revenue"
-                name="Revenue"
+                name="revenue"
                 stroke={accent}
                 strokeWidth={2.5}
                 fill={`url(#${gradientId})`}
                 connectNulls
-                isAnimationActive
+                isAnimationActive={!reduceMotion}
                 dot={{ r: 3, fill: accent, stroke: "#fff", strokeWidth: 2 }}
                 activeDot={{ r: 6, fill: accent, stroke: NAVY, strokeWidth: 2 }}
               />
@@ -217,61 +328,75 @@ export function ReportCharts({ data }: { data: ReportData }) {
         </ChartCard>
 
         <ChartCard title="Top 10 items" chartId="chart-top-items" empty={!hasTopItems}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={topItemsData} margin={{ top: 8, right: 16, left: 8, bottom: 64 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
-              <XAxis
-                dataKey="item_name"
-                tick={{ fill: "#64748B", fontSize: 10 }}
-                tickLine={false}
-                axisLine={{ stroke: "#E2E8F0" }}
-                interval={0}
-                angle={-35}
-                textAnchor="end"
-                height={70}
-              />
-              <YAxis
-                tick={{ fill: "#64748B", fontSize: 11 }}
-                tickLine={false}
-                axisLine={{ stroke: "#E2E8F0" }}
-                allowDecimals={false}
-              />
-              <Tooltip
-                contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
-                formatter={(value) => [Number(value ?? 0), "Quantity sold"]}
-                labelFormatter={(_label, payload) =>
-                  String(payload?.[0]?.payload?.fullName ?? _label)
-                }
-              />
-              <Bar
-                dataKey="quantity"
-                name="Quantity"
-                fill={INDIGO}
-                radius={[6, 6, 0, 0]}
-                maxBarSize={40}
-                isAnimationActive
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="h-full w-full overflow-x-auto">
+            <div
+              className="h-full"
+              style={{ minWidth: Math.max(320, topItemsData.length * 56) }}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topItemsData} margin={{ top: 8, right: 16, left: 8, bottom: 64 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                  <XAxis
+                    dataKey="item_name"
+                    tick={{ fill: "#64748B", fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={{ stroke: "#E2E8F0" }}
+                    interval={0}
+                    angle={-35}
+                    textAnchor="end"
+                    height={70}
+                  />
+                  <YAxis
+                    tick={{ fill: "#64748B", fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={{ stroke: "#E2E8F0" }}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
+                    formatter={(value) => [Number(value ?? 0), "Quantity sold"]}
+                    labelFormatter={(_label, payload) =>
+                      String(payload?.[0]?.payload?.fullName ?? _label)
+                    }
+                  />
+                  <Bar
+                    dataKey="quantity"
+                    name="Quantity"
+                    fill={INDIGO}
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={40}
+                    isAnimationActive={!reduceMotion}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </ChartCard>
       </div>
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-3">
-        <article className="min-w-0 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-6 lg:col-span-1">
-          <h3 className="mb-4 text-base font-semibold text-[#0F172A]">Least ordered items</h3>
+        <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:col-span-1">
+          <h3 className="mb-4 text-base font-semibold text-slate-900">Least ordered items</h3>
           {data.leastItems.length === 0 ? (
             <EmptyChartState message="No low-volume items in this period." />
           ) : (
             <ul className="space-y-3">
-              {data.leastItems.map((item) => (
-                <li
-                  key={item.item_name}
-                  className="flex items-center justify-between gap-2 border-b border-[#F1F5F9] pb-2 last:border-0"
-                >
-                  <span className="truncate text-sm font-medium text-[#0F172A]">{item.item_name}</span>
-                  <span className="shrink-0 text-xs text-[#64748B]">{item.quantity_sold} sold</span>
-                </li>
-              ))}
+              {data.leastItems.map((item) => {
+                const qty = Number(item.quantity_sold ?? 0) || 0;
+                return (
+                  <li
+                    key={item.item_name}
+                    className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 last:border-0"
+                  >
+                    <span className="truncate text-sm font-medium text-slate-900">
+                      {item.item_name}
+                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-slate-500">
+                      {qty} sold
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </article>
@@ -300,30 +425,104 @@ export function ReportCharts({ data }: { data: ReportData }) {
                 fill={NAVY}
                 radius={[4, 4, 0, 0]}
                 maxBarSize={32}
-                isAnimationActive
+                isAnimationActive={!reduceMotion}
               />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        {hasNoPaymentOrders ? (
-          <article className="min-w-0 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:p-6">
-            <h3 className="mb-4 text-base font-semibold text-[#0F172A]">Payment split</h3>
-            <div className="flex h-64 flex-col items-center justify-center text-center sm:h-72">
-              <Receipt className="mb-3 h-8 w-8 text-gray-400" aria-hidden="true" />
-              <p className="text-sm font-semibold text-[#0F172A]">No data yet</p>
-              <p className="mt-1 max-w-xs text-xs text-gray-400">
-                Start serving customers to see payment insights.
-              </p>
+        <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <h3 className="mb-4 text-base font-semibold text-slate-900">Payment split</h3>
+          {!hasPaymentRevenue ? (
+            <EmptyChartState message="Start serving customers to see payment insights." />
+          ) : (
+            <div id="chart-payment-split" className="flex h-64 w-full flex-col sm:h-72">
+              <div className="min-h-0 flex-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={paymentPieSlices}
+                      dataKey="revenue"
+                      nameKey="payment_method"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={44}
+                      outerRadius={72}
+                      paddingAngle={2}
+                      isAnimationActive={!reduceMotion}
+                    >
+                      {paymentPieSlices.map((entry) => (
+                        <Cell
+                          key={entry.payment_method}
+                          fill={PAYMENT_COLORS[entry.payment_method] ?? accent}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [
+                        formatCurrency(Number(value ?? 0)),
+                        String(name),
+                      ]}
+                      contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              {/* Always list all methods (incl. $0) so none silently vanish. */}
+              <ul className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
+                {paymentData.map((p) => (
+                  <li
+                    key={p.payment_method}
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-600"
+                    title={`${p.payment_method}: ${formatCurrency(p.revenue)} · ${p.order_count} orders`}
+                  >
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: PAYMENT_COLORS[p.payment_method] ?? accent }}
+                      aria-hidden="true"
+                    />
+                    <span>
+                      {p.payment_method} ({formatCurrency(p.revenue)})
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </article>
+          )}
+        </article>
+      </div>
+
+      <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <h3 className="mb-4 text-base font-semibold text-slate-900">Waiter performance</h3>
+        {waiterError ? (
+          <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-red-200 bg-red-50 px-4 text-center sm:h-72">
+            <p className="text-sm font-semibold text-red-800">Failed to load waiter performance</p>
+            <p className="max-w-sm text-xs text-red-600">{waiterError}</p>
+            {onRetryWaiter && (
+              <button
+                type="button"
+                onClick={onRetryWaiter}
+                className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-50"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        ) : !hasWaiters ? (
+          <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 text-center sm:h-72">
+            <Users className="mb-3 h-9 w-9 text-slate-300" aria-hidden="true" />
+            <p className="text-sm font-semibold text-slate-900">No waiter deliveries recorded yet</p>
+            <p className="mt-1 max-w-sm text-xs text-slate-400">
+              When staff mark orders as delivered with their name, performance stats appear here.
+            </p>
+          </div>
         ) : (
-          <ChartCard title="Payment split" chartId="chart-payment-split">
+          <div id="chart-waiter-performance" className="h-64 w-full sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={paymentStackData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+              <BarChart data={waiterData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
                 <XAxis
-                  dataKey="payment_method"
+                  dataKey="name"
                   tick={{ fill: "#64748B", fontSize: 11 }}
                   tickLine={false}
                   axisLine={{ stroke: "#E2E8F0" }}
@@ -332,58 +531,31 @@ export function ReportCharts({ data }: { data: ReportData }) {
                   tick={{ fill: "#64748B", fontSize: 11 }}
                   tickLine={false}
                   axisLine={{ stroke: "#E2E8F0" }}
-                  tickFormatter={(value) => formatCurrency(Number(value))}
+                  allowDecimals={false}
                 />
                 <Tooltip
-                  formatter={(value, name) => [formatCurrency(Number(value ?? 0)), String(name)]}
                   contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
+                  formatter={(value, name) =>
+                    name === "revenue"
+                      ? [formatCurrency(Number(value ?? 0)), "Revenue"]
+                      : [Number(value ?? 0), "Deliveries"]
+                  }
                 />
-                <Legend />
-                <Bar dataKey="evc" name="EVC" stackId="payment" fill={accent} isAnimationActive />
                 <Bar
-                  dataKey="edahab"
-                  name="eDahab"
-                  stackId="payment"
-                  fill={NAVY}
+                  dataKey="deliveries"
+                  name="deliveries"
+                  fill={accent}
                   radius={[4, 4, 0, 0]}
-                  isAnimationActive
+                  maxBarSize={48}
+                  isAnimationActive={!reduceMotion}
                 />
               </BarChart>
             </ResponsiveContainer>
-          </ChartCard>
+          </div>
         )}
-      </div>
+      </article>
 
-      <ChartCard title="Waiter performance" chartId="chart-waiter-performance" empty={!hasWaiters}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={waiterData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
-            <XAxis
-              dataKey="name"
-              tick={{ fill: "#64748B", fontSize: 11 }}
-              tickLine={false}
-              axisLine={{ stroke: "#E2E8F0" }}
-            />
-            <YAxis
-              tick={{ fill: "#64748B", fontSize: 11 }}
-              tickLine={false}
-              axisLine={{ stroke: "#E2E8F0" }}
-              allowDecimals={false}
-            />
-            <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }} />
-            <Bar
-              dataKey="deliveries"
-              name="Deliveries"
-              fill={accent}
-              radius={[4, 4, 0, 0]}
-              maxBarSize={48}
-              isAnimationActive
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartCard>
-
-      <SpikedSection items={data.spikedItems ?? []} accent={accent} />
+      <SpikedSection items={data.spikedItems ?? []} />
     </div>
   );
 }

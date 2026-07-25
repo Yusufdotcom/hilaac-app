@@ -9,7 +9,6 @@ import { formatCurrency } from "@/lib/utils";
 import { formatDateRangeLabel } from "@/lib/reports/timeframes";
 
 const NAVY: [number, number, number] = [15, 23, 42];
-const GOLD: [number, number, number] = [212, 163, 115];
 
 async function captureChart(id: string): Promise<string | null> {
   const el = document.getElementById(id);
@@ -22,7 +21,10 @@ async function fetchOrders(slug: string, start: string, end: string, limit?: num
   const params = new URLSearchParams({ slug, startDate: start, endDate: end });
   if (limit) params.set("limit", String(limit));
   const res = await fetch(`/api/admin/reports/orders?${params.toString()}`);
-  if (!res.ok) throw new Error("Failed to fetch orders for export");
+  if (!res.ok) {
+    console.error("[reports] fetchOrders failed", { slug, start, end, status: res.status });
+    throw new Error("Failed to fetch orders for export");
+  }
   const json = (await res.json()) as { orders: ExportOrderRow[] };
   return json.orders;
 }
@@ -33,96 +35,103 @@ export async function exportReportsPdf(options: {
   data: ReportData;
   isPro: boolean;
 }) {
-  const { slug, restaurantName, data, isPro } = options;
+  const { slug, restaurantName, data } = options;
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const rangeLabel = formatDateRangeLabel(data.meta.startDate, data.meta.endDate);
+  const pageW = doc.internal.pageSize.getWidth();
 
+  // Cover
   doc.setFillColor(...NAVY);
-  doc.rect(0, 0, doc.internal.pageSize.getWidth(), 80, "F");
+  doc.rect(0, 0, pageW, 120, "F");
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.text("Hilaac Analytics Report", 40, 45);
+  doc.setFontSize(22);
+  doc.text("Hilaac Insights", 40, 48);
+  doc.setFontSize(14);
+  doc.text(restaurantName, 40, 72);
   doc.setFontSize(11);
-  doc.text(restaurantName, 40, 62);
-  doc.text(rangeLabel, 40, 76);
+  doc.text(rangeLabel, 40, 94);
 
   doc.setTextColor(...NAVY);
-  doc.setFontSize(12);
-  doc.text(`Total Revenue: ${formatCurrency(data.kpi.total_revenue)}`, 40, 110);
-  doc.text(`Total Orders: ${data.kpi.total_orders}`, 40, 128);
-  doc.text(`AOV: ${formatCurrency(data.kpi.avg_order_value)}`, 40, 146);
-  doc.text(`Top Item: ${data.kpi.top_item_name}`, 40, 164);
+  doc.setFontSize(13);
+  doc.text("Key performance", 40, 150);
+  autoTable(doc, {
+    startY: 160,
+    head: [["Metric", "Value"]],
+    body: [
+      ["Total Orders", String(data.kpi.total_orders)],
+      ["Total Revenue", formatCurrency(data.kpi.total_revenue)],
+      ["Avg Order Value", formatCurrency(data.kpi.avg_order_value)],
+      [
+        "Top Selling Item",
+        `${data.kpi.top_item_name} (${data.kpi.top_item_quantity} sold)`,
+      ],
+    ],
+    headStyles: { fillColor: NAVY },
+  });
 
-  if (isPro) {
-    const chartIds = [
-      "chart-revenue",
-      "chart-top-items",
-      "chart-peak-hours",
-      "chart-payment-split",
-      "chart-waiter-performance",
-    ];
+  const chartSections: { id: string; title: string }[] = [
+    { id: "chart-revenue", title: "Revenue trend" },
+    { id: "chart-top-items", title: "Top 10 items" },
+    { id: "chart-payment-split", title: "Payment split" },
+    { id: "chart-waiter-performance", title: "Waiter performance" },
+  ];
 
-    for (const chartId of chartIds) {
-      const img = await captureChart(chartId);
-      if (!img) continue;
-      doc.addPage();
-      doc.setFontSize(14);
-      doc.text(chartId.replace("chart-", "").replace(/-/g, " "), 40, 40);
-      doc.addImage(img, "PNG", 40, 55, 515, 260);
-    }
-
+  for (const section of chartSections) {
+    const img = await captureChart(section.id);
+    if (!img) continue;
     doc.addPage();
     doc.setFontSize(14);
-    doc.text("Least ordered items", 40, 40);
+    doc.setTextColor(...NAVY);
+    doc.text(section.title, 40, 40);
+    doc.addImage(img, "PNG", 40, 55, 515, 260);
+  }
+
+  if (data.spikedItems.length > 0) {
+    doc.addPage();
+    doc.setFontSize(14);
+    doc.text("Trending / Spiked", 40, 40);
     autoTable(doc, {
       startY: 50,
-      head: [["Item", "Qty Sold", "Revenue"]],
-      body: data.leastItems.map((i) => [
+      head: [["Item", "Qty Sold", "Previous", "Growth %"]],
+      body: data.spikedItems.map((i) => [
         i.item_name,
         String(i.quantity_sold),
-        formatCurrency(Number(i.revenue)),
+        String(i.previous_quantity),
+        `+${i.growth_percent}%`,
       ]),
-      headStyles: { fillColor: NAVY },
-    });
-
-    const orders = await fetchOrders(slug, data.meta.startDate, data.meta.endDate, 501);
-    const truncated = orders.length > 500;
-    const rows = orders.slice(0, 500);
-
-    doc.addPage();
-    doc.setFontSize(14);
-    doc.text("Recent orders", 40, 40);
-    if (truncated) {
-      doc.setFontSize(10);
-      doc.text("Showing most recent 500 orders (truncated).", 40, 54);
-    }
-    autoTable(doc, {
-      startY: truncated ? 62 : 50,
-      head: [["Order ID", "Date", "Table", "Total", "Payment", "Status"]],
-      body: rows.map((o) => [
-        o.id.slice(0, 8),
-        new Date(o.created_at).toLocaleString(),
-        o.table_number ?? "—",
-        formatCurrency(o.total),
-        o.payment_method?.toUpperCase() ?? "Cash",
-        o.status,
-      ]),
-      headStyles: { fillColor: NAVY },
-      styles: { fontSize: 8 },
-    });
-  } else {
-    doc.addPage();
-    doc.setFontSize(14);
-    doc.text("Top 5 items", 40, 40);
-    autoTable(doc, {
-      startY: 50,
-      head: [["Item", "Qty Sold"]],
-      body: data.topItems.slice(0, 5).map((i) => [i.item_name, String(i.quantity_sold)]),
       headStyles: { fillColor: NAVY },
     });
   }
 
-  doc.save(`${restaurantName.replace(/\s+/g, "-").toLowerCase()}-report.pdf`);
+  const orders = await fetchOrders(slug, data.meta.startDate, data.meta.endDate, 501);
+  const truncated = orders.length > 500;
+  const rows = orders.slice(0, 500);
+
+  doc.addPage();
+  doc.setFontSize(14);
+  doc.text("Order logs", 40, 40);
+  if (truncated) {
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text("Showing most recent 500 orders (truncated).", 40, 54);
+    doc.setTextColor(...NAVY);
+  }
+  autoTable(doc, {
+    startY: truncated ? 62 : 50,
+    head: [["Order ID", "Date", "Table", "Total", "Payment", "Status"]],
+    body: rows.map((o) => [
+      o.id.slice(0, 8),
+      new Date(o.created_at).toLocaleString(),
+      o.table_number ?? "—",
+      formatCurrency(o.total),
+      o.payment_method?.toUpperCase() ?? "Cash",
+      o.status,
+    ]),
+    headStyles: { fillColor: NAVY },
+    styles: { fontSize: 8 },
+  });
+
+  doc.save(`${restaurantName.replace(/\s+/g, "-").toLowerCase()}-insights.pdf`);
 }
 
 export async function exportReportsExcel(options: {
@@ -131,17 +140,36 @@ export async function exportReportsExcel(options: {
   data: ReportData;
   isPro: boolean;
 }) {
-  const { slug, restaurantName, data, isPro } = options;
+  const { slug, restaurantName, data } = options;
   const wb = XLSX.utils.book_new();
 
-  const orders = await fetchOrders(
-    slug,
-    data.meta.startDate,
-    data.meta.endDate,
-    isPro ? undefined : 1001
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(
+      data.revenue.map((r) => ({
+        Period: r.period_label,
+        Orders: r.order_count,
+        Revenue: Number(r.revenue),
+      }))
+    ),
+    "Revenue Breakdown"
   );
-  const truncated = !isPro && orders.length > 1000;
-  const orderRows = (isPro ? orders : orders.slice(0, 1000)).map((o) => ({
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.json_to_sheet(
+      data.topItems.map((i, idx) => ({
+        Rank: idx + 1,
+        Item: i.item_name,
+        "Qty Sold": Number(i.quantity_sold) || 0,
+        Revenue: Number(i.revenue),
+      }))
+    ),
+    "Top Items"
+  );
+
+  const orders = await fetchOrders(slug, data.meta.startDate, data.meta.endDate);
+  const orderRows = orders.map((o) => ({
     "Order ID": o.id,
     Date: new Date(o.created_at).toLocaleString(),
     Table: o.table_number ?? "—",
@@ -151,67 +179,7 @@ export async function exportReportsExcel(options: {
     "Delivered By": o.delivered_by ?? "—",
   }));
 
-  if (truncated) {
-    orderRows.push({
-      "Order ID": "NOTE",
-      Date: "Export capped at 1,000 most recent orders.",
-      Table: "",
-      Total: 0,
-      "Payment Method": "",
-      Status: "",
-      "Delivered By": "",
-    });
-  }
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orderRows), "Order Logs");
 
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(orderRows), "Orders");
-
-  if (isPro) {
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        data.revenue.map((r) => ({
-          Period: r.period_label,
-          Orders: r.order_count,
-          Revenue: Number(r.revenue),
-        }))
-      ),
-      "Revenue"
-    );
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        data.topItems.map((i, idx) => ({
-          Rank: idx + 1,
-          Item: i.item_name,
-          "Qty Sold": i.quantity_sold,
-          Revenue: Number(i.revenue),
-        }))
-      ),
-      "Top Items"
-    );
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        data.peakHours.map((h) => ({
-          Hour: `${String(h.hour_of_day).padStart(2, "0")}:00`,
-          Orders: h.order_count,
-          Revenue: Number(h.revenue),
-        }))
-      ),
-      "Peak Hours"
-    );
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        data.waiterPerformance.map((w) => ({
-          Waiter: w.waiter_name,
-          Deliveries: w.deliveries,
-          Revenue: Number(w.revenue),
-        }))
-      ),
-      "Waiter Performance"
-    );
-  }
-
-  XLSX.writeFile(wb, `${restaurantName.replace(/\s+/g, "-").toLowerCase()}-report.xlsx`);
+  XLSX.writeFile(wb, `${restaurantName.replace(/\s+/g, "-").toLowerCase()}-insights.xlsx`);
 }
