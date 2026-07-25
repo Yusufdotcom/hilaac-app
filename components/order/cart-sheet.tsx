@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
 import {
   customerAccentTextStyleFromAccent,
-  customerPrimaryButtonStyleFromAccent,
+  customerPlaceOrderButtonStyle,
   HILAAC_GOLD,
 } from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
@@ -77,7 +77,7 @@ function CartItemCard({
   return (
     <article
       className={cn(
-        "relative rounded-xl border border-gray-100 bg-white p-3 shadow-xl shadow-gray-200/50 transition-all duration-300",
+        "relative rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-200",
         isUnavailable && "border-amber-200 bg-amber-50/30"
       )}
     >
@@ -210,7 +210,6 @@ export function CartSheet({
   tables,
   orderType,
   tableNumber,
-  onTableNumberChange,
   onUpdateItem,
   onRemoveItem,
   onOrderPlaced,
@@ -224,8 +223,8 @@ export function CartSheet({
   unavailableMenuIds: Set<string>;
   tables: RestaurantTable[];
   orderType: OrderType;
+  /** Locked after table-select step — display only, not editable here. */
   tableNumber: string;
-  onTableNumberChange: (value: string) => void;
   onUpdateItem: (cartId: string, updates: Partial<CartItem>) => void;
   onRemoveItem: (cartId: string) => void;
   onOrderPlaced: (orderId: string) => void;
@@ -254,9 +253,13 @@ export function CartSheet({
 
   const brand = useOrderBrandOptional();
   const accent = brand?.accent ?? HILAAC_GOLD;
-  const customBrandingActive = brand?.customBrandingActive ?? false;
   const accentStyle = customerAccentTextStyleFromAccent(accent);
-  const placeOrderStyle = customerPrimaryButtonStyleFromAccent(accent, customBrandingActive);
+  const placeOrderStyle = customerPlaceOrderButtonStyle(
+    brand?.branding ?? {
+      brand_color: restaurant.brand_color,
+      custom_branding_enabled: restaurant.custom_branding_enabled,
+    }
+  );
 
   // Wait for a valid auth session OR guest id before enabling Place Order / Ku bixi.
   useEffect(() => {
@@ -298,7 +301,8 @@ export function CartSheet({
   const dineInItems = useMemo(() => cart.filter((i) => i.orderType === "dine-in"), [cart]);
   const takeawayItems = useMemo(() => cart.filter((i) => i.orderType === "takeaway"), [cart]);
   const showGroupedSections = dineInItems.length > 0 && takeawayItems.length > 0;
-  const showTableInput = orderType === "dine-in" || dineInItems.length > 0;
+  const showTableLabel =
+    (orderType === "dine-in" || dineInItems.length > 0) && Boolean(tableNumber);
 
   const hasUnavailableItems = useMemo(
     () => cart.some((item) => unavailableMenuIds.has(item.menuItem.id)),
@@ -355,7 +359,7 @@ export function CartSheet({
       return false;
     }
     if (orderType === "dine-in" && !tableNumber) {
-      toast.error("Fadlan geli lambarka miiska");
+      toast.error("Fadlan dooro miiskaaga marka hore");
       return false;
     }
     return true;
@@ -647,22 +651,23 @@ export function CartSheet({
           overlayClassName="bg-black/40 backdrop-blur-sm"
           className={cn(
             "mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col gap-0 overflow-hidden",
-            "rounded-none border-0 bg-gray-50 p-0 shadow-xl shadow-gray-200/50",
-            "transition-all duration-300 sm:rounded-t-2xl"
+            "rounded-none border-0 bg-slate-50 p-0 shadow-2xl",
+            "motion-safe:animate-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-300",
+            "sm:rounded-t-3xl"
           )}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {/* Header */}
-          <SheetHeader className="relative shrink-0 space-y-0 border-b border-gray-100 bg-white px-5 pb-4 pt-5 pr-12 text-left">
+          <SheetHeader className="relative shrink-0 space-y-0 border-b border-slate-100 bg-white px-5 pb-4 pt-5 pr-12 text-left">
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="absolute left-4 top-5 flex items-center gap-1.5 rounded-lg px-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
+              className="absolute left-4 top-5 flex items-center gap-1.5 rounded-xl px-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
               aria-label="Back to menu"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <SheetTitle className="flex items-center justify-center gap-2.5 pl-6 text-xl font-bold text-gray-900">
+            <SheetTitle className="flex items-center justify-center gap-2.5 pl-6 text-xl font-bold text-slate-900">
               <ShoppingBasket className="h-5 w-5" style={accentStyle} aria-hidden="true" />
               Saladda
             </SheetTitle>
@@ -744,18 +749,10 @@ export function CartSheet({
                     )}
                   </div>
 
-                  {showTableInput && (
-                    <div className="space-y-1.5">
-                      <Label htmlFor="cart-table" className="text-sm font-medium text-gray-700">
-                        Lambarka miiska
-                      </Label>
-                      <Input
-                        id="cart-table"
-                        placeholder="e.g. 12"
-                        value={tableNumber}
-                        onChange={(e) => onTableNumberChange(e.target.value)}
-                        className="rounded-lg border-gray-200 bg-gray-50 focus-visible:bg-white"
-                      />
+                  {showTableLabel && (
+                    <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <span className="text-sm font-medium text-slate-600">Miiska</span>
+                      <span className="text-sm font-bold text-slate-900">Table {tableNumber}</span>
                     </div>
                   )}
                 </div>
@@ -781,7 +778,12 @@ export function CartSheet({
                       size="lg"
                       disabled={paymentDisabled}
                       onClick={() => handleInitiatePayment("evc")}
-                      className="h-12 w-full gap-2 rounded-xl border-0 bg-[#10B981] text-base font-semibold text-white shadow-md shadow-emerald-200/50 transition-all duration-300 hover:bg-[#059669] active:scale-[0.98]"
+                      className={cn(
+                        "h-14 w-full gap-2 rounded-2xl border-0 bg-[#059669] text-base font-bold text-white",
+                        "shadow-[0_8px_20px_rgba(5,150,105,0.35)] transition-all duration-200",
+                        "hover:bg-[#047857] active:scale-[0.98]",
+                        "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                      )}
                     >
                       {placing === "evc" || !isReady ? (
                         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
@@ -796,7 +798,12 @@ export function CartSheet({
                       size="lg"
                       disabled={paymentDisabled}
                       onClick={() => handleInitiatePayment("edahab")}
-                      className="h-12 w-full gap-2 rounded-xl border-0 bg-[#F59E0B] text-base font-semibold text-white shadow-md shadow-amber-200/50 transition-all duration-300 hover:bg-[#D97706] active:scale-[0.98]"
+                      className={cn(
+                        "h-14 w-full gap-2 rounded-2xl border-0 bg-[#D97706] text-base font-bold text-white",
+                        "shadow-[0_8px_20px_rgba(217,119,6,0.35)] transition-all duration-200",
+                        "hover:bg-[#B45309] active:scale-[0.98]",
+                        "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                      )}
                     >
                       {placing === "edahab" || !isReady ? (
                         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
@@ -808,7 +815,7 @@ export function CartSheet({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="rounded-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-center text-sm text-gray-600">
+                    <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-center text-sm text-slate-600">
                       {payAfterMessage(orderType)}
                     </p>
                     <button
@@ -816,9 +823,9 @@ export function CartSheet({
                       disabled={paymentDisabled}
                       onClick={handlePlaceOrderWithoutPayment}
                       className={cn(
-                        "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold text-white",
-                        "shadow-lg transition-all duration-300 hover:opacity-90 active:scale-[0.98]",
-                        "disabled:cursor-not-allowed disabled:opacity-50"
+                        "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold text-white",
+                        "shadow-[0_8px_24px_rgba(15,23,42,0.28)] transition-all duration-200 hover:opacity-95 active:scale-[0.98]",
+                        "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                       )}
                       style={placeOrderStyle}
                     >

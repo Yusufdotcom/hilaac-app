@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import type { KpiSummary, KpiTrend } from "@/lib/reports/types";
@@ -76,25 +77,46 @@ function TrendBadge({ trend }: { trend: KpiTrend }) {
   );
 }
 
+/**
+ * Portal tooltip to document.body so sticky headers (z-30) and
+ * overflow-x-hidden ancestors cannot clip or bury it.
+ */
 function ComparisonTooltip({
+  open,
+  anchorRect,
   label,
   trend,
   format,
 }: {
+  open: boolean;
+  anchorRect: DOMRect | null;
   label: string;
   trend: KpiTrend;
   format: (n: number) => string;
 }) {
-  return (
-    <span
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || !open || !anchorRect) return null;
+
+  const left = Math.min(
+    Math.max(12, anchorRect.left + anchorRect.width / 2),
+    window.innerWidth - 12
+  );
+  const top = Math.max(8, anchorRect.top - 8);
+
+  return createPortal(
+    <div
       role="tooltip"
-      className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[220px] -translate-x-1/2 rounded-lg bg-slate-900 px-3 py-2 text-center text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 motion-reduce:transition-none"
+      className="pointer-events-none fixed z-[100] w-max max-w-[240px] -translate-x-1/2 -translate-y-full rounded-lg bg-slate-900 px-3 py-2 text-center text-xs font-medium text-white shadow-lg"
+      style={{ left, top }}
     >
       {format(trend.current)} vs {format(trend.previous)} last period
       <span className="sr-only">
         {label}: {format(trend.current)} versus {format(trend.previous)} last period
       </span>
-    </span>
+    </div>,
+    document.body
   );
 }
 
@@ -112,6 +134,11 @@ export function KpiCards({
 }: KpiCardsProps) {
   const animatedOnce = useRef(false);
   const shouldAnimate = animateEntrance && !animatedOnce.current;
+  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
+  const [focusLabel, setFocusLabel] = useState<string | null>(null);
+  const cardRefs = useRef<Record<string, HTMLElement | null>>({});
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const activeLabel = hoveredLabel ?? focusLabel;
 
   useEffect(() => {
     if (!animateEntrance || animatedOnce.current) return;
@@ -119,6 +146,23 @@ export function KpiCards({
     const t = window.setTimeout(() => onEntranceComplete?.(), 750);
     return () => window.clearTimeout(t);
   }, [animateEntrance, onEntranceComplete]);
+
+  useLayoutEffect(() => {
+    if (!activeLabel) {
+      setAnchorRect(null);
+      return;
+    }
+    const el = cardRefs.current[activeLabel];
+    if (!el) return;
+    const update = () => setAnchorRect(el.getBoundingClientRect());
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [activeLabel]);
 
   const trends = kpi.trends;
   const ordersDisplay = useCountUp(kpi.total_orders, shouldAnimate);
@@ -156,14 +200,23 @@ export function KpiCards({
     },
   ];
 
+  const activeCard = cards.find((c) => c.label === activeLabel && c.trend && c.format);
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => (
         <article
           key={card.label}
+          ref={(el) => {
+            cardRefs.current[card.label] = el;
+          }}
           tabIndex={card.trend ? 0 : undefined}
+          onMouseEnter={() => card.trend && setHoveredLabel(card.label)}
+          onMouseLeave={() => setHoveredLabel((cur) => (cur === card.label ? null : cur))}
+          onFocus={() => card.trend && setFocusLabel(card.label)}
+          onBlur={() => setFocusLabel((cur) => (cur === card.label ? null : cur))}
           className={cn(
-            "group relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm",
+            "relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm",
             "motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-md",
             "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
           )}
@@ -181,16 +234,18 @@ export function KpiCards({
             {card.value}
           </p>
           {card.sub && <p className="mt-1.5 text-xs font-medium text-slate-400">{card.sub}</p>}
-          {card.trend && (
-            <>
-              <p className="mt-2 text-[11px] text-slate-400">vs previous period</p>
-              {card.format && (
-                <ComparisonTooltip label={card.label} trend={card.trend} format={card.format} />
-              )}
-            </>
-          )}
+          {card.trend && <p className="mt-2 text-[11px] text-slate-400">vs previous period</p>}
         </article>
       ))}
+      {activeCard?.trend && activeCard.format && (
+        <ComparisonTooltip
+          open
+          anchorRect={anchorRect}
+          label={activeCard.label}
+          trend={activeCard.trend}
+          format={activeCard.format}
+        />
+      )}
     </div>
   );
 }

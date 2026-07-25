@@ -25,11 +25,21 @@ import { formatCurrency } from "@/lib/utils";
 const NAVY = "#0F172A";
 const INDIGO = "#6366F1";
 const GOLD = "#D4A373";
+/** Display label → slice/legend color (must stay in sync). */
 const PAYMENT_COLORS: Record<string, string> = {
   EVC: "#10B981",
   eDahab: "#D4A373",
   Cash: "#64748B",
 };
+
+const PAYMENT_METHODS = ["EVC", "eDahab", "Cash"] as const;
+
+function canonicalizePaymentMethod(raw: string): (typeof PAYMENT_METHODS)[number] {
+  const key = raw.toLowerCase().replace(/[-_\s]/g, "");
+  if (key === "evc") return "EVC";
+  if (key === "edahab") return "eDahab";
+  return "Cash";
+}
 
 const EMPTY_PERIOD = "No data available for this period.";
 
@@ -192,19 +202,40 @@ function useReportChartData(data: ReportData) {
     return days.reduce((best, day) => (day.order_count > best.order_count ? day : best));
   }, [data.peakDays]);
 
+  /**
+   * Always three methods with numeric revenue ≥ 0 (never null).
+   * Canonical Recharts shape: { name, value, fill } plus display fields.
+   */
   const paymentData = useMemo(() => {
-    const methods = ["EVC", "eDahab", "Cash"] as const;
-    return methods.map((m) => {
-      const found = data.paymentSplit.find(
-        (r) => r.payment_method.toLowerCase() === m.toLowerCase()
-      );
+    const byMethod = new Map<string, { order_count: number; revenue: number }>();
+    for (const row of data.paymentSplit ?? []) {
+      const method = canonicalizePaymentMethod(String(row.payment_method ?? "Cash"));
+      const prev = byMethod.get(method) ?? { order_count: 0, revenue: 0 };
+      byMethod.set(method, {
+        order_count: prev.order_count + (Number(row.order_count) || 0),
+        revenue: prev.revenue + (Number(row.revenue) || 0),
+      });
+    }
+
+    return PAYMENT_METHODS.map((method) => {
+      const found = byMethod.get(method);
+      const revenue = Number(found?.revenue ?? 0) || 0;
+      const order_count = Number(found?.order_count ?? 0) || 0;
       return {
-        payment_method: m,
-        order_count: Number(found?.order_count ?? 0) || 0,
-        revenue: Number(found?.revenue ?? 0) || 0,
+        name: method,
+        value: revenue,
+        fill: PAYMENT_COLORS[method],
+        payment_method: method,
+        order_count,
+        revenue,
       };
     });
   }, [data.paymentSplit]);
+
+  const paymentPieSlices = useMemo(
+    () => paymentData.filter((p) => p.value > 0),
+    [paymentData]
+  );
 
   const waiterData = useMemo(
     () =>
@@ -222,7 +253,7 @@ function useReportChartData(data: ReportData) {
     peakHoursData,
     peakDay,
     paymentData,
-    paymentPieSlices: paymentData.filter((p) => p.revenue > 0),
+    paymentPieSlices,
     waiterData,
     revenuePeriodTotal: data.kpi.total_revenue,
   };
@@ -339,11 +370,20 @@ export function RevenueTrendPanel({
 }
 
 function PaymentSplitPanel({ data }: { data: ReportData }) {
-  const brandAccent = resolveBrandColor(useAdminBrandColor());
-  const accent = brandAccent || GOLD;
   const reduceMotion = usePrefersReducedMotion();
   const { paymentData, paymentPieSlices } = useReportChartData(data);
-  const hasPaymentRevenue = paymentData.some((p) => p.revenue > 0);
+  const hasPaymentRevenue = paymentPieSlices.length > 0;
+  const pieTotal = paymentPieSlices.reduce((sum, p) => sum + p.value, 0);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      console.info("[reports] PaymentSplit Pie data", {
+        paymentData,
+        paymentPieSlices,
+        pieTotal,
+      });
+    }
+  }, [paymentData, paymentPieSlices, pieTotal]);
 
   return (
     <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -351,49 +391,55 @@ function PaymentSplitPanel({ data }: { data: ReportData }) {
       {!hasPaymentRevenue ? (
         <EmptyChartState />
       ) : (
-        <div id="chart-payment-split" className="flex h-64 w-full flex-col sm:h-72">
-          <div className="min-h-0 flex-1">
-            <ResponsiveContainer width="100%" height="100%">
+        <div id="chart-payment-split" className="flex w-full flex-col">
+          <div className="mx-auto h-[220px] w-full max-w-[320px]">
+            <ResponsiveContainer width="100%" height={220}>
               <PieChart>
                 <Pie
                   data={paymentPieSlices}
-                  dataKey="revenue"
-                  nameKey="payment_method"
+                  dataKey="value"
+                  nameKey="name"
                   cx="50%"
                   cy="50%"
-                  innerRadius={44}
-                  outerRadius={72}
-                  paddingAngle={2}
+                  innerRadius={52}
+                  outerRadius={80}
+                  paddingAngle={paymentPieSlices.length > 1 ? 2 : 0}
+                  stroke="#ffffff"
+                  strokeWidth={2}
                   isAnimationActive={!reduceMotion}
                 >
                   {paymentPieSlices.map((entry) => (
-                    <Cell
-                      key={entry.payment_method}
-                      fill={PAYMENT_COLORS[entry.payment_method] ?? accent}
-                    />
+                    <Cell key={entry.name} fill={entry.fill} />
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value, name) => [formatCurrency(Number(value ?? 0)), String(name)]}
+                  formatter={(value, name) => {
+                    const amount = Number(value ?? 0);
+                    const pct = pieTotal > 0 ? Math.round((amount / pieTotal) * 1000) / 10 : 0;
+                    return [`${formatCurrency(amount)} (${pct}%)`, String(name)];
+                  }}
                   contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <ul className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
+          <ul className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
             {paymentData.map((p) => (
               <li
-                key={p.payment_method}
+                key={p.name}
                 className="inline-flex items-center gap-1.5 text-xs text-slate-600"
-                title={`${p.payment_method}: ${formatCurrency(p.revenue)} · ${p.order_count} orders`}
+                title={`${p.name}: ${formatCurrency(p.value)} · ${p.order_count} orders`}
               >
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: PAYMENT_COLORS[p.payment_method] ?? accent }}
+                  style={{ backgroundColor: p.fill }}
                   aria-hidden="true"
                 />
                 <span>
-                  {p.payment_method} ({formatCurrency(p.revenue)})
+                  {p.name} ({formatCurrency(p.value)})
+                  {p.value === 0 ? (
+                    <span className="text-slate-400"> · none this period</span>
+                  ) : null}
                 </span>
               </li>
             ))}

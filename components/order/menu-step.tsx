@@ -2,15 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowLeft, ShoppingBasket, Star, UtensilsCrossed, Plus } from "lucide-react";
+import { ArrowLeft, Star, UtensilsCrossed, Plus, X, GlassWater } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { OrderPrimaryButton } from "@/components/order/order-primary-button";
+import { CartTrayFab } from "@/components/order/cart-tray-fab";
 import { useOrderBrand } from "@/components/order/order-brand-context";
 import {
+  brandColorWithAlpha,
   customerAccentTextStyleFromAccent,
   customerActiveTabStyleFromAccent,
   customerPrimaryButtonStyleFromAccent,
 } from "@/lib/brand/restaurant-brand";
+import { findDrinksCategory } from "@/lib/order/drinks-category";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Category, MenuItem } from "@/types/database";
 
@@ -29,8 +31,10 @@ function ItemCard({
   return (
     <div
       className={cn(
-        "relative flex w-40 shrink-0 flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-sm",
-        unavailable ? "pointer-events-none cursor-not-allowed opacity-60" : "transition-transform active:scale-[0.97]"
+        "relative flex w-40 shrink-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-left shadow-sm",
+        unavailable
+          ? "pointer-events-none cursor-not-allowed opacity-60"
+          : "transition-transform active:scale-[0.97]"
       )}
     >
       {!unavailable ? (
@@ -104,7 +108,7 @@ function ItemCardContent({
           </span>
           {!unavailable && (
             <span
-              className="flex h-7 w-7 items-center justify-center rounded-full"
+              className="flex h-7 w-7 items-center justify-center rounded-full shadow-sm"
               style={plusStyle}
             >
               <Plus className="h-4 w-4" />
@@ -126,6 +130,9 @@ export function MenuStep({
   orderType,
   tableNumber,
   cartCount,
+  cartBumpKey = 0,
+  showDrinksUpsell = false,
+  onDismissDrinksUpsell,
   onBack,
   onSelectItem,
   onOpenCart,
@@ -137,6 +144,9 @@ export function MenuStep({
   orderType: "dine-in" | "takeaway";
   tableNumber: string;
   cartCount: number;
+  cartBumpKey?: number;
+  showDrinksUpsell?: boolean;
+  onDismissDrinksUpsell?: () => void;
   onBack: () => void;
   onSelectItem: (item: MenuItem) => void;
   onOpenCart: () => void;
@@ -144,6 +154,8 @@ export function MenuStep({
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const { accent, customBrandingActive } = useOrderBrand();
+
+  const drinksCategory = useMemo(() => findDrinksCategory(categories), [categories]);
 
   const tabs = useMemo(() => {
     const items: MenuTab[] = [];
@@ -167,7 +179,7 @@ export function MenuStep({
   const sessionLabel =
     orderType === "dine-in"
       ? tableNumber
-        ? `Fadhi · Miiska ${tableNumber}`
+        ? `Fadhi · Table ${tableNumber}`
         : "Fadhi"
       : "Qaadasho";
 
@@ -204,11 +216,22 @@ export function MenuStep({
     sectionRefs.current[tabId]?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function handleDrinksUpsellClick() {
+    if (drinksCategory) {
+      scrollToTab(drinksCategory.id);
+    }
+    onDismissDrinksUpsell?.();
+  }
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="sticky top-0 z-20 shrink-0 border-b bg-background/95 backdrop-blur">
+    <div className="flex min-h-0 flex-1 flex-col motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-3 motion-safe:duration-300">
+      <header className="sticky top-0 z-20 shrink-0 border-b border-border/60 bg-background/95 backdrop-blur">
         <div className="flex items-center justify-between px-4 py-3">
-          <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-1 rounded-lg text-sm text-muted-foreground transition-colors active:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
           <div className="text-center">
@@ -219,7 +242,7 @@ export function MenuStep({
         </div>
 
         {tabs.length > 1 && (
-          <div className="no-scrollbar flex gap-2 overflow-x-auto border-t px-4 py-2">
+          <div className="no-scrollbar flex gap-2 overflow-x-auto border-t border-border/50 px-4 py-2">
             {tabs.map((tab) => {
               const active = activeTabId === tab.id;
               return (
@@ -240,6 +263,45 @@ export function MenuStep({
           </div>
         )}
       </header>
+
+      {showDrinksUpsell && drinksCategory && (
+        <div
+          className="shrink-0 border-b border-border/50 px-4 py-2.5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2"
+          style={{ backgroundColor: brandColorWithAlpha(accent, 0.08) }}
+        >
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleDrinksUpsellClick}
+              className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+            >
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                style={{
+                  backgroundColor: brandColorWithAlpha(accent, 0.18),
+                  color: accent,
+                }}
+              >
+                <GlassWater className="h-4.5 w-4.5 h-4 w-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-foreground">Add a drink?</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  Browse {drinksCategory.name}
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onDismissDrinksUpsell?.()}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground"
+              aria-label="Dismiss drinks suggestion"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
         <div className={cn("space-y-6 px-4 py-4", cartCount > 0 && "pb-28")}>
@@ -293,14 +355,7 @@ export function MenuStep({
         </div>
       </div>
 
-      {cartCount > 0 && (
-        <div className="sticky bottom-0 z-30 shrink-0 border-t bg-background/95 px-4 py-3 backdrop-blur">
-          <OrderPrimaryButton size="lg" onClick={onOpenCart} className="w-full gap-2 rounded-full shadow-lg">
-            <ShoppingBasket className="h-5 w-5" />
-            Saladda ({cartCount})
-          </OrderPrimaryButton>
-        </div>
-      )}
+      <CartTrayFab count={cartCount} bumpKey={cartBumpKey} onOpen={onOpenCart} />
     </div>
   );
 }

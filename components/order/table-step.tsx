@@ -1,88 +1,186 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, Delete } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Armchair } from "lucide-react";
 import { OrderPrimaryButton } from "@/components/order/order-primary-button";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
-import { resolveCustomerAccent } from "@/lib/brand/restaurant-brand";
+import {
+  brandColorWithAlpha,
+  resolveCustomerAccent,
+} from "@/lib/brand/restaurant-brand";
 import { cn } from "@/lib/utils";
 import type { RestaurantTable } from "@/types/database";
 
-const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "back"];
+type TableOption = {
+  number: string;
+  occupied: boolean;
+};
+
+function sortTableNumbers(a: string, b: string) {
+  const numA = Number.parseInt(a, 10);
+  const numB = Number.parseInt(b, 10);
+  if (Number.isFinite(numA) && Number.isFinite(numB) && String(numA) === a && String(numB) === b) {
+    return numA - numB;
+  }
+  return a.localeCompare(b, undefined, { numeric: true });
+}
 
 export function TableStep({
   tables,
+  occupiedTableNumbers = [],
   onConfirm,
   onBack,
   className,
 }: {
   restaurant: { name: string };
   tables: RestaurantTable[];
+  /** Optional occupied markers (UI-only hint; selection still allowed). */
+  occupiedTableNumbers?: string[];
   onConfirm: (tableNumber: string) => void;
   onBack: () => void;
   className?: string;
 }) {
   const brand = useOrderBrandOptional();
   const accent = brand ? brand.accent : resolveCustomerAccent({});
-  const [value, setValue] = useState("");
+  const [selected, setSelected] = useState<string | null>(null);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
-  function press(key: string) {
-    if (key === "back") {
-      setValue((v) => v.slice(0, -1));
-    } else if (key) {
-      setValue((v) => (v.length < 4 ? v + key : v));
+  const occupied = useMemo(
+    () => new Set(occupiedTableNumbers.map(String)),
+    [occupiedTableNumbers]
+  );
+
+  const options: TableOption[] = useMemo(() => {
+    if (tables.length > 0) {
+      return [...tables]
+        .map((t) => t.table_number)
+        .sort(sortTableNumbers)
+        .map((number) => ({ number, occupied: occupied.has(number) }));
     }
+    // Fallback when restaurant has no configured tables yet.
+    return Array.from({ length: 12 }, (_, i) => ({
+      number: String(i + 1),
+      occupied: false,
+    }));
+  }, [tables, occupied]);
+
+  function selectTable(number: string, isOccupied: boolean) {
+    setSelected(number);
+    setNeedsConfirm(isOccupied);
   }
 
-  const knownTable = tables.find((t) => t.table_number === value);
-  const canConfirm = value.length > 0 && (tables.length === 0 || !!knownTable);
+  function handleContinue() {
+    if (!selected) return;
+    onConfirm(selected);
+  }
 
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col px-5 py-4", className)}>
+    <div
+      className={cn(
+        "flex min-h-0 flex-1 flex-col px-5 py-4",
+        "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-3 motion-safe:duration-300",
+        className
+      )}
+    >
       <div className="shrink-0">
-        <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-2 rounded-lg text-sm text-muted-foreground transition-colors active:text-foreground"
+        >
           <ArrowLeft className="h-4 w-4" /> Dib u noqo
         </button>
 
-        <div className="mt-4 text-center">
-          <h1 className="text-xl font-bold">Lambarka miiska</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Fadlan gali lambarka miiska aad ku fadhiyo</p>
+        <div className="mt-5 text-center">
+          <h1 className="text-xl font-bold tracking-tight">Dooro miiskaaga</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Taabo lambarka miiska aad ku fadhiyo
+          </p>
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
-        <div
-          className="flex h-16 w-36 items-center justify-center rounded-2xl border-2 text-3xl font-bold transition-all duration-200"
-          style={{ borderColor: accent }}
-        >
-          {value || <span className="text-muted-foreground">—</span>}
+      <div className="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-y-contain pb-3">
+        <div className="mx-auto grid max-w-sm grid-cols-3 gap-3 sm:grid-cols-4">
+          {options.map((opt) => {
+            const isSelected = selected === opt.number;
+            return (
+              <button
+                key={opt.number}
+                type="button"
+                onClick={() => selectTable(opt.number, opt.occupied)}
+                className={cn(
+                  "relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border-2 bg-background",
+                  "shadow-sm transition-all duration-200 active:scale-[0.96]",
+                  "motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95",
+                  !isSelected && "border-border/80 hover:border-border hover:shadow-md",
+                  isSelected && "shadow-md"
+                )}
+                style={
+                  isSelected
+                    ? {
+                        borderColor: accent,
+                        backgroundColor: brandColorWithAlpha(accent, 0.1),
+                        boxShadow: `0 8px 20px ${brandColorWithAlpha(accent, 0.22)}`,
+                      }
+                    : undefined
+                }
+                aria-pressed={isSelected}
+                aria-label={`Table ${opt.number}${opt.occupied ? ", possibly occupied" : ""}`}
+              >
+                <Armchair
+                  className="h-7 w-7"
+                  style={{ color: isSelected ? accent : undefined }}
+                  aria-hidden="true"
+                />
+                <span
+                  className={cn(
+                    "text-lg font-bold tabular-nums",
+                    !isSelected && "text-foreground"
+                  )}
+                  style={isSelected ? { color: accent } : undefined}
+                >
+                  {opt.number}
+                </span>
+                {opt.occupied && (
+                  <span className="absolute right-2 top-2 flex items-center gap-1">
+                    <span
+                      className="h-2 w-2 rounded-full bg-amber-500 ring-2 ring-amber-100"
+                      aria-hidden="true"
+                    />
+                    <span className="sr-only">Possibly occupied</span>
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {tables.length > 0 && value && !knownTable && (
-          <p className="mt-3 text-center text-sm text-destructive">
-            Miiskaas lama helin. Fadlan hubi lambarka.
+        {needsConfirm && selected && (
+          <div
+            className="mx-auto mt-4 max-w-sm rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900 motion-safe:animate-in motion-safe:fade-in"
+            role="status"
+          >
+            Please confirm this is your table before continuing.
+            <span className="mt-0.5 block text-xs text-amber-700/90">
+              Miiska {selected} ayaa u muuqda mid la isticmaalayo
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="shrink-0 space-y-2 pt-3">
+        {selected && (
+          <p className="text-center text-sm text-muted-foreground">
+            Selected:{" "}
+            <span className="font-semibold text-foreground">Table {selected}</span>
           </p>
         )}
-
-        <div className="mt-4 grid w-full max-w-xs grid-cols-3 gap-2">
-          {KEYS.map((key, idx) =>
-            key === "" ? (
-              <div key={idx} />
-            ) : (
-              <button
-                key={idx}
-                onClick={() => press(key)}
-                className="flex h-12 items-center justify-center rounded-xl border bg-card text-lg font-semibold transition-colors active:bg-muted"
-              >
-                {key === "back" ? <Delete className="h-5 w-5" /> : key}
-              </button>
-            )
-          )}
-        </div>
-      </div>
-
-      <div className="shrink-0 pt-3">
-        <OrderPrimaryButton size="lg" className="h-12 w-full" disabled={!canConfirm} onClick={() => onConfirm(value)}>
+        <OrderPrimaryButton
+          size="lg"
+          className="h-12 w-full rounded-2xl text-base font-semibold shadow-md"
+          disabled={!selected}
+          onClick={handleContinue}
+        >
           Sii wad
         </OrderPrimaryButton>
       </div>

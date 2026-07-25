@@ -32,14 +32,14 @@ function OrderTypeCard({
       type="button"
       onClick={() => onSelect(type)}
       className={cn(
-        "flex w-full items-center gap-4 rounded-2xl border-2 bg-background p-5 text-left",
-        "transition-all duration-300 ease-out active:scale-[0.98]",
+        "flex w-full items-center gap-4 rounded-2xl border-2 bg-background p-5 text-left shadow-sm",
+        "transition-all duration-200 ease-out active:scale-[0.98]",
         "hover:shadow-md"
       )}
       style={customerSelectionCardStyleFromAccent(accent, false)}
     >
       <div
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-all duration-300"
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-all duration-200"
         style={customerSelectionIconStyleFromAccent(accent, true, customBrandingActive)}
       >
         <Icon className="h-6 w-6" aria-hidden="true" />
@@ -68,12 +68,12 @@ export function LandingStep({
     <div
       className={cn(
         "flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-6 text-center",
-        "animate-in fade-in slide-in-from-bottom-2 duration-300",
+        "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-300",
         className
       )}
     >
       <div
-        className="mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full transition-all duration-300"
+        className="mb-5 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full shadow-sm transition-all duration-300"
         style={{ backgroundColor: brandColorWithAlpha(accent, 0.12) }}
       >
         {restaurant.logo_url ? (

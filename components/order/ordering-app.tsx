@@ -5,6 +5,7 @@ import type { AddOn, Category, MenuItem, OrderType, RestaurantTable } from "@/ty
 import type { CartItem } from "@/lib/order/cart-types";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
 import { ensureGuestId } from "@/lib/order/guest-id";
+import { findDrinksCategory, isFoodMenuItem } from "@/lib/order/drinks-category";
 import { useRealtimeMenuItems } from "@/lib/hooks/use-realtime-menu-items";
 import { LandingStep } from "@/components/order/landing-step";
 import { TableStep } from "@/components/order/table-step";
@@ -51,7 +52,10 @@ export function OrderingApp({
   const [tableNumber, setTableNumber] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [cartBumpKey, setCartBumpKey] = useState(0);
   const [customizeItem, setCustomizeItem] = useState<MenuItem | null>(null);
+  const [showDrinksUpsell, setShowDrinksUpsell] = useState(false);
+  const [drinksUpsellDismissed, setDrinksUpsellDismissed] = useState(false);
   const [ussdPayment, setUssdPayment] = useState<{
     orderIds: string[];
     code: string;
@@ -59,7 +63,6 @@ export function OrderingApp({
   } | null>(null);
   const [guestReady, setGuestReady] = useState(false);
 
-  // Force a guest id on page load (Incognito / new devices) before checkout.
   useEffect(() => {
     ensureGuestId();
     setGuestReady(true);
@@ -77,6 +80,7 @@ export function OrderingApp({
     [liveMenuItems]
   );
 
+  const drinksCategory = useMemo(() => findDrinksCategory(categories), [categories]);
   const isFullScreenStep = step === "landing" || step === "table";
 
   function handleSelectOrderType(type: OrderType) {
@@ -84,6 +88,7 @@ export function OrderingApp({
     if (type === "dine-in") {
       setStep("table");
     } else {
+      setTableNumber("");
       setStep("menu");
     }
   }
@@ -94,8 +99,22 @@ export function OrderingApp({
   }
 
   function handleAddToCart(item: CartItem) {
+    const hadFoodBefore = cart.some((c) => isFoodMenuItem(c.menuItem, categories));
+    const addingFood = isFoodMenuItem(item.menuItem, categories);
+
     setCart((prev) => [...prev, item]);
+    setCartBumpKey((k) => k + 1);
     setCustomizeItem(null);
+
+    if (
+      addingFood &&
+      !hadFoodBefore &&
+      !drinksUpsellDismissed &&
+      drinksCategory &&
+      liveMenuItems.some((m) => m.category_id === drinksCategory.id && m.is_available)
+    ) {
+      setShowDrinksUpsell(true);
+    }
   }
 
   function handleUpdateCartItem(cartId: string, updates: Partial<CartItem>) {
@@ -107,7 +126,6 @@ export function OrderingApp({
   }
 
   function handleOrderPlaced(_orderId: string) {
-    // Navigation is owned by CartSheet via window.location.href after create succeeds.
     setCart([]);
     setCartOpen(false);
   }
@@ -122,13 +140,19 @@ export function OrderingApp({
     setCartOpen(false);
   }
 
+  function handleBackFromMenu() {
+    if (orderType === "dine-in") {
+      // Returning to table step unlocks table re-selection.
+      setStep("table");
+    } else {
+      setStep("landing");
+    }
+  }
+
   return (
     <>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-muted/20">
-        <div
-          key={step}
-          className="flex min-h-0 flex-1 flex-col transition-all duration-300 ease-out animate-in fade-in slide-in-from-right-4"
-        >
+        <div key={step} className="flex min-h-0 flex-1 flex-col">
           {step === "landing" && (
             <LandingStep restaurant={restaurant} onSelect={handleSelectOrderType} />
           )}
@@ -152,7 +176,13 @@ export function OrderingApp({
               orderType={orderType}
               tableNumber={tableNumber}
               cartCount={cart.reduce((sum, i) => sum + i.quantity, 0)}
-              onBack={() => setStep(orderType === "dine-in" ? "table" : "landing")}
+              cartBumpKey={cartBumpKey}
+              showDrinksUpsell={showDrinksUpsell}
+              onDismissDrinksUpsell={() => {
+                setShowDrinksUpsell(false);
+                setDrinksUpsellDismissed(true);
+              }}
+              onBack={handleBackFromMenu}
               onSelectItem={setCustomizeItem}
               onOpenCart={() => setCartOpen(true)}
             />
@@ -181,7 +211,6 @@ export function OrderingApp({
         tables={tables}
         orderType={orderType}
         tableNumber={tableNumber}
-        onTableNumberChange={setTableNumber}
         onUpdateItem={handleUpdateCartItem}
         onRemoveItem={handleRemoveCartItem}
         onOrderPlaced={handleOrderPlaced}

@@ -40,8 +40,8 @@ const STATUS_STEPS: {
   label: string;
   icon: ReactNode;
 }[] = [
-  { key: "new", label: "La helay", icon: <Hourglass className="h-4 w-4" strokeWidth={2.25} /> },
-  { key: "preparing", label: "Karinta", icon: <ChefHat className="h-4 w-4" strokeWidth={2.25} /> },
+  { key: "new", label: "Waka heyna", icon: <Hourglass className="h-4 w-4" strokeWidth={2.25} /> },
+  { key: "preparing", label: "Wanu ku karineyna", icon: <ChefHat className="h-4 w-4" strokeWidth={2.25} /> },
   { key: "ready", label: "Diyaar", icon: <Bell className="h-4 w-4" strokeWidth={2.25} /> },
   {
     key: "delivered",
@@ -177,9 +177,6 @@ function DeliveredCelebration({ accent }: { accent: string }) {
         />
       </div>
       <div>
-        <p className="text-lg font-bold tracking-tight text-[#0F172A]">
-          Dalabkaagu wuu gaadhay!
-        </p>
         <p className="mt-1 text-xs text-gray-500">
           Receipt ka waxa ku keenaya waiter ka. Mahadsanid!
         </p>
@@ -267,7 +264,7 @@ export function OrderStatusView({
         )}
       >
         <Clock className="h-6 w-6 animate-pulse text-gray-400" aria-hidden="true" />
-        <p className="text-sm font-medium text-gray-900">Halaalabkaaga waa la diyaarinayaa...</p>
+        <p className="text-sm font-medium text-gray-900">Dalabkaga waa la diyaarinayaa  ...</p>
         <p className="text-xs text-gray-500">Fadlan sug…</p>
       </div>
     );
@@ -285,7 +282,7 @@ export function OrderStatusView({
           {loadState.status === "error" ? loadState.error : "Could not load order status."}
         </p>
         <p className="max-w-xs text-xs text-gray-500">
-          Dalabkaagu wuu jiraa, laakiin xaaladda lama akhriyi karin. Isku day mar kale.
+          Dalabkaagu wuu jiraa, laakiin lama akhriyi karin. Isku day mar kale.
         </p>
         <Button
           type="button"
@@ -297,7 +294,7 @@ export function OrderStatusView({
           Retry
         </Button>
         <Button variant="outline" size="sm" className="rounded-xl" asChild>
-          <Link href={newOrderHref}>Samee dalab kale</Link>
+          <Link href={newOrderHref}>Dalab kale ma rabtaa?</Link>
         </Button>
       </div>
     );
@@ -351,7 +348,7 @@ export function OrderStatusView({
         )}
 
         <h1 className="text-lg font-bold leading-tight tracking-tight text-[#0F172A]">
-          {isFinal ? "Dalabkaagu wuu gaadhay!" : "Dalabkaagu wuu socdaa!"}
+          {isFinal ? "Dalabkaagu wuu dhamaaday!" : "Dalabkaagu wuu socdaa!"}
         </h1>
         <p className="text-[11px] leading-snug text-gray-500">{restaurantName}</p>
       </div>
@@ -378,7 +375,7 @@ export function OrderStatusView({
         <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
           {awaitingCashier && (
             <Badge className="border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-900 hover:bg-amber-50">
-              Waiting for cashier confirmation
+              Cashierka ayaa xaqiijiniya
             </Badge>
           )}
           {order.payment_status === "paid" && (
@@ -392,7 +389,7 @@ export function OrderStatusView({
       {!isFinal && isReady && (
         <p className="mt-1.5 text-center text-xs font-semibold text-emerald-700">
           <PartyPopper className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
-          Your meal is ready!
+          Dalabkagu waa diyar asago kulul!
         </p>
       )}
 
@@ -444,7 +441,7 @@ export function OrderStatusView({
           >
             <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
           </span>
-          Samee dalab kale
+          Dalab kale ma rabtaa?
         </Link>
       </div>
     </div>

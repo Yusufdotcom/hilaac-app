@@ -54,17 +54,17 @@ export function ItemCustomizeSheet({
     <Sheet open onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side="bottom"
-        className="mx-auto flex max-h-[92vh] w-full max-w-lg flex-col gap-0 overflow-hidden p-0"
+        className="mx-auto flex max-h-[min(92vh,100dvh)] w-full max-w-lg flex-col gap-0 overflow-hidden rounded-t-3xl p-0 shadow-2xl"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <SheetHeader className="shrink-0 space-y-0 px-6 pb-4 pt-6 pr-12 text-left">
-          <SheetTitle>{item.name}</SheetTitle>
+        <SheetHeader className="shrink-0 space-y-0 border-b border-border/50 px-5 pb-4 pt-5 pr-12 text-left">
+          <SheetTitle className="text-lg font-bold tracking-tight">{item.name}</SheetTitle>
         </SheetHeader>
 
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 overflow-y-auto px-6 pb-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-5 pb-4 pt-4">
             <div className="space-y-4">
-              <div className="relative h-40 w-full overflow-hidden rounded-xl bg-muted">
+              <div className="relative h-40 w-full overflow-hidden rounded-2xl bg-muted shadow-sm">
                 {item.image_url ? (
                   <Image src={item.image_url} alt={item.name} fill className="object-cover" />
                 ) : (
@@ -83,7 +83,7 @@ export function ItemCustomizeSheet({
                     {addOns.map((addOn) => (
                       <label
                         key={addOn.id}
-                        className="flex cursor-pointer items-center justify-between rounded-lg border p-3"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border/70 p-3 shadow-sm"
                       >
                         <div className="flex items-center gap-3">
                           <Checkbox
@@ -132,11 +132,11 @@ export function ItemCustomizeSheet({
             </div>
           </div>
 
-          <div className="sticky bottom-0 shrink-0 border-t bg-background px-6 py-4">
+          <div className="shrink-0 border-t border-border/60 bg-background px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <OrderPrimaryButton
               type="button"
               size="lg"
-              className="h-12 w-full rounded-xl text-base font-semibold"
+              className="h-14 w-full rounded-2xl text-base font-bold shadow-md"
               onClick={(e) => {
                 e.currentTarget.blur();
                 handleAdd();

@@ -36,10 +36,18 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await fetchReportData(ctx.supabase, ctx.restaurant.id, granularity, periodOffset);
+    // Echo the exact date bounds used for RPC calls (same values as p_start_date / p_end_date).
     return NextResponse.json({
       data,
       isPro,
       restaurantId: ctx.restaurant.id,
+      rpc: {
+        granularity,
+        periodOffset,
+        p_restaurant_id: ctx.restaurant.id,
+        p_start_date: data.meta.startDate,
+        p_end_date: data.meta.endDate,
+      },
     });
   } catch (err) {
     console.error("[reports/data] error:", err);
