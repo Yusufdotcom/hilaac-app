@@ -58,8 +58,8 @@ export function AdminOrdersBoard({
 
       <Card className="w-full overflow-hidden">
         <CardContent className="p-0">
-          <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[880px] text-sm">
+          <div className="w-full max-w-full overflow-x-auto">
+            <table className="w-max min-w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50 text-left text-muted-foreground">
                   <th className="whitespace-nowrap p-3 font-medium sm:p-4">Order</th>

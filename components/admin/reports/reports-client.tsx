@@ -140,25 +140,31 @@ export function ReportsClient({
       : "Upgrade to Pro to export full analytics"
     : undefined;
 
+  const isEmpty =
+    !loading &&
+    data.kpi.total_orders === 0 &&
+    data.kpi.total_revenue === 0 &&
+    data.revenue.every((r) => Number(r.revenue) === 0);
+
   return (
-    <div className="w-full space-y-6 overflow-x-hidden">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div className="w-full min-w-0 max-w-full space-y-6 overflow-x-hidden">
+      <header className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0F172A]"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0F172A]"
             style={{ color: accent }}
           >
             <BarChart3 className="h-6 w-6" aria-hidden="true" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#0F172A]">Reports & Analytics</h1>
-            <p className="text-sm text-[#64748B]">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-[#0F172A]">Insights</h1>
+            <p className="truncate text-sm text-[#64748B]">
               {restaurantName} · {formatDateRangeLabel(data.meta.startDate, data.meta.endDate)}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-[#64748B]">Timeframe</span>
             <Select value={granularity} onValueChange={(v) => handleGranularityChange(v as ReportGranularity)}>
@@ -175,7 +181,7 @@ export function ReportsClient({
             </Select>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"
@@ -265,10 +271,20 @@ export function ReportsClient({
         <>
           <KpiCards kpi={data.kpi} />
 
+          {isEmpty && (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#CBD5E1] bg-white px-6 py-16 text-center">
+              <BarChart3 className="h-10 w-10 text-[#CBD5E1]" aria-hidden="true" />
+              <p className="mt-3 text-lg font-semibold text-[#0F172A]">No data yet</p>
+              <p className="mt-1 max-w-sm text-sm text-[#64748B]">
+                When customers place orders, your KPIs, revenue trend, and spiked items will appear here.
+              </p>
+            </div>
+          )}
+
           {isPro && !isExpired ? (
-            <ReportCharts data={data} />
+            !isEmpty && <ReportCharts data={data} />
           ) : (
-            <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-white px-6 py-16 text-center">
+            <div className="rounded-2xl border border-dashed border-[#CBD5E1] bg-white px-6 py-16 text-center">
               <BarChart3 className="mx-auto h-10 w-10 text-[#94A3B8]" />
               <p className="mt-3 text-lg font-semibold text-[#0F172A]">Advanced charts are a Pro feature</p>
               <p className="mt-1 text-sm text-[#64748B]">

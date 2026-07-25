@@ -86,8 +86,8 @@ export default async function DashboardPage({ params }: { params: { slug: string
   ];
 
   return (
-    <div className="w-full space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="w-full min-w-0 max-w-full space-y-6 overflow-x-hidden">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, here&apos;s what&apos;s happening today.</p>

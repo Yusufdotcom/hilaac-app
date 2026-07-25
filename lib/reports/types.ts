@@ -31,12 +31,30 @@ export type WaiterPerformanceStat = {
   revenue: number;
 };
 
+export type KpiTrend = {
+  /** Percent change vs previous period. Null when previous was zero / unavailable. */
+  percent: number | null;
+  direction: "up" | "down" | "flat";
+};
+
 export type KpiSummary = {
   total_orders: number;
   total_revenue: number;
   avg_order_value: number;
   top_item_name: string;
   top_item_quantity: number;
+  trends: {
+    orders: KpiTrend;
+    revenue: KpiTrend;
+    aov: KpiTrend;
+  };
+};
+
+export type SpikedItem = {
+  item_name: string;
+  quantity_sold: number;
+  previous_quantity: number;
+  growth_percent: number;
 };
 
 export type ReportData = {
@@ -47,6 +65,7 @@ export type ReportData = {
   peakHours: PeakHourStat[];
   paymentSplit: PaymentSplitStat[];
   waiterPerformance: WaiterPerformanceStat[];
+  spikedItems: SpikedItem[];
   meta: {
     startDate: string;
     endDate: string;

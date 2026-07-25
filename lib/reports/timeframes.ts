@@ -35,6 +35,16 @@ export function getDateRange(granularity: ReportGranularity): { start: Date; end
   return { start, end };
 }
 
+/** Previous window of equal length, ending just before the current range starts. */
+export function getPreviousDateRange(granularity: ReportGranularity): { start: Date; end: Date } {
+  const { start, end } = getDateRange(granularity);
+  const durationMs = end.getTime() - start.getTime();
+  const prevEnd = new Date(start.getTime() - 1);
+  const prevStart = new Date(prevEnd.getTime() - durationMs);
+  prevStart.setHours(0, 0, 0, 0);
+  return { start: prevStart, end: prevEnd };
+}
+
 export function formatDateRangeLabel(start: string, end: string) {
   const s = new Date(start);
   const e = new Date(end);

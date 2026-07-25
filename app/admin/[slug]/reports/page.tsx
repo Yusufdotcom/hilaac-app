@@ -26,6 +26,7 @@ export default async function ReportsPage({ params }: { params: { slug: string }
     console.error("reports page initial fetch:", err);
     initialError = err instanceof Error ? err.message : "Failed to load reports";
     const { start, end } = getDateRange(defaultGranularity);
+    const flat = { percent: 0 as number | null, direction: "flat" as const };
     initialData = {
       kpi: {
         total_orders: 0,
@@ -33,6 +34,7 @@ export default async function ReportsPage({ params }: { params: { slug: string }
         avg_order_value: 0,
         top_item_name: "—",
         top_item_quantity: 0,
+        trends: { orders: flat, revenue: flat, aov: flat },
       },
       revenue: [],
       topItems: [],
@@ -40,6 +42,7 @@ export default async function ReportsPage({ params }: { params: { slug: string }
       peakHours: [],
       paymentSplit: [],
       waiterPerformance: [],
+      spikedItems: [],
       meta: {
         startDate: start.toISOString(),
         endDate: end.toISOString(),

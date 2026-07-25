@@ -36,8 +36,8 @@ export function DashboardRecentOrders({
       </CardHeader>
       <CardContent className="px-0 pb-2 sm:px-0">
         {recent.length > 0 ? (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
+          <div className="w-full max-w-full overflow-x-auto">
+            <table className="w-max min-w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="whitespace-nowrap px-4 pb-2 font-medium sm:px-6">Order</th>

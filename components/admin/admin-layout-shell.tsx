@@ -64,7 +64,10 @@ export function AdminLayoutShell({
 
   return (
     <AdminBrandProvider brandColor={brandColor}>
-      <div className="flex min-h-screen w-full max-w-full flex-col overflow-x-hidden bg-[#F8FAFC]" style={sidebarCssVars}>
+      <div
+        className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[#F8FAFC]"
+        style={sidebarCssVars}
+      >
         {mobileOpen && (
           <button
             type="button"
@@ -73,6 +76,16 @@ export function AdminLayoutShell({
             onClick={() => setMobileOpen(false)}
           />
         )}
+
+        {/* Desktop spacer — sidebar is fixed; content uses flex-1 for remaining width (no ml-64). */}
+        <div
+          className="hidden shrink-0 md:block"
+          style={{
+            width: "var(--admin-sidebar-width)",
+            transition: `width ${offsetTransition}`,
+          }}
+          aria-hidden="true"
+        />
 
         <AdminSidebar
           restaurantName={restaurantName}
@@ -91,52 +104,50 @@ export function AdminLayoutShell({
           onMobileClose={() => setMobileOpen(false)}
         />
 
-        <header
+        <div
           className={cn(
-            "fixed top-0 z-30 flex h-14 items-center gap-2 border-b px-3 md:gap-3 md:px-6",
-            "left-0 right-0 md:left-[var(--admin-sidebar-width)]",
-            "border-[#334155]/60 bg-hilaac-navy md:border-[#E2E8F0] md:bg-white"
+            "flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden",
+            mobileOpen && "overflow-hidden md:overflow-x-hidden"
           )}
-          style={{ transition: `left ${offsetTransition}` }}
         >
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            className="flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg text-[#D4A373] transition-colors hover:bg-white/10 md:hidden"
-            aria-label="Open menu"
-            aria-expanded={mobileOpen}
-            aria-controls="admin-sidebar"
+          <header
+            className={cn(
+              "sticky top-0 z-30 flex h-14 w-full min-w-0 items-center gap-2 border-b px-3 md:gap-3 md:px-6",
+              "border-[#334155]/60 bg-hilaac-navy md:border-[#E2E8F0] md:bg-white"
+            )}
           >
-            <Menu className="h-6 w-6" strokeWidth={2.25} aria-hidden="true" />
-          </button>
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg text-[#D4A373] transition-colors hover:bg-white/10 md:hidden"
+              aria-label="Open menu"
+              aria-expanded={mobileOpen}
+              aria-controls="admin-sidebar"
+            >
+              <Menu className="h-6 w-6" strokeWidth={2.25} aria-hidden="true" />
+            </button>
 
-          <HilaacLogo
-            href="/"
-            variant="light"
-            showWordmark
-            src="/logo-icon.png"
-            wordmarkClassName="text-white text-base sm:text-lg md:text-inherit"
-            className="min-w-0"
-          />
+            <HilaacLogo
+              href="/"
+              variant="light"
+              showWordmark
+              src="/logo-icon.png"
+              wordmarkClassName="text-white text-base sm:text-lg md:text-inherit"
+              className="min-w-0"
+            />
 
-          <div className="ml-auto">
-            <AdminUserMenu userName={userName} />
-          </div>
-        </header>
+            <div className="ml-auto min-w-0 shrink-0">
+              <AdminUserMenu userName={userName} />
+            </div>
+          </header>
 
-        <main
-          className={cn(
-            "app-light-surface relative z-0 flex min-h-screen w-full max-w-full flex-1 flex-col pt-14 text-[#0F172A]",
-            "ml-0 overflow-x-hidden md:ml-[var(--admin-sidebar-width)]",
-            mobileOpen ? "overflow-hidden" : "overflow-y-auto"
-          )}
-          style={{ transition: `margin-left ${offsetTransition}` }}
-        >
-          <div className="mx-auto w-full max-w-7xl flex-1 overflow-x-hidden p-4 sm:p-6">
-            {children}
-          </div>
-          <PoweredByHilaac className="pb-4 pt-2 sm:pb-6" />
-        </main>
+          <main className="app-light-surface relative z-0 flex min-w-0 w-full flex-1 flex-col overflow-x-hidden text-[#0F172A]">
+            <div className="mx-auto w-full min-w-0 max-w-7xl flex-1 p-4 sm:p-6">
+              {children}
+            </div>
+            <PoweredByHilaac className="pb-4 pt-2 sm:pb-6" />
+          </main>
+        </div>
       </div>
     </AdminBrandProvider>
   );
