@@ -12,6 +12,7 @@ import type {
 } from "@/lib/reports/types";
 import {
   APP_TIMEZONE,
+  fillRevenueBuckets,
   getChartBucketGranularity,
   getDateRange,
   getPreviousDateRange,
@@ -224,6 +225,10 @@ export async function fetchReportData(
   const totalOrders = Number(kpiRow.total_orders ?? 0);
   const totalRevenue = Number(kpiRow.total_revenue ?? 0);
   const avgOrderValue = Number(kpiRow.avg_order_value ?? kpiRow.average_order_value ?? 0);
+  const itemsSold =
+    kpiRow.items_sold != null
+      ? Number(kpiRow.items_sold)
+      : normalizeItems(topItemsRes.data ?? []).reduce((s, i) => s + i.quantity_sold, 0);
 
   const prevOrders = Number(prevKpiRow.total_orders ?? 0);
   const prevRevenue = Number(prevKpiRow.total_revenue ?? 0);
@@ -232,8 +237,20 @@ export async function fetchReportData(
   const topItems = normalizeItems(topItemsRes.data ?? []).filter((i) => i.quantity_sold > 0);
   const prevTopItems = normalizeItems(prevTopItemsRes.data ?? []);
   const leastItems = normalizeItems(leastItemsRes.data ?? []).filter((i) => i.quantity_sold > 0);
-  const revenue = normalizeRevenue(revenueRes.data ?? []);
-  const previousRevenue = normalizeRevenue(prevRevenueRes.data ?? []);
+
+  // Zero-fill buckets so Daily (hourly) always has 24 points, etc.
+  const revenue = fillRevenueBuckets(
+    normalizeRevenue(revenueRes.data ?? []),
+    start,
+    end,
+    chartGranularity
+  );
+  const previousRevenue = fillRevenueBuckets(
+    normalizeRevenue(prevRevenueRes.data ?? []),
+    prev.start,
+    prev.end,
+    chartGranularity
+  );
   const peakDays = normalizePeakDays(peakDaysRes.data ?? []);
 
   // Top selling item: only if sold in this timeframe (prefer top_items for alignment).
@@ -254,12 +271,38 @@ export async function fetchReportData(
         ? Number(kpiRow.top_item_quantity ?? 0) || 0
         : 0;
 
+  // Sanity: an order cannot have fewer than 1 item unit.
+  if (totalOrders > itemsSold) {
+    console.warn("[reports] SANITY FAIL: total_orders > items_sold (possible join fanout)", {
+      restaurantId,
+      granularity,
+      periodOffset,
+      startDate: startIso,
+      endDate: endIso,
+      totalOrders,
+      itemsSold,
+    });
+  }
+
+  const expectedAov = totalOrders > 0 ? Math.round((totalRevenue / totalOrders) * 100) / 100 : 0;
+  if (totalOrders > 0 && Math.abs(expectedAov - avgOrderValue) > 0.02) {
+    console.warn("[reports] SANITY FAIL: AOV mismatch", {
+      restaurantId,
+      granularity,
+      avgOrderValue,
+      expectedAov,
+      totalRevenue,
+      totalOrders,
+    });
+  }
+
   const chartSum = revenue.reduce((sum, row) => sum + row.revenue, 0);
   if (Math.abs(chartSum - totalRevenue) > 0.05) {
     console.error("[reports] revenue chart/KPI mismatch", {
       query: "get_revenue_by_period vs get_kpi_summary",
       restaurantId,
       granularity,
+      chartBucket: chartGranularity,
       periodOffset,
       startDate: startIso,
       endDate: endIso,
@@ -276,6 +319,7 @@ export async function fetchReportData(
       avg_order_value: avgOrderValue,
       top_item_name,
       top_item_quantity,
+      items_sold: itemsSold,
       trends: {
         orders: trendFromValues(totalOrders, prevOrders),
         revenue: trendFromValues(totalRevenue, prevRevenue),

@@ -44,11 +44,12 @@ export default async function DashboardPage({ params }: { params: { slug: string
     supabase.rpc("get_dashboard_revenue_today", {
       p_restaurant_id: restaurant.id,
     }),
-    // Same [start, end) window as the KPI RPCs — not an unscoped "recent" limit.
+    // Same [start, end) + paid filter as Orders Today / Revenue Today KPIs.
     supabase
       .from("orders")
       .select("*, table:table_id(*), order_items(*, menu_item:menu_item_id(*))")
       .eq("restaurant_id", restaurant.id)
+      .eq("payment_status", "paid")
       .gte("created_at", dayStartIso)
       .lt("created_at", dayEndIso)
       .order("created_at", { ascending: false }),

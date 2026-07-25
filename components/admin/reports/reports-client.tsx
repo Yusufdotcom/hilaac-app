@@ -24,8 +24,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KpiCards } from "@/components/admin/reports/kpi-cards";
-import { ReportCharts } from "@/components/admin/reports/report-charts";
+import {
+  MenuPerformancePanel,
+  RevenueDeepDivePanel,
+  RevenueTrendPanel,
+  StaffPerformancePanel,
+  TrafficTimingPanel,
+} from "@/components/admin/reports/report-charts";
 import { ReportsSkeleton } from "@/components/admin/reports/report-skeletons";
 import { exportReportsExcel, exportReportsPdf } from "@/components/admin/reports/export-utils";
 import type { ReportData, ReportGranularity } from "@/lib/reports/types";
@@ -72,6 +79,8 @@ export function ReportsClient({
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
   const [hasCountedUp, setHasCountedUp] = useState(false);
+  const [tab, setTab] = useState("overview");
+  const [showPrevious, setShowPrevious] = useState(true);
 
   const availableGranularities = getAvailableGranularities(
     subscriptionTier as "starter" | "pro" | "trial",
@@ -144,7 +153,6 @@ export function ReportsClient({
 
   function stepPeriod(delta: number) {
     const next = periodOffset + delta;
-    // 0 = current window; negative = older. Block stepping into the future.
     if (next > 0) return;
     setPeriodOffset(next);
     refetch(granularity, next);
@@ -372,15 +380,86 @@ export function ReportsClient({
                   </p>
                 </div>
               ) : (
-                <ReportCharts
-                  data={data}
-                  onRetryWaiter={() => refetch(granularity, periodOffset)}
-                />
+                <Tabs
+                  value={tab}
+                  onValueChange={setTab}
+                  className="w-full min-w-0 space-y-4"
+                >
+                  <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-white p-1 shadow-sm">
+                    <TabsTrigger value="overview" className="text-xs sm:text-sm">
+                      Overview
+                    </TabsTrigger>
+                    <TabsTrigger value="revenue" className="text-xs sm:text-sm">
+                      Revenue
+                    </TabsTrigger>
+                    <TabsTrigger value="menu" className="text-xs sm:text-sm">
+                      Menu Performance
+                    </TabsTrigger>
+                    <TabsTrigger value="traffic" className="text-xs sm:text-sm">
+                      Traffic & Timing
+                    </TabsTrigger>
+                    <TabsTrigger value="staff" className="text-xs sm:text-sm">
+                      Staff Performance
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent
+                    value="overview"
+                    className="mt-0 space-y-4 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300"
+                  >
+                    <RevenueTrendPanel
+                      data={data}
+                      showPrevious={showPrevious}
+                      onShowPreviousChange={setShowPrevious}
+                      compact
+                    />
+                  </TabsContent>
+
+                  <TabsContent
+                    value="revenue"
+                    className="mt-0 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300"
+                  >
+                    <RevenueDeepDivePanel
+                      data={data}
+                      showPrevious={showPrevious}
+                      onShowPreviousChange={setShowPrevious}
+                    />
+                  </TabsContent>
+
+                  <TabsContent
+                    value="menu"
+                    className="mt-0 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300"
+                  >
+                    <MenuPerformancePanel data={data} />
+                  </TabsContent>
+
+                  <TabsContent
+                    value="traffic"
+                    className="mt-0 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300"
+                  >
+                    <TrafficTimingPanel
+                      data={data}
+                      showPrevious={showPrevious}
+                      onShowPreviousChange={setShowPrevious}
+                    />
+                  </TabsContent>
+
+                  <TabsContent
+                    value="staff"
+                    className="mt-0 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300"
+                  >
+                    <StaffPerformancePanel
+                      data={data}
+                      onRetryWaiter={() => refetch(granularity, periodOffset)}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
             </>
           )
         )}
       </div>
+
     </div>
   );
 }

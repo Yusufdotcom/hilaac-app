@@ -52,6 +52,8 @@ export type KpiSummary = {
   /** Null when nothing was sold in the selected timeframe. */
   top_item_name: string | null;
   top_item_quantity: number;
+  /** Sum of order_items.quantity for paid orders in range (sanity ≥ total_orders). */
+  items_sold: number;
   trends: {
     orders: KpiTrend;
     revenue: KpiTrend;

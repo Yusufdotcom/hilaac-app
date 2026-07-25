@@ -17,6 +17,7 @@ function emptyReport(granularity: ReportGranularity): ReportData {
       avg_order_value: 0,
       top_item_name: null,
       top_item_quantity: 0,
+      items_sold: 0,
       trends: { orders: flat, revenue: flat, aov: flat },
     },
     revenue: [],

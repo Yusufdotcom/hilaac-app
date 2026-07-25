@@ -73,23 +73,11 @@ export function getPreviousDateRange(
   return getDateRange(granularity, periodOffset - 1);
 }
 
-/**
- * Bucket size for the revenue chart within the selected window.
- */
-export function getChartBucketGranularity(
-  granularity: ReportGranularity
-): "daily" | "weekly" | "monthly" | "yearly" {
-  switch (granularity) {
-    case "yearly":
-      return "monthly";
-    case "monthly":
-    case "weekly":
-    case "biweekly":
-    case "daily":
-    default:
-      return "daily";
-  }
-}
+export {
+  getChartBucketGranularity,
+  fillRevenueBuckets,
+  type ChartBucketGranularity,
+} from "@/lib/reports/chart-buckets";
 
 export function formatDateRangeLabel(start: string, end: string) {
   return formatAppDateRangeLabel(start, end);

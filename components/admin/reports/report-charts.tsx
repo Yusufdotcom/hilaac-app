@@ -45,6 +45,26 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
+function PreviousPeriodToggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-500">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-3.5 w-3.5 rounded border-slate-300"
+      />
+      Previous period
+    </label>
+  );
+}
+
 function ChartCard({
   title,
   children,
@@ -52,7 +72,6 @@ function ChartCard({
   empty,
   emptyMessage = EMPTY_PERIOD,
   headerRight,
-  footer,
 }: {
   title: string;
   children: React.ReactNode;
@@ -60,7 +79,6 @@ function ChartCard({
   empty?: boolean;
   emptyMessage?: string;
   headerRight?: React.ReactNode;
-  footer?: React.ReactNode;
 }) {
   return (
     <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -71,12 +89,9 @@ function ChartCard({
       {empty ? (
         <EmptyChartState message={emptyMessage} />
       ) : (
-        <>
-          <div id={chartId} className="h-64 w-full min-w-0 sm:h-72">
-            {children}
-          </div>
-          {footer}
-        </>
+        <div id={chartId} className="h-64 w-full min-w-0 sm:h-72">
+          {children}
+        </div>
       )}
     </article>
   );
@@ -138,20 +153,7 @@ function SpikedSection({ items }: { items: ReportData["spikedItems"] }) {
   );
 }
 
-export function ReportCharts({
-  data,
-  waiterError,
-  onRetryWaiter,
-}: {
-  data: ReportData;
-  waiterError?: string | null;
-  onRetryWaiter?: () => void;
-}) {
-  const brandAccent = resolveBrandColor(useAdminBrandColor());
-  const accent = brandAccent || GOLD;
-  const reduceMotion = usePrefersReducedMotion();
-  const [showPrevious, setShowPrevious] = useState(true);
-
+function useReportChartData(data: ReportData) {
   const revenueData = useMemo(() => {
     const prev = data.previousRevenue ?? [];
     return data.revenue.map((row, idx) => ({
@@ -160,11 +162,9 @@ export function ReportCharts({
       revenue: Number(row.revenue) || 0,
       orders: Number(row.order_count) || 0,
       previousRevenue: Number(prev[idx]?.revenue ?? 0) || 0,
+      previousOrders: Number(prev[idx]?.order_count ?? 0) || 0,
     }));
   }, [data.revenue, data.previousRevenue]);
-
-  // Prefer KPI total so the caption always matches the Total Revenue card.
-  const revenuePeriodTotal = data.kpi.total_revenue;
 
   const topItemsData = useMemo(
     () =>
@@ -189,9 +189,7 @@ export function ReportCharts({
   const peakDay = useMemo(() => {
     const days = data.peakDays ?? [];
     if (!days.length) return null;
-    return days.reduce((best, day) =>
-      day.order_count > best.order_count ? day : best
-    );
+    return days.reduce((best, day) => (day.order_count > best.order_count ? day : best));
   }, [data.peakDays]);
 
   const paymentData = useMemo(() => {
@@ -208,11 +206,6 @@ export function ReportCharts({
     });
   }, [data.paymentSplit]);
 
-  const paymentPieSlices = useMemo(
-    () => paymentData.filter((p) => p.revenue > 0),
-    [paymentData]
-  );
-
   const waiterData = useMemo(
     () =>
       data.waiterPerformance.map((waiter) => ({
@@ -223,6 +216,33 @@ export function ReportCharts({
     [data.waiterPerformance]
   );
 
+  return {
+    revenueData,
+    topItemsData,
+    peakHoursData,
+    peakDay,
+    paymentData,
+    paymentPieSlices: paymentData.filter((p) => p.revenue > 0),
+    waiterData,
+    revenuePeriodTotal: data.kpi.total_revenue,
+  };
+}
+
+export function RevenueTrendPanel({
+  data,
+  showPrevious,
+  onShowPreviousChange,
+  compact,
+}: {
+  data: ReportData;
+  showPrevious: boolean;
+  onShowPreviousChange: (v: boolean) => void;
+  compact?: boolean;
+}) {
+  const brandAccent = resolveBrandColor(useAdminBrandColor());
+  const accent = brandAccent || GOLD;
+  const reduceMotion = usePrefersReducedMotion();
+  const { revenueData, revenuePeriodTotal } = useReportChartData(data);
   const revenueMax = useMemo(
     () =>
       revenueData.reduce(
@@ -231,215 +251,450 @@ export function ReportCharts({
       ),
     [revenueData, showPrevious]
   );
-
   const hasRevenue = revenueData.some((r) => r.revenue > 0 || r.previousRevenue > 0);
-  const hasTopItems = topItemsData.length > 0;
-  const hasPeak = peakHoursData.some((h) => h.orders > 0);
-  const hasPaymentRevenue = paymentData.some((p) => p.revenue > 0);
-  const hasWaiters = waiterData.length > 0;
-  const gradientId = "insightsRevenueFill";
+  const gradientId = compact ? "insightsRevenueFillCompact" : "insightsRevenueFill";
 
   return (
-    <div className="min-w-0 space-y-6 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500">
-      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-        <ChartCard
-          title="Revenue trend"
-          chartId="chart-revenue"
-          empty={!hasRevenue}
-          headerRight={
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <span className="text-xs font-medium text-slate-500">
-                Period total {formatCurrency(revenuePeriodTotal)}
-              </span>
-              <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-500">
-                <input
-                  type="checkbox"
-                  checked={showPrevious}
-                  onChange={(e) => setShowPrevious(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-slate-300"
-                />
-                Previous period
-              </label>
-            </div>
-          }
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={revenueData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
-              <defs>
-                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={accent} stopOpacity={0.35} />
-                  <stop offset="100%" stopColor={accent} stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis
-                dataKey="periodKey"
-                tick={{ fill: "#64748B", fontSize: 11 }}
-                tickLine={false}
-                axisLine={{ stroke: "#E2E8F0" }}
-                tickFormatter={(_value, index) => revenueData[index]?.period ?? ""}
-              />
-              <YAxis
-                tick={{ fill: "#64748B", fontSize: 11 }}
-                tickLine={false}
-                axisLine={{ stroke: "#E2E8F0" }}
-                tickFormatter={(value) => formatCurrency(Number(value))}
-                domain={[0, Math.max(revenueMax * 1.15, 1)]}
-                allowDecimals
-                width={72}
-              />
-              <Tooltip
-                formatter={(value, name) => {
-                  const amount = formatCurrency(Number(value ?? 0));
-                  if (name === "previousRevenue") {
-                    return [`Previous period: ${amount}`, ""];
-                  }
-                  return [`Revenue: ${amount}`, ""];
-                }}
-                labelFormatter={(_label, payload) =>
-                  String(payload?.[0]?.payload?.period ?? _label)
-                }
-                contentStyle={{
-                  borderRadius: 12,
-                  borderColor: "#E2E8F0",
-                  boxShadow: "0 8px 24px rgba(15,23,42,0.08)",
-                }}
-              />
-              {showPrevious && (
-                <Line
-                  type="monotone"
-                  dataKey="previousRevenue"
-                  name="previousRevenue"
-                  stroke="#94A3B8"
-                  strokeWidth={1.5}
-                  strokeDasharray="6 4"
-                  dot={false}
-                  isAnimationActive={!reduceMotion}
-                />
-              )}
-              <Area
-                type="monotone"
-                dataKey="revenue"
-                name="revenue"
-                stroke={accent}
-                strokeWidth={2.5}
-                fill={`url(#${gradientId})`}
-                connectNulls
-                isAnimationActive={!reduceMotion}
-                dot={{ r: 3, fill: accent, stroke: "#fff", strokeWidth: 2 }}
-                activeDot={{ r: 6, fill: accent, stroke: NAVY, strokeWidth: 2 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold text-slate-900">Top 10 items</h3>
-          {!hasTopItems ? (
-            <EmptyChartState />
-          ) : (
-            <>
-              <div id="chart-top-items" className="h-56 w-full overflow-x-auto sm:h-64">
-                <div
-                  className="h-full"
-                  style={{ minWidth: Math.max(320, topItemsData.length * 56) }}
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={topItemsData} margin={{ top: 8, right: 16, left: 8, bottom: 64 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
-                      <XAxis
-                        dataKey="item_name"
-                        tick={{ fill: "#64748B", fontSize: 10 }}
-                        tickLine={false}
-                        axisLine={{ stroke: "#E2E8F0" }}
-                        interval={0}
-                        angle={-35}
-                        textAnchor="end"
-                        height={70}
-                      />
-                      <YAxis
-                        tick={{ fill: "#64748B", fontSize: 11 }}
-                        tickLine={false}
-                        axisLine={{ stroke: "#E2E8F0" }}
-                        allowDecimals={false}
-                      />
-                      <Tooltip
-                        contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
-                        formatter={(value) => [Number(value ?? 0), "Quantity sold"]}
-                        labelFormatter={(_label, payload) =>
-                          String(payload?.[0]?.payload?.fullName ?? _label)
-                        }
-                      />
-                      <Bar
-                        dataKey="quantity"
-                        name="Quantity"
-                        fill={INDIGO}
-                        radius={[6, 6, 0, 0]}
-                        maxBarSize={40}
-                        isAnimationActive={!reduceMotion}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="mt-4 border-t border-slate-100 pt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Least ordered
-                </p>
-                {data.leastItems.length === 0 ? (
-                  <p className="text-xs text-slate-400">No low-volume items in this period.</p>
-                ) : (
-                  <ul className="space-y-2">
-                    {data.leastItems.slice(0, 5).map((item) => {
-                      const qty = Number(item.quantity_sold ?? 0) || 0;
-                      return (
-                        <li
-                          key={item.item_name}
-                          className="flex items-center justify-between gap-2"
-                        >
-                          <span className="truncate text-sm font-medium text-slate-900">
-                            {item.item_name}
-                          </span>
-                          <span className="shrink-0 text-xs font-semibold text-slate-500">
-                            {qty} sold
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-            </>
+    <ChartCard
+      title="Revenue trend"
+      chartId="chart-revenue"
+      empty={!hasRevenue}
+      headerRight={
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <span className="text-xs font-medium text-slate-500">
+            Period total {formatCurrency(revenuePeriodTotal)}
+          </span>
+          <PreviousPeriodToggle checked={showPrevious} onChange={onShowPreviousChange} />
+        </div>
+      }
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={revenueData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={accent} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={accent} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+          <XAxis
+            dataKey="periodKey"
+            tick={{ fill: "#64748B", fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: "#E2E8F0" }}
+            tickFormatter={(_value, index) => revenueData[index]?.period ?? ""}
+          />
+          <YAxis
+            tick={{ fill: "#64748B", fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: "#E2E8F0" }}
+            tickFormatter={(value) => formatCurrency(Number(value))}
+            domain={[0, Math.max(revenueMax * 1.15, 1)]}
+            allowDecimals
+            width={72}
+          />
+          <Tooltip
+            formatter={(value, name) => {
+              const amount = formatCurrency(Number(value ?? 0));
+              if (name === "previousRevenue") return [`Previous period: ${amount}`, ""];
+              return [`Revenue: ${amount}`, ""];
+            }}
+            labelFormatter={(_label, payload) =>
+              String(payload?.[0]?.payload?.period ?? _label)
+            }
+            contentStyle={{
+              borderRadius: 12,
+              borderColor: "#E2E8F0",
+              boxShadow: "0 8px 24px rgba(15,23,42,0.08)",
+            }}
+          />
+          {showPrevious && (
+            <Line
+              type="monotone"
+              dataKey="previousRevenue"
+              name="previousRevenue"
+              stroke="#94A3B8"
+              strokeWidth={1.5}
+              strokeDasharray="6 4"
+              dot={false}
+              isAnimationActive={!reduceMotion}
+            />
           )}
-        </article>
-      </div>
+          <Area
+            type="monotone"
+            dataKey="revenue"
+            name="revenue"
+            stroke={accent}
+            strokeWidth={2.5}
+            fill={`url(#${gradientId})`}
+            connectNulls
+            isAnimationActive={!reduceMotion}
+            dot={{ r: 3, fill: accent, stroke: "#fff", strokeWidth: 2 }}
+            activeDot={{ r: 6, fill: accent, stroke: NAVY, strokeWidth: 2 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
 
-      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-        <ChartCard
-          title="Peak traffic hours"
-          chartId="chart-peak-hours"
-          empty={!hasPeak}
-          headerRight={
-            peakDay && peakDay.order_count > 0 ? (
-              <span
-                className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"
-                title={`${peakDay.day_label} had the most orders (${peakDay.order_count}) in this period`}
+function PaymentSplitPanel({ data }: { data: ReportData }) {
+  const brandAccent = resolveBrandColor(useAdminBrandColor());
+  const accent = brandAccent || GOLD;
+  const reduceMotion = usePrefersReducedMotion();
+  const { paymentData, paymentPieSlices } = useReportChartData(data);
+  const hasPaymentRevenue = paymentData.some((p) => p.revenue > 0);
+
+  return (
+    <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <h3 className="mb-4 text-base font-semibold text-slate-900">Payment split</h3>
+      {!hasPaymentRevenue ? (
+        <EmptyChartState />
+      ) : (
+        <div id="chart-payment-split" className="flex h-64 w-full flex-col sm:h-72">
+          <div className="min-h-0 flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={paymentPieSlices}
+                  dataKey="revenue"
+                  nameKey="payment_method"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={44}
+                  outerRadius={72}
+                  paddingAngle={2}
+                  isAnimationActive={!reduceMotion}
+                >
+                  {paymentPieSlices.map((entry) => (
+                    <Cell
+                      key={entry.payment_method}
+                      fill={PAYMENT_COLORS[entry.payment_method] ?? accent}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value, name) => [formatCurrency(Number(value ?? 0)), String(name)]}
+                  contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <ul className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
+            {paymentData.map((p) => (
+              <li
+                key={p.payment_method}
+                className="inline-flex items-center gap-1.5 text-xs text-slate-600"
+                title={`${p.payment_method}: ${formatCurrency(p.revenue)} · ${p.order_count} orders`}
               >
-                Peak day: {peakDay.day_label}
-              </span>
-            ) : null
-          }
-        >
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: PAYMENT_COLORS[p.payment_method] ?? accent }}
+                  aria-hidden="true"
+                />
+                <span>
+                  {p.payment_method} ({formatCurrency(p.revenue)})
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </article>
+  );
+}
+
+export function MenuPerformancePanel({ data }: { data: ReportData }) {
+  const reduceMotion = usePrefersReducedMotion();
+  const { topItemsData } = useReportChartData(data);
+  const hasTopItems = topItemsData.length > 0;
+
+  return (
+    <div className="space-y-6">
+      <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <h3 className="mb-4 text-base font-semibold text-slate-900">Top 10 items</h3>
+        {!hasTopItems ? (
+          <EmptyChartState />
+        ) : (
+          <>
+            <div id="chart-top-items" className="h-56 w-full overflow-x-auto sm:h-64">
+              <div className="h-full" style={{ minWidth: Math.max(320, topItemsData.length * 56) }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={topItemsData} margin={{ top: 8, right: 16, left: 8, bottom: 64 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                    <XAxis
+                      dataKey="item_name"
+                      tick={{ fill: "#64748B", fontSize: 10 }}
+                      tickLine={false}
+                      axisLine={{ stroke: "#E2E8F0" }}
+                      interval={0}
+                      angle={-35}
+                      textAnchor="end"
+                      height={70}
+                    />
+                    <YAxis
+                      tick={{ fill: "#64748B", fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={{ stroke: "#E2E8F0" }}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
+                      formatter={(value) => [Number(value ?? 0), "Quantity sold"]}
+                      labelFormatter={(_label, payload) =>
+                        String(payload?.[0]?.payload?.fullName ?? _label)
+                      }
+                    />
+                    <Bar
+                      dataKey="quantity"
+                      name="Quantity"
+                      fill={INDIGO}
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={40}
+                      isAnimationActive={!reduceMotion}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Least ordered
+              </p>
+              {data.leastItems.length === 0 ? (
+                <p className="text-xs text-slate-400">No low-volume items in this period.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {data.leastItems.slice(0, 5).map((item) => {
+                    const qty = Number(item.quantity_sold ?? 0) || 0;
+                    return (
+                      <li
+                        key={item.item_name}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <span className="truncate text-sm font-medium text-slate-900">
+                          {item.item_name}
+                        </span>
+                        <span className="shrink-0 text-xs font-semibold text-slate-500">
+                          {qty} sold
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
+      </article>
+      <SpikedSection items={data.spikedItems ?? []} />
+    </div>
+  );
+}
+
+export function TrafficTimingPanel({
+  data,
+  showPrevious,
+  onShowPreviousChange,
+}: {
+  data: ReportData;
+  showPrevious: boolean;
+  onShowPreviousChange: (v: boolean) => void;
+}) {
+  const reduceMotion = usePrefersReducedMotion();
+  const { peakHoursData, peakDay, revenueData } = useReportChartData(data);
+  const hasPeak = peakHoursData.some((h) => h.orders > 0);
+
+  // Orders trend uses same buckets as revenue (paid order_count per day).
+  const ordersTrend = useMemo(
+    () =>
+      revenueData.map((r) => ({
+        periodKey: r.periodKey,
+        period: r.period,
+        orders: r.orders,
+        previousOrders: r.previousOrders,
+      })),
+    [revenueData]
+  );
+  const ordersMax = useMemo(
+    () =>
+      ordersTrend.reduce(
+        (max, row) => Math.max(max, row.orders, showPrevious ? row.previousOrders : 0),
+        0
+      ),
+    [ordersTrend, showPrevious]
+  );
+  const hasOrdersTrend = ordersTrend.some((r) => r.orders > 0 || r.previousOrders > 0);
+
+  return (
+    <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+      <ChartCard
+        title="Orders over time"
+        empty={!hasOrdersTrend}
+        headerRight={
+          <PreviousPeriodToggle checked={showPrevious} onChange={onShowPreviousChange} />
+        }
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={ordersTrend} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+            <XAxis
+              dataKey="periodKey"
+              tick={{ fill: "#64748B", fontSize: 11 }}
+              tickLine={false}
+              axisLine={{ stroke: "#E2E8F0" }}
+              tickFormatter={(_value, index) => ordersTrend[index]?.period ?? ""}
+            />
+            <YAxis
+              tick={{ fill: "#64748B", fontSize: 11 }}
+              tickLine={false}
+              axisLine={{ stroke: "#E2E8F0" }}
+              domain={[0, Math.max(ordersMax * 1.15, 1)]}
+              allowDecimals={false}
+            />
+            <Tooltip
+              formatter={(value, name) => [
+                Number(value ?? 0),
+                name === "previousOrders" ? "Previous period" : "Orders",
+              ]}
+              labelFormatter={(_label, payload) =>
+                String(payload?.[0]?.payload?.period ?? _label)
+              }
+              contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
+            />
+            {showPrevious && (
+              <Line
+                type="monotone"
+                dataKey="previousOrders"
+                name="previousOrders"
+                stroke="#94A3B8"
+                strokeWidth={1.5}
+                strokeDasharray="6 4"
+                dot={false}
+                isAnimationActive={!reduceMotion}
+              />
+            )}
+            <Area
+              type="monotone"
+              dataKey="orders"
+              name="orders"
+              stroke={NAVY}
+              strokeWidth={2}
+              fill="#0F172A18"
+              isAnimationActive={!reduceMotion}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartCard>
+
+      <ChartCard
+        title="Peak traffic hours"
+        chartId="chart-peak-hours"
+        empty={!hasPeak}
+        headerRight={
+          peakDay && peakDay.order_count > 0 ? (
+            <span
+              className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"
+              title={`${peakDay.day_label} had the most orders (${peakDay.order_count}) in this period`}
+            >
+              Peak day: {peakDay.day_label}
+            </span>
+          ) : null
+        }
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={peakHoursData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+            <XAxis
+              dataKey="hour"
+              tick={{ fill: "#64748B", fontSize: 10 }}
+              tickLine={false}
+              axisLine={{ stroke: "#E2E8F0" }}
+              interval={2}
+            />
+            <YAxis
+              tick={{ fill: "#64748B", fontSize: 11 }}
+              tickLine={false}
+              axisLine={{ stroke: "#E2E8F0" }}
+              allowDecimals={false}
+            />
+            <Tooltip
+              contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
+              formatter={(value) => [Number(value ?? 0), "Orders"]}
+              labelFormatter={(label) => {
+                const peakNote =
+                  peakDay && peakDay.order_count > 0
+                    ? ` · Peak day: ${peakDay.day_label}`
+                    : "";
+                return `${label}${peakNote}`;
+              }}
+            />
+            <Bar
+              dataKey="orders"
+              name="Orders"
+              fill={NAVY}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={32}
+              isAnimationActive={!reduceMotion}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
+    </div>
+  );
+}
+
+export function StaffPerformancePanel({
+  data,
+  waiterError,
+  onRetryWaiter,
+}: {
+  data: ReportData;
+  waiterError?: string | null;
+  onRetryWaiter?: () => void;
+}) {
+  const brandAccent = resolveBrandColor(useAdminBrandColor());
+  const accent = brandAccent || GOLD;
+  const reduceMotion = usePrefersReducedMotion();
+  const { waiterData } = useReportChartData(data);
+  const hasWaiters = waiterData.length > 0;
+
+  return (
+    <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <h3 className="mb-4 text-base font-semibold text-slate-900">Waiter performance</h3>
+      {waiterError ? (
+        <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-red-200 bg-red-50 px-4 text-center sm:h-72">
+          <p className="text-sm font-semibold text-red-800">Failed to load waiter performance</p>
+          <p className="max-w-sm text-xs text-red-600">{waiterError}</p>
+          {onRetryWaiter && (
+            <button
+              type="button"
+              onClick={onRetryWaiter}
+              className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-50"
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      ) : !hasWaiters ? (
+        <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 text-center sm:h-72">
+          <Users className="mb-3 h-9 w-9 text-slate-300" aria-hidden="true" />
+          <p className="text-sm font-semibold text-slate-900">No waiter deliveries recorded yet</p>
+          <p className="mt-1 max-w-sm text-xs text-slate-400">
+            When staff mark orders as delivered with their name, performance stats appear here.
+          </p>
+        </div>
+      ) : (
+        <div id="chart-waiter-performance" className="h-64 w-full sm:h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={peakHoursData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+            <BarChart data={waiterData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
               <XAxis
-                dataKey="hour"
-                tick={{ fill: "#64748B", fontSize: 10 }}
+                dataKey="name"
+                tick={{ fill: "#64748B", fontSize: 11 }}
                 tickLine={false}
                 axisLine={{ stroke: "#E2E8F0" }}
-                interval={2}
               />
               <YAxis
                 tick={{ fill: "#64748B", fontSize: 11 }}
@@ -449,151 +704,78 @@ export function ReportCharts({
               />
               <Tooltip
                 contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
-                formatter={(value) => [Number(value ?? 0), "Orders"]}
-                labelFormatter={(label) => {
-                  const peakNote =
-                    peakDay && peakDay.order_count > 0
-                      ? ` · Peak day: ${peakDay.day_label}`
-                      : "";
-                  return `${label}${peakNote}`;
-                }}
+                formatter={(value, name) =>
+                  name === "revenue"
+                    ? [formatCurrency(Number(value ?? 0)), "Revenue"]
+                    : [Number(value ?? 0), "Deliveries"]
+                }
               />
               <Bar
-                dataKey="orders"
-                name="Orders"
-                fill={NAVY}
+                dataKey="deliveries"
+                name="deliveries"
+                fill={accent}
                 radius={[4, 4, 0, 0]}
-                maxBarSize={32}
+                maxBarSize={48}
                 isAnimationActive={!reduceMotion}
               />
             </BarChart>
           </ResponsiveContainer>
-        </ChartCard>
+        </div>
+      )}
+    </article>
+  );
+}
 
-        <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <h3 className="mb-4 text-base font-semibold text-slate-900">Payment split</h3>
-          {!hasPaymentRevenue ? (
-            <EmptyChartState />
-          ) : (
-            <div id="chart-payment-split" className="flex h-64 w-full flex-col sm:h-72">
-              <div className="min-h-0 flex-1">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={paymentPieSlices}
-                      dataKey="revenue"
-                      nameKey="payment_method"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={44}
-                      outerRadius={72}
-                      paddingAngle={2}
-                      isAnimationActive={!reduceMotion}
-                    >
-                      {paymentPieSlices.map((entry) => (
-                        <Cell
-                          key={entry.payment_method}
-                          fill={PAYMENT_COLORS[entry.payment_method] ?? accent}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [
-                        formatCurrency(Number(value ?? 0)),
-                        String(name),
-                      ]}
-                      contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <ul className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
-                {paymentData.map((p) => (
-                  <li
-                    key={p.payment_method}
-                    className="inline-flex items-center gap-1.5 text-xs text-slate-600"
-                    title={`${p.payment_method}: ${formatCurrency(p.revenue)} · ${p.order_count} orders`}
-                  >
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: PAYMENT_COLORS[p.payment_method] ?? accent }}
-                      aria-hidden="true"
-                    />
-                    <span>
-                      {p.payment_method} ({formatCurrency(p.revenue)})
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </article>
-      </div>
+export function RevenueDeepDivePanel({
+  data,
+  showPrevious,
+  onShowPreviousChange,
+}: {
+  data: ReportData;
+  showPrevious: boolean;
+  onShowPreviousChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+      <RevenueTrendPanel
+        data={data}
+        showPrevious={showPrevious}
+        onShowPreviousChange={onShowPreviousChange}
+      />
+      <PaymentSplitPanel data={data} />
+    </div>
+  );
+}
 
-      <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <h3 className="mb-4 text-base font-semibold text-slate-900">Waiter performance</h3>
-        {waiterError ? (
-          <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-red-200 bg-red-50 px-4 text-center sm:h-72">
-            <p className="text-sm font-semibold text-red-800">Failed to load waiter performance</p>
-            <p className="max-w-sm text-xs text-red-600">{waiterError}</p>
-            {onRetryWaiter && (
-              <button
-                type="button"
-                onClick={onRetryWaiter}
-                className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-50"
-              >
-                Retry
-              </button>
-            )}
-          </div>
-        ) : !hasWaiters ? (
-          <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 text-center sm:h-72">
-            <Users className="mb-3 h-9 w-9 text-slate-300" aria-hidden="true" />
-            <p className="text-sm font-semibold text-slate-900">No waiter deliveries recorded yet</p>
-            <p className="mt-1 max-w-sm text-xs text-slate-400">
-              When staff mark orders as delivered with their name, performance stats appear here.
-            </p>
-          </div>
-        ) : (
-          <div id="chart-waiter-performance" className="h-64 w-full sm:h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={waiterData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fill: "#64748B", fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={{ stroke: "#E2E8F0" }}
-                />
-                <YAxis
-                  tick={{ fill: "#64748B", fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={{ stroke: "#E2E8F0" }}
-                  allowDecimals={false}
-                />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
-                  formatter={(value, name) =>
-                    name === "revenue"
-                      ? [formatCurrency(Number(value ?? 0)), "Revenue"]
-                      : [Number(value ?? 0), "Deliveries"]
-                  }
-                />
-                <Bar
-                  dataKey="deliveries"
-                  name="deliveries"
-                  fill={accent}
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={48}
-                  isAnimationActive={!reduceMotion}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </article>
-
-      <SpikedSection items={data.spikedItems ?? []} />
+/** @deprecated Prefer tabbed panels; kept for export chart IDs during PDF capture. */
+export function ReportCharts({
+  data,
+  waiterError,
+  onRetryWaiter,
+}: {
+  data: ReportData;
+  waiterError?: string | null;
+  onRetryWaiter?: () => void;
+}) {
+  const [showPrevious, setShowPrevious] = useState(true);
+  return (
+    <div className="space-y-6">
+      <RevenueDeepDivePanel
+        data={data}
+        showPrevious={showPrevious}
+        onShowPreviousChange={setShowPrevious}
+      />
+      <MenuPerformancePanel data={data} />
+      <TrafficTimingPanel
+        data={data}
+        showPrevious={showPrevious}
+        onShowPreviousChange={setShowPrevious}
+      />
+      <StaffPerformancePanel
+        data={data}
+        waiterError={waiterError}
+        onRetryWaiter={onRetryWaiter}
+      />
     </div>
   );
 }
