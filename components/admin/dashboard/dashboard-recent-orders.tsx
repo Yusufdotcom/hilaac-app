@@ -10,9 +10,18 @@ import type { OrderWithItems } from "@/types/database";
 export function DashboardRecentOrders({
   restaurantId,
   initialOrders,
+  dayStartIso,
+  dayEndIso,
+  ordersTodayCount,
 }: {
   restaurantId: string;
   initialOrders: OrderWithItems[];
+  /** Inclusive start of canonical "today" (ISO). */
+  dayStartIso: string;
+  /** Exclusive end of canonical "today" (ISO). */
+  dayEndIso: string;
+  /** KPI count — list row count should match this. */
+  ordersTodayCount: number;
 }) {
   const { orders } = useRealtimeOrders(restaurantId, initialOrders, {
     activeOnly: false,
@@ -20,22 +29,33 @@ export function DashboardRecentOrders({
     sortNewestFirst: true,
   });
 
-  const recent = useMemo(
-    () =>
-      [...orders]
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 8),
-    [orders]
-  );
+  const todaysOrders = useMemo(() => {
+    const startMs = new Date(dayStartIso).getTime();
+    const endMs = new Date(dayEndIso).getTime();
+    return [...orders]
+      .filter((o) => {
+        const t = new Date(o.created_at).getTime();
+        return t >= startMs && t < endMs;
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [orders, dayStartIso, dayEndIso]);
 
   return (
     <Card className="w-full overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 px-4 py-4 sm:px-6">
-        <CardTitle className="text-lg">Recent Orders</CardTitle>
+        <div className="min-w-0">
+          <CardTitle className="text-lg">Today&apos;s Orders</CardTitle>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {todaysOrders.length} order{todaysOrders.length === 1 ? "" : "s"}
+            {todaysOrders.length !== ordersTodayCount
+              ? ` (KPI: ${ordersTodayCount})`
+              : ""}
+          </p>
+        </div>
         <Badge className="border-0 bg-emerald-50 text-emerald-800">Live</Badge>
       </CardHeader>
       <CardContent className="px-0 pb-2 sm:px-0">
-        {recent.length > 0 ? (
+        {todaysOrders.length > 0 ? (
           <div className="w-full max-w-full overflow-x-auto">
             <table className="w-max min-w-full text-sm">
               <thead>
@@ -49,7 +69,7 @@ export function DashboardRecentOrders({
                 </tr>
               </thead>
               <tbody>
-                {recent.map((order) => (
+                {todaysOrders.map((order) => (
                   <tr key={order.id} className="border-b last:border-0">
                     <td className="whitespace-nowrap px-4 py-2.5 font-semibold sm:px-6">
                       {formatOrderLabel(order, { prefix: false })}
@@ -73,7 +93,9 @@ export function DashboardRecentOrders({
             </table>
           </div>
         ) : (
-          <p className="px-4 py-8 text-center text-muted-foreground sm:px-6">No orders yet.</p>
+          <p className="px-4 py-8 text-center text-muted-foreground sm:px-6">
+            No orders yet today.
+          </p>
         )}
       </CardContent>
     </Card>

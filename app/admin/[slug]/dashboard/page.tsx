@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { DashboardRecentOrders } from "@/components/admin/dashboard/dashboard-recent-orders";
 import { formatCurrency, daysUntil } from "@/lib/utils";
+import { APP_TIMEZONE, getAppDayBounds } from "@/lib/time/app-calendar";
 import type { OrderWithItems } from "@/types/database";
 
 type DashboardFetchError = {
@@ -16,16 +17,24 @@ export default async function DashboardPage({ params }: { params: { slug: string
   const { restaurant } = await getRestaurantContext(params.slug);
   const supabase = createClient();
 
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const startOfDayIso = startOfDay.toISOString();
+  // Same canonical day as Reports Daily / Dashboard SQL (Africa/Nairobi).
+  const { start: dayStart, end: dayEnd } = getAppDayBounds(0);
+  const dayStartIso = dayStart.toISOString();
+  const dayEndIso = dayEnd.toISOString();
+
+  console.info("[dashboard] today bounds", {
+    timezone: APP_TIMEZONE,
+    restaurantId: restaurant.id,
+    dayStart: dayStartIso,
+    dayEnd: dayEndIso,
+  });
 
   const fetchErrors: DashboardFetchError[] = [];
 
   const [
     ordersTodayResult,
     revenueTodayResult,
-    recentOrdersResult,
+    todaysOrdersResult,
     activeTablesResult,
     openOrdersResult,
   ] = await Promise.all([
@@ -35,12 +44,14 @@ export default async function DashboardPage({ params }: { params: { slug: string
     supabase.rpc("get_dashboard_revenue_today", {
       p_restaurant_id: restaurant.id,
     }),
+    // Same [start, end) window as the KPI RPCs — not an unscoped "recent" limit.
     supabase
       .from("orders")
       .select("*, table:table_id(*), order_items(*, menu_item:menu_item_id(*))")
       .eq("restaurant_id", restaurant.id)
-      .order("created_at", { ascending: false })
-      .limit(20),
+      .gte("created_at", dayStartIso)
+      .lt("created_at", dayEndIso)
+      .order("created_at", { ascending: false }),
     supabase
       .from("tables")
       .select("*", { count: "exact", head: true })
@@ -50,7 +61,8 @@ export default async function DashboardPage({ params }: { params: { slug: string
       .from("orders")
       .select("*", { count: "exact", head: true })
       .eq("restaurant_id", restaurant.id)
-      .gte("created_at", startOfDayIso)
+      .gte("created_at", dayStartIso)
+      .lt("created_at", dayEndIso)
       .neq("status", "completed")
       .neq("status", "delivered"),
   ]);
@@ -61,8 +73,8 @@ export default async function DashboardPage({ params }: { params: { slug: string
   if (revenueTodayResult.error) {
     fetchErrors.push({ label: "Revenue today", message: revenueTodayResult.error.message });
   }
-  if (recentOrdersResult.error) {
-    fetchErrors.push({ label: "Recent orders", message: recentOrdersResult.error.message });
+  if (todaysOrdersResult.error) {
+    fetchErrors.push({ label: "Today's orders list", message: todaysOrdersResult.error.message });
   }
   if (activeTablesResult.error) {
     fetchErrors.push({ label: "Active tables", message: activeTablesResult.error.message });
@@ -73,10 +85,21 @@ export default async function DashboardPage({ params }: { params: { slug: string
 
   const ordersToday = Number(ordersTodayResult.data ?? 0);
   const revenueToday = Number(revenueTodayResult.data ?? 0);
-  const recentOrders = (recentOrdersResult.data as OrderWithItems[]) ?? [];
+  const todaysOrders = (todaysOrdersResult.data as OrderWithItems[]) ?? [];
   const activeTables = activeTablesResult.count ?? 0;
   const openOrders = openOrdersResult.count ?? 0;
   const trialDaysLeft = daysUntil(restaurant.subscription_end_date);
+
+  if (todaysOrders.length !== ordersToday && !ordersTodayResult.error && !todaysOrdersResult.error) {
+    console.error("[dashboard] Orders Today KPI vs list mismatch", {
+      timezone: APP_TIMEZONE,
+      dayStart: dayStartIso,
+      dayEnd: dayEndIso,
+      kpiCount: ordersToday,
+      listCount: todaysOrders.length,
+      restaurantId: restaurant.id,
+    });
+  }
 
   const stats = [
     { label: "Orders Today", value: ordersToday, icon: ShoppingBag },
@@ -131,14 +154,20 @@ export default async function DashboardPage({ params }: { params: { slug: string
         ))}
       </div>
 
-      {fetchErrors.some((e) => e.label === "Recent orders") ? (
+      {fetchErrors.some((e) => e.label === "Today's orders list") ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            Could not load recent orders.
+            Could not load today&apos;s orders.
           </CardContent>
         </Card>
       ) : (
-        <DashboardRecentOrders restaurantId={restaurant.id} initialOrders={recentOrders} />
+        <DashboardRecentOrders
+          restaurantId={restaurant.id}
+          initialOrders={todaysOrders}
+          dayStartIso={dayStartIso}
+          dayEndIso={dayEndIso}
+          ordersTodayCount={ordersToday}
+        />
       )}
     </div>
   );

@@ -11,6 +11,7 @@ import type {
   WaiterPerformanceStat,
 } from "@/lib/reports/types";
 import {
+  APP_TIMEZONE,
   getChartBucketGranularity,
   getDateRange,
   getPreviousDateRange,
@@ -162,6 +163,7 @@ export async function fetchReportData(
     restaurantId,
     granularity,
     periodOffset,
+    timezone: APP_TIMEZONE,
     p_start_date: startIso,
     p_end_date: endIso,
   });
