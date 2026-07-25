@@ -137,6 +137,8 @@ export function ItemCustomizeSheet({
                   onChange={(e) => setNotes(e.target.value)}
                   autoFocus={false}
                   tabIndex={0}
+                  className="min-h-[96px] rounded-2xl text-base leading-normal"
+                  style={{ fontSize: 16 }}
                 />
               </div>
 

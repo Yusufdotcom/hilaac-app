@@ -13,13 +13,15 @@ import {
   Smartphone,
   Wallet,
   UtensilsCrossed,
+  Armchair,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
 import {
+  brandColorWithAlpha,
   customerAccentTextStyleFromAccent,
-  customerPlaceOrderButtonStyle,
+  customerPrimaryButtonStyleFromAccent,
   HILAAC_GOLD,
 } from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
@@ -77,21 +79,12 @@ function CartItemCard({
   return (
     <article
       className={cn(
-        "relative rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-200",
-        isUnavailable && "border-amber-200 bg-amber-50/30"
+        "rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.06)]",
+        isUnavailable && "border-amber-200 bg-amber-50/40"
       )}
     >
-      <button
-        type="button"
-        onClick={onRemove}
-        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
-        aria-label={`Remove ${item.menuItem.name}`}
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
-
-      <div className="flex gap-3 pr-6">
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+      <div className="flex gap-3.5">
+        <div className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-100">
           {item.menuItem.image_url ? (
             <Image
               src={item.menuItem.image_url}
@@ -100,54 +93,63 @@ function CartItemCard({
               className={cn("object-cover", isUnavailable && "grayscale opacity-70")}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-gray-400">
-              <UtensilsCrossed className="h-8 w-8" aria-hidden="true" />
+            <div className="flex h-full w-full items-center justify-center text-slate-300">
+              <UtensilsCrossed className="h-7 w-7" aria-hidden="true" />
             </div>
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="text-lg font-bold leading-tight text-gray-900">{item.menuItem.name}</h3>
-              <span className="shrink-0 text-base font-semibold text-gray-900">
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-[17px] font-bold leading-snug tracking-tight text-slate-900">
+                {item.menuItem.name}
+              </h3>
+              {item.selectedAddOns.length > 0 && (
+                <p className="mt-1 text-[13px] leading-snug text-slate-500">
+                  {item.selectedAddOns.map((a) => a.name).join(" · ")}
+                </p>
+              )}
+              {item.notes && (
+                <p className="mt-1 text-xs italic text-slate-400">&ldquo;{item.notes}&rdquo;</p>
+              )}
+              {isUnavailable && (
+                <p className="mt-1 text-xs font-medium text-amber-700">
+                  Out of stock — remove to continue
+                </p>
+              )}
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <span className="text-[15px] font-semibold tabular-nums text-slate-700">
                 {formatCurrency(cartItemTotal(item))}
               </span>
+              <button
+                type="button"
+                onClick={onRemove}
+                className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                aria-label={`Remove ${item.menuItem.name}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
-
-            {isUnavailable && (
-              <p className="mt-1 text-xs font-medium text-amber-700">
-                Out of stock — remove to continue
-              </p>
-            )}
-
-            {item.selectedAddOns.length > 0 && (
-              <p className="mt-0.5 text-sm text-gray-500">
-                {item.selectedAddOns.map((a) => a.name).join(", ")}
-              </p>
-            )}
-
-            {item.notes && (
-              <p className="mt-0.5 text-xs italic text-gray-400">&ldquo;{item.notes}&rdquo;</p>
-            )}
           </div>
 
-          <div className="inline-flex w-fit items-center rounded-full border border-gray-200 bg-gray-50 p-0.5">
+          <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-slate-50 p-0.5">
             <button
               type="button"
               onClick={() => onAdjustQuantity(-1)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-colors active:bg-white"
               aria-label="Decrease quantity"
             >
               <Minus className="h-4 w-4" />
             </button>
-            <span className="min-w-[2rem] px-1 text-center text-sm font-semibold text-gray-900">
+            <span className="min-w-[2rem] px-1 text-center text-base font-bold tabular-nums text-slate-900">
               {item.quantity}
             </span>
             <button
               type="button"
               onClick={() => onAdjustQuantity(1)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-colors active:bg-white"
               aria-label="Increase quantity"
             >
               <Plus className="h-4 w-4" />
@@ -184,9 +186,9 @@ function CartSection({
   }
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-sm font-medium uppercase tracking-widest text-gray-500">{title}</h2>
-      <div className="space-y-3">
+    <section className="space-y-3.5">
+      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{title}</h2>
+      <div className="space-y-3.5">
         {items.map((item) => (
           <CartItemCard
             key={item.cartId}
@@ -253,13 +255,9 @@ export function CartSheet({
 
   const brand = useOrderBrandOptional();
   const accent = brand?.accent ?? HILAAC_GOLD;
+  const customBrandingActive = brand?.customBrandingActive ?? false;
   const accentStyle = customerAccentTextStyleFromAccent(accent);
-  const placeOrderStyle = customerPlaceOrderButtonStyle(
-    brand?.branding ?? {
-      brand_color: restaurant.brand_color,
-      custom_branding_enabled: restaurant.custom_branding_enabled,
-    }
-  );
+  const placeOrderStyle = customerPrimaryButtonStyleFromAccent(accent, customBrandingActive);
 
   // Wait for a valid auth session OR guest id before enabling Place Order / Ku bixi.
   useEffect(() => {
@@ -648,43 +646,47 @@ export function CartSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          overlayClassName="bg-black/40 backdrop-blur-sm"
+          overlayClassName="bg-black/45 backdrop-blur-[2px]"
           className={cn(
             "mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col gap-0 overflow-hidden",
-            "rounded-none border-0 bg-slate-50 p-0 shadow-2xl",
-            "motion-safe:animate-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-300",
-            "sm:rounded-t-3xl"
+            "rounded-none border-0 bg-[#F4F6F8] p-0 shadow-2xl",
+            "sm:rounded-t-[1.75rem]"
           )}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          {/* Header */}
-          <SheetHeader className="relative shrink-0 space-y-0 border-b border-slate-100 bg-white px-5 pb-4 pt-5 pr-12 text-left">
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="absolute left-4 top-5 flex items-center gap-1.5 rounded-xl px-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
-              aria-label="Back to menu"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <SheetTitle className="flex items-center justify-center gap-2.5 pl-6 text-xl font-bold text-slate-900">
-              <ShoppingBasket className="h-5 w-5" style={accentStyle} aria-hidden="true" />
-              Saladda
-            </SheetTitle>
-          </SheetHeader>
+          {/* Drag hint + header */}
+          <div className="shrink-0 bg-white">
+            <div className="flex justify-center pt-2.5" aria-hidden="true">
+              <span className="h-1 w-10 rounded-full bg-slate-200" />
+            </div>
+            <SheetHeader className="relative space-y-0 border-b border-slate-100 px-5 pb-4 pt-3 pr-12 text-left">
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="absolute left-4 top-3.5 flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                aria-label="Back to menu"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <SheetTitle className="flex items-center justify-center gap-2 pl-8 text-xl font-bold tracking-tight text-slate-900">
+                <ShoppingBasket className="h-5 w-5" style={accentStyle} aria-hidden="true" />
+                Saladda
+              </SheetTitle>
+            </SheetHeader>
+          </div>
 
           <div className="flex min-h-0 flex-1 flex-col">
-            {/* Scrollable items */}
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            {/* Single scroll: cart items only */}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-5">
               {cart.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-xl shadow-gray-200/50">
-                    <ShoppingBasket className="h-8 w-8 text-gray-300" aria-hidden="true" />
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-md">
+                    <ShoppingBasket className="h-8 w-8 text-slate-300" aria-hidden="true" />
                   </div>
-                  <p className="text-gray-500">Salaadu waxba kuma jiran.</p>
+                  <p className="text-base text-slate-500">Salaadu waxba kuma jiran.</p>
                 </div>
               ) : showGroupedSections ? (
-                <div className="space-y-6">
+                <div className="space-y-7">
                   <CartSection
                     title={ORDER_TYPE_LABELS["dine-in"]}
                     items={dineInItems}
@@ -701,7 +703,7 @@ export function CartSheet({
                   />
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3.5">
                   {cart.map((item) => (
                     <CartItemCard
                       key={item.cartId}
@@ -719,28 +721,38 @@ export function CartSheet({
               )}
             </div>
 
-            {/* Checkout footer */}
+            {/* Checkout footer — sticky, never nested-scroll */}
             {cart.length > 0 && (
-              <div className="shrink-0 space-y-4 rounded-t-2xl border-t border-gray-100 bg-white px-5 py-5 shadow-[0_-8px_32px_rgba(0,0,0,0.06)]">
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="cart-phone" className="text-sm font-medium text-gray-700">
+              <div className="shrink-0 space-y-5 rounded-t-[1.5rem] border-t border-slate-200/80 bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-14px_40px_rgba(15,23,42,0.08)]">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cart-phone" className="text-[13px] font-semibold text-slate-600">
                       Lambarka taleefanka <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
                       <Phone
-                        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                        className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
                         aria-hidden="true"
                       />
                       <Input
                         id="cart-phone"
                         type="tel"
                         inputMode="tel"
+                        autoComplete="tel"
                         required
                         placeholder="0612345678"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="rounded-lg border-gray-200 bg-gray-50 pl-10 focus-visible:bg-white"
+                        className={cn(
+                          "h-14 rounded-2xl border-slate-200 bg-slate-50 pl-12 pr-4",
+                          "text-base leading-normal tracking-wide",
+                          "placeholder:text-slate-400 focus-visible:bg-white focus-visible:ring-2"
+                        )}
+                        style={{
+                          fontSize: 16,
+                          // Prevent iOS Safari auto-zoom (requires ≥16px computed size)
+                          ["--tw-ring-color" as string]: brandColorWithAlpha(accent, 0.45),
+                        }}
                         aria-invalid={phone.length > 0 && !phoneValid}
                       />
                     </div>
@@ -750,22 +762,34 @@ export function CartSheet({
                   </div>
 
                   {showTableLabel && (
-                    <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                      <span className="text-sm font-medium text-slate-600">Miiska</span>
-                      <span className="text-sm font-bold text-slate-900">Table {tableNumber}</span>
+                    <div className="flex justify-start">
+                      <span
+                        className="inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold ring-1"
+                        style={{
+                          backgroundColor: brandColorWithAlpha(accent, 0.12),
+                          color: accent,
+                          borderColor: brandColorWithAlpha(accent, 0.25),
+                        }}
+                      >
+                        <Armchair className="h-4 w-4" aria-hidden="true" />
+                        Table {tableNumber}
+                      </span>
                     </div>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-                  <span className="text-base font-medium text-gray-600">Wadarta</span>
-                  <span className="text-2xl font-bold" style={accentStyle}>
+                <div
+                  className="flex items-center justify-between rounded-2xl px-4 py-3.5"
+                  style={{ backgroundColor: brandColorWithAlpha(accent, 0.1) }}
+                >
+                  <span className="text-base font-semibold text-slate-700">Wadarta</span>
+                  <span className="text-2xl font-bold tracking-tight tabular-nums" style={accentStyle}>
                     {formatCurrency(total)}
                   </span>
                 </div>
 
                 {!isReady && (
-                  <p className="flex items-center justify-center gap-2 text-center text-xs text-gray-500">
+                  <p className="flex items-center justify-center gap-2 text-center text-xs text-slate-500">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                     Diyaarinta…
                   </p>
@@ -780,7 +804,7 @@ export function CartSheet({
                       onClick={() => handleInitiatePayment("evc")}
                       className={cn(
                         "h-14 w-full gap-2 rounded-2xl border-0 bg-[#059669] text-base font-bold text-white",
-                        "shadow-[0_8px_20px_rgba(5,150,105,0.35)] transition-all duration-200",
+                        "shadow-[0_10px_24px_rgba(5,150,105,0.35)] transition-all duration-200",
                         "hover:bg-[#047857] active:scale-[0.98]",
                         "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                       )}
@@ -790,7 +814,7 @@ export function CartSheet({
                       ) : (
                         <Smartphone className="h-5 w-5 shrink-0" aria-hidden="true" />
                       )}
-                      Ku bixi EVC
+                      {placing === "evc" ? "Sending…" : "Ku bixi EVC"}
                     </Button>
 
                     <Button
@@ -800,7 +824,7 @@ export function CartSheet({
                       onClick={() => handleInitiatePayment("edahab")}
                       className={cn(
                         "h-14 w-full gap-2 rounded-2xl border-0 bg-[#D97706] text-base font-bold text-white",
-                        "shadow-[0_8px_20px_rgba(217,119,6,0.35)] transition-all duration-200",
+                        "shadow-[0_10px_24px_rgba(217,119,6,0.35)] transition-all duration-200",
                         "hover:bg-[#B45309] active:scale-[0.98]",
                         "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                       )}
@@ -810,12 +834,12 @@ export function CartSheet({
                       ) : (
                         <Wallet className="h-5 w-5 shrink-0" aria-hidden="true" />
                       )}
-                      Ku bixi eDahab
+                      {placing === "edahab" ? "Sending…" : "Ku bixi eDahab"}
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-center text-sm text-slate-600">
+                    <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm text-slate-600">
                       {payAfterMessage(orderType)}
                     </p>
                     <button
@@ -823,8 +847,8 @@ export function CartSheet({
                       disabled={paymentDisabled}
                       onClick={handlePlaceOrderWithoutPayment}
                       className={cn(
-                        "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold text-white",
-                        "shadow-[0_8px_24px_rgba(15,23,42,0.28)] transition-all duration-200 hover:opacity-95 active:scale-[0.98]",
+                        "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold",
+                        "shadow-[0_10px_28px_rgba(15,23,42,0.22)] transition-all duration-200 hover:opacity-95 active:scale-[0.98]",
                         "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
                       )}
                       style={placeOrderStyle}
@@ -832,7 +856,7 @@ export function CartSheet({
                       {placing === "place" || !isReady ? (
                         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                       ) : null}
-                      Place Order
+                      {placing === "place" ? "Placing order…" : "Place Order"}
                     </button>
                   </div>
                 )}
