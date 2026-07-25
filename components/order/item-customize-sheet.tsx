@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Minus, Plus, UtensilsCrossed } from "lucide-react";
 import Image from "next/image";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -8,19 +8,29 @@ import { OrderPrimaryButton } from "@/components/order/order-primary-button";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  resolveItemAddOns,
+  resolveSpecialInstructionsPlaceholder,
+} from "@/lib/order/resolve-item-addons";
 import { formatCurrency } from "@/lib/utils";
-import type { AddOn, MenuItem } from "@/types/database";
+import type { AddOn, Category, CategoryAddOn, MenuItem, MenuItemAddOn } from "@/types/database";
 import type { CartItem } from "@/lib/order/cart-types";
 
 export function ItemCustomizeSheet({
   item,
+  categories,
   addOns,
+  categoryAddOns,
+  menuItemAddOns,
   orderType,
   onClose,
   onAdd,
 }: {
   item: MenuItem;
+  categories: Category[];
   addOns: AddOn[];
+  categoryAddOns: CategoryAddOn[];
+  menuItemAddOns: MenuItemAddOn[];
   orderType: "dine-in" | "takeaway";
   onClose: () => void;
   onAdd: (cartItem: CartItem) => void;
@@ -28,6 +38,24 @@ export function ItemCustomizeSheet({
   const [quantity, setQuantity] = useState(1);
   const [selected, setSelected] = useState<AddOn[]>([]);
   const [notes, setNotes] = useState("");
+
+  const category = useMemo(
+    () => categories.find((c) => c.id === item.category_id) ?? null,
+    [categories, item.category_id]
+  );
+
+  const availableAddOns = useMemo(
+    () =>
+      resolveItemAddOns({
+        item,
+        addOns,
+        categoryAddOns,
+        menuItemAddOns,
+      }),
+    [item, addOns, categoryAddOns, menuItemAddOns]
+  );
+
+  const notesPlaceholder = resolveSpecialInstructionsPlaceholder(category);
 
   function toggleAddOn(addOn: AddOn) {
     setSelected((prev) =>
@@ -76,11 +104,11 @@ export function ItemCustomizeSheet({
 
               {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
 
-              {addOns.length > 0 && (
+              {availableAddOns.length > 0 && (
                 <div>
                   <p className="mb-2 font-semibold">Ku darso</p>
                   <div className="space-y-2">
-                    {addOns.map((addOn) => (
+                    {availableAddOns.map((addOn) => (
                       <label
                         key={addOn.id}
                         className="flex cursor-pointer items-center justify-between rounded-2xl border border-border/70 p-3 shadow-sm"
@@ -104,7 +132,7 @@ export function ItemCustomizeSheet({
               <div>
                 <p className="mb-2 font-semibold">Tilmaamo gaar ah</p>
                 <Textarea
-                  placeholder="e.g. No onions"
+                  placeholder={notesPlaceholder}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   autoFocus={false}
@@ -124,7 +152,12 @@ export function ItemCustomizeSheet({
                     <Minus className="h-4 w-4" />
                   </Button>
                   <span className="w-6 text-center font-semibold">{quantity}</span>
-                  <Button type="button" variant="outline" size="icon" onClick={() => setQuantity((q) => q + 1)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setQuantity((q) => q + 1)}
+                  >
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>

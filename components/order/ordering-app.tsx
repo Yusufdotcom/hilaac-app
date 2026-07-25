@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { AddOn, Category, MenuItem, OrderType, RestaurantTable } from "@/types/database";
+import type {
+  AddOn,
+  Category,
+  CategoryAddOn,
+  MenuItem,
+  MenuItemAddOn,
+  OrderType,
+  RestaurantTable,
+} from "@/types/database";
 import type { CartItem } from "@/lib/order/cart-types";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
 import { ensureGuestId } from "@/lib/order/guest-id";
@@ -39,12 +47,16 @@ export function OrderingApp({
   categories,
   menuItems,
   addOns,
+  categoryAddOns,
+  menuItemAddOns,
   tables,
 }: {
   restaurant: MinimalRestaurant;
   categories: Category[];
   menuItems: MenuItem[];
   addOns: AddOn[];
+  categoryAddOns: CategoryAddOn[];
+  menuItemAddOns: MenuItemAddOn[];
   tables: RestaurantTable[];
 }) {
   const [step, setStep] = useState<Step>("landing");
@@ -195,7 +207,10 @@ export function OrderingApp({
       {customizeItem && (
         <ItemCustomizeSheet
           item={customizeItem}
-          addOns={addOns.filter((a) => a.restaurant_id === customizeItem.restaurant_id)}
+          categories={categories}
+          addOns={addOns}
+          categoryAddOns={categoryAddOns}
+          menuItemAddOns={menuItemAddOns}
           orderType={orderType}
           onClose={() => setCustomizeItem(null)}
           onAdd={(cartItem) => handleAddToCart(cartItem)}

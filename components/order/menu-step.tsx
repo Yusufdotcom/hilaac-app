@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowLeft, Star, UtensilsCrossed, Plus, X, GlassWater } from "lucide-react";
+import {
+  ArrowLeft,
+  Star,
+  UtensilsCrossed,
+  Plus,
+  X,
+  GlassWater,
+  Utensils,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CartTrayFab } from "@/components/order/cart-tray-fab";
 import { useOrderBrand } from "@/components/order/order-brand-context";
@@ -12,7 +20,11 @@ import {
   customerActiveTabStyleFromAccent,
   customerPrimaryButtonStyleFromAccent,
 } from "@/lib/brand/restaurant-brand";
-import { findDrinksCategory } from "@/lib/order/drinks-category";
+import {
+  findDrinksCategory,
+  isDrinksCategoryName,
+  splitMenuCategories,
+} from "@/lib/order/drinks-category";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Category, MenuItem } from "@/types/database";
 
@@ -121,6 +133,7 @@ function ItemCardContent({
 }
 
 type MenuTab = { id: string; label: string };
+type MenuFocus = "food" | "drinks";
 
 export function MenuStep({
   restaurant,
@@ -155,18 +168,50 @@ export function MenuStep({
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const { accent, customBrandingActive } = useOrderBrand();
 
+  const { food: foodCategories, drinks: drinksCategories } = useMemo(
+    () => splitMenuCategories(categories),
+    [categories]
+  );
+
+  const hasFood = foodCategories.some((c) => menuItems.some((m) => m.category_id === c.id));
+  const hasDrinks = drinksCategories.some((c) => menuItems.some((m) => m.category_id === c.id));
+  const showFocusToggle = hasFood && hasDrinks;
+
+  const [menuFocus, setMenuFocus] = useState<MenuFocus>("food");
+
+  useEffect(() => {
+    if (showFocusToggle) return;
+    if (hasDrinks && !hasFood) setMenuFocus("drinks");
+    if (hasFood && !hasDrinks) setMenuFocus("food");
+  }, [showFocusToggle, hasDrinks, hasFood]);
+
+  const visibleCategories = useMemo(() => {
+    if (!showFocusToggle) return categories;
+    return menuFocus === "drinks" ? drinksCategories : foodCategories;
+  }, [showFocusToggle, menuFocus, categories, drinksCategories, foodCategories]);
+
   const drinksCategory = useMemo(() => findDrinksCategory(categories), [categories]);
+
+  const visibleTopPicks = useMemo(() => {
+    if (!showFocusToggle) return topPicks;
+    return topPicks.filter((item) => {
+      const cat = categories.find((c) => c.id === item.category_id);
+      if (!cat) return menuFocus === "food";
+      const isDrink = isDrinksCategoryName(cat.name);
+      return menuFocus === "drinks" ? isDrink : !isDrink;
+    });
+  }, [topPicks, showFocusToggle, menuFocus, categories]);
 
   const tabs = useMemo(() => {
     const items: MenuTab[] = [];
-    if (topPicks.length > 0) items.push({ id: "top-picks", label: "Top Picks" });
-    for (const category of categories) {
+    if (visibleTopPicks.length > 0) items.push({ id: "top-picks", label: "Top Picks" });
+    for (const category of visibleCategories) {
       if (menuItems.some((m) => m.category_id === category.id)) {
         items.push({ id: category.id, label: category.name });
       }
     }
     return items;
-  }, [categories, menuItems, topPicks.length]);
+  }, [visibleCategories, menuItems, visibleTopPicks.length]);
 
   const [activeTabId, setActiveTabId] = useState(tabs[0]?.id ?? "");
 
@@ -175,6 +220,10 @@ export function MenuStep({
       setActiveTabId(tabs[0].id);
     }
   }, [tabs, activeTabId]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo(0, 0);
+  }, [menuFocus]);
 
   const sessionLabel =
     orderType === "dine-in"
@@ -209,7 +258,7 @@ export function MenuStep({
     }
 
     return () => observer.disconnect();
-  }, [tabs]);
+  }, [tabs, menuFocus]);
 
   function scrollToTab(tabId: string) {
     setActiveTabId(tabId);
@@ -218,7 +267,8 @@ export function MenuStep({
 
   function handleDrinksUpsellClick() {
     if (drinksCategory) {
-      scrollToTab(drinksCategory.id);
+      if (showFocusToggle) setMenuFocus("drinks");
+      window.setTimeout(() => scrollToTab(drinksCategory.id), showFocusToggle ? 50 : 0);
     }
     onDismissDrinksUpsell?.();
   }
@@ -240,6 +290,45 @@ export function MenuStep({
           </div>
           <div className="w-10" />
         </div>
+
+        {showFocusToggle && (
+          <div className="flex justify-center gap-3 px-4 pb-3 pt-1">
+            {(
+              [
+                { id: "food" as const, label: "Cunno", Icon: Utensils },
+                { id: "drinks" as const, label: "Cabitaan", Icon: GlassWater },
+              ] as const
+            ).map(({ id, label, Icon }) => {
+              const active = menuFocus === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setMenuFocus(id)}
+                  className={cn(
+                    "flex min-w-[7.5rem] flex-col items-center gap-1.5 rounded-2xl border-2 px-5 py-3.5",
+                    "text-sm font-bold shadow-sm transition-all duration-200 active:scale-[0.97]",
+                    !active && "border-border/70 bg-muted/40 text-muted-foreground"
+                  )}
+                  style={
+                    active
+                      ? {
+                          borderColor: accent,
+                          backgroundColor: brandColorWithAlpha(accent, 0.12),
+                          color: accent,
+                          boxShadow: `0 8px 20px ${brandColorWithAlpha(accent, 0.2)}`,
+                        }
+                      : undefined
+                  }
+                  aria-pressed={active}
+                >
+                  <Icon className="h-6 w-6" aria-hidden="true" />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {tabs.length > 1 && (
           <div className="no-scrollbar flex gap-2 overflow-x-auto border-t border-border/50 px-4 py-2">
@@ -264,7 +353,7 @@ export function MenuStep({
         )}
       </header>
 
-      {showDrinksUpsell && drinksCategory && (
+      {showDrinksUpsell && drinksCategory && menuFocus === "food" && (
         <div
           className="shrink-0 border-b border-border/50 px-4 py-2.5 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2"
           style={{ backgroundColor: brandColorWithAlpha(accent, 0.08) }}
@@ -282,7 +371,7 @@ export function MenuStep({
                   color: accent,
                 }}
               >
-                <GlassWater className="h-4.5 w-4.5 h-4 w-4" aria-hidden="true" />
+                <GlassWater className="h-4 w-4" aria-hidden="true" />
               </span>
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-foreground">Add a drink?</span>
@@ -305,7 +394,7 @@ export function MenuStep({
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
         <div className={cn("space-y-6 px-4 py-4", cartCount > 0 && "pb-28")}>
-          {topPicks.length > 0 && (
+          {visibleTopPicks.length > 0 && (
             <section
               id="top-picks"
               ref={(node) => {
@@ -317,14 +406,14 @@ export function MenuStep({
                 <Star className="h-5 w-5 fill-amber-400 text-amber-400" /> Top Picks
               </h2>
               <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
-                {topPicks.map((item) => (
+                {visibleTopPicks.map((item) => (
                   <ItemCard key={item.id} item={item} onSelect={onSelectItem} />
                 ))}
               </div>
             </section>
           )}
 
-          {categories.map((category) => {
+          {visibleCategories.map((category) => {
             const items = menuItems.filter((m) => m.category_id === category.id);
             if (items.length === 0) return null;
             return (

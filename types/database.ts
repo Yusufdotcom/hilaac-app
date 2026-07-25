@@ -78,6 +78,8 @@ export interface Category {
   restaurant_id: string;
   name: string;
   display_order: number;
+  /** Custom special-instructions hint; null → app heuristic / generic fallback. */
+  special_instructions_placeholder?: string | null;
   created_at: string;
 }
 
@@ -92,6 +94,11 @@ export interface MenuItem {
   image_url: string | null;
   is_available: boolean;
   is_top_pick: boolean;
+  /**
+   * When true, use menu_item_add_ons instead of the category's default add-ons.
+   * When false (default), inherit category_add_ons.
+   */
+  use_custom_add_ons?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +109,20 @@ export interface AddOn {
   name: string;
   price: number;
   created_at: string;
+}
+
+/** Junction: which catalog add-ons belong to a category. */
+export interface CategoryAddOn {
+  category_id: string;
+  add_on_id: string;
+  created_at?: string;
+}
+
+/** Junction: per-item override set (only when menu_items.use_custom_add_ons). */
+export interface MenuItemAddOn {
+  menu_item_id: string;
+  add_on_id: string;
+  created_at?: string;
 }
 
 export interface Order {

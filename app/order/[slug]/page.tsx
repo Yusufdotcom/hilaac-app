@@ -31,7 +31,6 @@ export default async function OrderPage({ params }: { params: { slug: string } }
     console.error("[order page] restaurant fetch failed:", error.message);
   }
 
-  // Old printed QR codes may still point at a previous slug after a rename.
   if (!restaurant) {
     const { data: renamed } = await admin
       .from("restaurants")
@@ -75,6 +74,18 @@ export default async function OrderPage({ params }: { params: { slug: string } }
         .order("table_number"),
     ]);
 
+  const categoryIds = (categories ?? []).map((c) => c.id);
+  const itemIds = (menuItems ?? []).map((m) => m.id);
+
+  const [{ data: categoryAddOns }, { data: menuItemAddOns }] = await Promise.all([
+    categoryIds.length
+      ? admin.from("category_add_ons").select("category_id, add_on_id").in("category_id", categoryIds)
+      : Promise.resolve({ data: [] as { category_id: string; add_on_id: string }[] }),
+    itemIds.length
+      ? admin.from("menu_item_add_ons").select("menu_item_id, add_on_id").in("menu_item_id", itemIds)
+      : Promise.resolve({ data: [] as { menu_item_id: string; add_on_id: string }[] }),
+  ]);
+
   return (
     <OrderBrandProvider
       brandColor={brandColor}
@@ -86,6 +97,8 @@ export default async function OrderPage({ params }: { params: { slug: string } }
         categories={categories ?? []}
         menuItems={menuItems ?? []}
         addOns={addOns ?? []}
+        categoryAddOns={categoryAddOns ?? []}
+        menuItemAddOns={menuItemAddOns ?? []}
         tables={tables ?? []}
       />
     </OrderBrandProvider>

@@ -11,18 +11,24 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, cn } from "@/lib/utils";
-import type { Category, MenuItem } from "@/types/database";
+import type { AddOn, Category, CategoryAddOn, MenuItem, MenuItemAddOn } from "@/types/database";
 import { MenuItemDialog } from "@/components/admin/menu/menu-item-dialog";
 
 export function MenuItemSection({
   restaurantId,
   categories,
   menuItems,
+  addOns,
+  categoryAddOns,
+  menuItemAddOns,
   canUseAi,
 }: {
   restaurantId: string;
   categories: Category[];
   menuItems: MenuItem[];
+  addOns: AddOn[];
+  categoryAddOns: CategoryAddOn[];
+  menuItemAddOns: MenuItemAddOn[];
   canUseAi: boolean;
 }) {
   const supabase = createClient();
@@ -147,6 +153,9 @@ export function MenuItemSection({
         onOpenChange={setDialogOpen}
         restaurantId={restaurantId}
         categories={categories}
+        addOns={addOns}
+        categoryAddOns={categoryAddOns}
+        menuItemAddOns={menuItemAddOns}
         item={editingItem}
         canUseAi={canUseAi}
       />

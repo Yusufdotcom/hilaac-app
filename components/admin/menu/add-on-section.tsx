@@ -33,7 +33,7 @@ export function AddOnSection({ restaurantId, addOns }: { restaurantId: string; a
       return;
     }
     setForm({ name: "", price: "" });
-    toast.success("Add-on added");
+    toast.success("Add-on added to catalog");
     router.refresh();
   }
 
@@ -50,8 +50,16 @@ export function AddOnSection({ restaurantId, addOns }: { restaurantId: string; a
   return (
     <Card className="mt-4">
       <CardContent className="p-6">
+        <p className="mb-4 text-sm text-muted-foreground">
+          Add-ons are a shared catalog. Assign them to categories (or override per item) so drinks
+          don&apos;t show food options like &ldquo;Extra cheese.&rdquo;
+        </p>
         <form onSubmit={handleAdd} className="mb-6 flex gap-2">
-          <Input placeholder="e.g. Extra cheese" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <Input
+            placeholder="e.g. Extra cheese"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
           <Input
             type="number"
             step="0.01"
@@ -67,13 +75,17 @@ export function AddOnSection({ restaurantId, addOns }: { restaurantId: string; a
 
         <div className="space-y-2">
           {addOns.length === 0 && (
-            <p className="py-8 text-center text-muted-foreground">No add-ons yet. Add your first one above.</p>
+            <p className="py-8 text-center text-muted-foreground">
+              No add-ons yet. Add your first one above.
+            </p>
           )}
           {addOns.map((addOn) => (
             <div key={addOn.id} className="flex items-center justify-between rounded-lg border p-3">
               <span className="font-medium">{addOn.name}</span>
               <div className="flex items-center gap-4">
-                <span className="text-muted-foreground">{formatCurrency(Number(addOn.price))}</span>
+                <span className="text-muted-foreground">
+                  {formatCurrency(Number(addOn.price))}
+                </span>
                 <Button variant="ghost" size="icon" onClick={() => handleDelete(addOn.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Loader2, Sparkles, Upload, Lock, UtensilsCrossed } from "lucide-react";
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -25,15 +26,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
-import type { Category, MenuItem } from "@/types/database";
+import { formatCurrency } from "@/lib/utils";
+import type { AddOn, Category, CategoryAddOn, MenuItem, MenuItemAddOn } from "@/types/database";
 
-const EMPTY_FORM = { name: "", description: "", ingredients: "", price: "", category_id: "", image_url: "" };
+const EMPTY_FORM = {
+  name: "",
+  description: "",
+  ingredients: "",
+  price: "",
+  category_id: "",
+  image_url: "",
+  use_custom_add_ons: false,
+};
 
 export function MenuItemDialog({
   open,
   onOpenChange,
   restaurantId,
   categories,
+  addOns,
+  categoryAddOns,
+  menuItemAddOns,
   item,
   canUseAi,
 }: {
@@ -41,12 +54,16 @@ export function MenuItemDialog({
   onOpenChange: (open: boolean) => void;
   restaurantId: string;
   categories: Category[];
+  addOns: AddOn[];
+  categoryAddOns: CategoryAddOn[];
+  menuItemAddOns: MenuItemAddOn[];
   item: MenuItem | null;
   canUseAi: boolean;
 }) {
   const supabase = createClient();
   const router = useRouter();
   const [form, setForm] = useState(EMPTY_FORM);
+  const [overrideAddOnIds, setOverrideAddOnIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -60,11 +77,23 @@ export function MenuItemDialog({
         price: String(item.price),
         category_id: item.category_id ?? "",
         image_url: item.image_url ?? "",
+        use_custom_add_ons: Boolean(item.use_custom_add_ons),
       });
+      setOverrideAddOnIds(
+        menuItemAddOns.filter((l) => l.menu_item_id === item.id).map((l) => l.add_on_id)
+      );
     } else {
       setForm(EMPTY_FORM);
+      setOverrideAddOnIds([]);
     }
-  }, [item, open]);
+  }, [item, open, menuItemAddOns]);
+
+  const categoryDefaultIds = useMemo(() => {
+    if (!form.category_id) return [];
+    return categoryAddOns
+      .filter((l) => l.category_id === form.category_id)
+      .map((l) => l.add_on_id);
+  }, [categoryAddOns, form.category_id]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -116,6 +145,12 @@ export function MenuItemDialog({
     }
   }
 
+  function toggleOverride(id: string) {
+    setOverrideAddOnIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name || !form.category_id) {
@@ -132,19 +167,46 @@ export function MenuItemDialog({
       ingredients: form.ingredients || null,
       price: Number(form.price) || 0,
       image_url: form.image_url || null,
+      use_custom_add_ons: form.use_custom_add_ons,
     };
 
-    const { error } = item
-      ? await supabase.from("menu_items").update(payload).eq("id", item.id)
-      : await supabase.from("menu_items").insert(payload);
+    let itemId = item?.id ?? null;
 
-    setSaving(false);
-
-    if (error) {
-      toast.error(error.message);
-      return;
+    if (item) {
+      const { error } = await supabase.from("menu_items").update(payload).eq("id", item.id);
+      if (error) {
+        setSaving(false);
+        toast.error(error.message);
+        return;
+      }
+    } else {
+      const { data, error } = await supabase.from("menu_items").insert(payload).select("id").single();
+      if (error || !data) {
+        setSaving(false);
+        toast.error(error?.message ?? "Failed to create item");
+        return;
+      }
+      itemId = data.id;
     }
 
+    if (itemId) {
+      await supabase.from("menu_item_add_ons").delete().eq("menu_item_id", itemId);
+      if (form.use_custom_add_ons && overrideAddOnIds.length > 0) {
+        const { error: linkError } = await supabase.from("menu_item_add_ons").insert(
+          overrideAddOnIds.map((add_on_id) => ({
+            menu_item_id: itemId!,
+            add_on_id,
+          }))
+        );
+        if (linkError) {
+          setSaving(false);
+          toast.error(linkError.message);
+          return;
+        }
+      }
+    }
+
+    setSaving(false);
     toast.success(item ? "Menu item updated" : "Menu item added");
     onOpenChange(false);
     router.refresh();
@@ -152,7 +214,7 @@ export function MenuItemDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{item ? "Edit Menu Item" : "Add Menu Item"}</DialogTitle>
         </DialogHeader>
@@ -182,7 +244,13 @@ export function MenuItemDialog({
                 disabled={generating}
                 className="justify-start"
               >
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : canUseAi ? <Sparkles className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {generating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : canUseAi ? (
+                  <Sparkles className="h-4 w-4" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
                 AI Generate {!canUseAi && "(Pro)"}
               </Button>
             </div>
@@ -190,7 +258,12 @@ export function MenuItemDialog({
 
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
-            <Input id="name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <Input
+              id="name"
+              required
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -207,7 +280,10 @@ export function MenuItemDialog({
             </div>
             <div className="space-y-2">
               <Label>Category</Label>
-              <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
+              <Select
+                value={form.category_id}
+                onValueChange={(v) => setForm({ ...form, category_id: v })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -239,6 +315,53 @@ export function MenuItemDialog({
               value={form.ingredients}
               onChange={(e) => setForm({ ...form, ingredients: e.target.value })}
             />
+          </div>
+
+          <div className="space-y-3 rounded-xl border p-3">
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox
+                checked={form.use_custom_add_ons}
+                onCheckedChange={(v) =>
+                  setForm((f) => ({ ...f, use_custom_add_ons: Boolean(v) }))
+                }
+              />
+              <span>
+                <span className="font-medium">Override category add-ons</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Leave off to inherit this category&apos;s defaults
+                  {form.category_id
+                    ? ` (${categoryDefaultIds.length} add-on${categoryDefaultIds.length === 1 ? "" : "s"})`
+                    : ""}
+                  .
+                </span>
+              </span>
+            </label>
+
+            {form.use_custom_add_ons && (
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border bg-muted/20 p-2">
+                {addOns.length === 0 ? (
+                  <p className="px-1 py-2 text-xs text-muted-foreground">No catalog add-ons yet.</p>
+                ) : (
+                  addOns.map((addOn) => (
+                    <label
+                      key={addOn.id}
+                      className="flex cursor-pointer items-center justify-between gap-2 rounded-md px-1 py-1 text-sm hover:bg-background"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Checkbox
+                          checked={overrideAddOnIds.includes(addOn.id)}
+                          onCheckedChange={() => toggleOverride(addOn.id)}
+                        />
+                        {addOn.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatCurrency(Number(addOn.price))}
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter>

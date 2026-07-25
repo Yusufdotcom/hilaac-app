@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { AddOn, Category, MenuItem } from "@/types/database";
+import type { AddOn, Category, CategoryAddOn, MenuItem, MenuItemAddOn } from "@/types/database";
 import { CategorySection } from "@/components/admin/menu/category-section";
 import { MenuItemSection } from "@/components/admin/menu/menu-item-section";
 import { AddOnSection } from "@/components/admin/menu/add-on-section";
@@ -12,12 +12,16 @@ export function MenuManager({
   categories,
   menuItems,
   addOns,
+  categoryAddOns,
+  menuItemAddOns,
   canUseAi,
 }: {
   restaurantId: string;
   categories: Category[];
   menuItems: MenuItem[];
   addOns: AddOn[];
+  categoryAddOns: CategoryAddOn[];
+  menuItemAddOns: MenuItemAddOn[];
   canUseAi: boolean;
 }) {
   const [tab, setTab] = useState("items");
@@ -26,7 +30,9 @@ export function MenuManager({
     <div className="w-full space-y-6 overflow-x-hidden">
       <div className="min-w-0">
         <h1 className="text-2xl font-bold">Menu</h1>
-        <p className="text-muted-foreground">Manage your categories, dishes, and add-ons.</p>
+        <p className="text-muted-foreground">
+          Manage categories, dishes, and category-scoped add-ons.
+        </p>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -41,12 +47,20 @@ export function MenuManager({
             restaurantId={restaurantId}
             categories={categories}
             menuItems={menuItems}
+            addOns={addOns}
+            categoryAddOns={categoryAddOns}
+            menuItemAddOns={menuItemAddOns}
             canUseAi={canUseAi}
           />
         </TabsContent>
 
         <TabsContent value="categories">
-          <CategorySection restaurantId={restaurantId} categories={categories} />
+          <CategorySection
+            restaurantId={restaurantId}
+            categories={categories}
+            addOns={addOns}
+            categoryAddOns={categoryAddOns}
+          />
         </TabsContent>
 
         <TabsContent value="addons">
