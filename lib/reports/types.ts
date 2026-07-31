@@ -68,6 +68,23 @@ export type SpikedItem = {
   growth_percent: number;
 };
 
+export type ReportInsightType =
+  | "trending_up"
+  | "underperforming"
+  | "peak_hours"
+  | "payment_concentration"
+  | "revenue_trend";
+
+export type ReportInsight = {
+  id: string;
+  type: ReportInsightType;
+  title: string;
+  message: string;
+  /** Higher = show first. */
+  importance: number;
+  meta?: Record<string, string | number | null | undefined>;
+};
+
 export type ReportData = {
   kpi: KpiSummary;
   revenue: RevenueBucket[];
@@ -79,6 +96,8 @@ export type ReportData = {
   paymentSplit: PaymentSplitStat[];
   waiterPerformance: WaiterPerformanceStat[];
   spikedItems: SpikedItem[];
+  /** Rule-based recommendations — empty when no rule triggers. */
+  insights: ReportInsight[];
   meta: {
     startDate: string;
     endDate: string;

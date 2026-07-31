@@ -36,6 +36,14 @@ ENCRYPTION_SECRET_KEY=             # 32-byte hex string or any passphrase, used 
 CRON_SECRET=                       # shared secret Vercel Cron sends as `Authorization: Bearer`
 EVC_API_BASE_URL=                  # EVC Plus merchant API base URL (payment_mode = 'api')
 EDAHAB_API_BASE_URL=               # eDahab merchant API base URL (payment_mode = 'api')
+
+# WhatsApp via Twilio (see docs/whatsapp-twilio-setup.md)
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_WHATSAPP_FROM=whatsapp:+1…   # approved sender or sandbox
+TWILIO_WA_CONTENT_SID_ORDER_READY=  # approved Utility template ContentSid
+TWILIO_WA_CONTENT_SID_REENGAGE=     # approved Marketing template ContentSid
+WHATSAPP_DRY_RUN=true               # keep true until templates approved
 ```
 
 Generate a strong `ENCRYPTION_SECRET_KEY`:

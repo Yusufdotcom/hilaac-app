@@ -73,6 +73,32 @@ export interface Waiter {
   created_at: string;
 }
 
+export interface LoyaltySettings {
+  restaurant_id: string;
+  enabled: boolean;
+  target_order_count: number;
+  reward_description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoyaltyProgress {
+  id: string;
+  restaurant_id: string;
+  phone_normalized: string;
+  current_count: number;
+  available_rewards: number;
+  updated_at: string;
+}
+
+export interface LoyaltyRedemption {
+  id: string;
+  restaurant_id: string;
+  phone_normalized: string;
+  redeemed_by: string;
+  redeemed_at: string;
+}
+
 export interface Category {
   id: string;
   restaurant_id: string;
@@ -138,6 +164,8 @@ export interface Order {
   payment_reference: string | null;
   total: number;
   customer_phone: string | null;
+  /** Explicit opt-in for WhatsApp marketing / re-engagement. */
+  whatsapp_marketing_opt_in?: boolean;
   notes: string | null;
   delivered_by: string | null;
   customer_confirmed_at: string | null;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { normalizeLoyaltyPhone } from "@/lib/loyalty/phone";
 import { paymentStatusAwaitingCashierWrite } from "@/lib/payments/constants";
 
 interface IncomingItem {
@@ -18,7 +19,17 @@ interface IncomingItem {
  */
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { restaurantId, tableId, orderType, items, notes, customerPhone, paymentMethod, billingModel } = body as {
+  const {
+    restaurantId,
+    tableId,
+    orderType,
+    items,
+    notes,
+    customerPhone,
+    paymentMethod,
+    billingModel,
+    whatsappMarketingOptIn,
+  } = body as {
     restaurantId: string;
     tableId: string | null;
     orderType: "dine-in" | "takeaway";
@@ -27,7 +38,9 @@ export async function POST(req: NextRequest) {
     customerPhone?: string;
     paymentMethod?: "evc" | "edahab";
     billingModel?: "pay_before" | "pay_after";
+    whatsappMarketingOptIn?: boolean;
   };
+  const marketingOptIn = Boolean(whatsappMarketingOptIn);
 
   if (!restaurantId || !orderType || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "Missing required order fields" }, { status: 400 });
@@ -114,6 +127,7 @@ export async function POST(req: NextRequest) {
       order_number: nextOrderNumber,
       total,
       customer_phone: customerPhone || null,
+      whatsapp_marketing_opt_in: marketingOptIn,
       notes: notes || null,
     })
     .select("id, order_number")
@@ -130,6 +144,30 @@ export async function POST(req: NextRequest) {
   if (itemsError) {
     await supabase.from("orders").delete().eq("id", order.id);
     return NextResponse.json({ error: itemsError.message }, { status: 500 });
+  }
+
+  // Upsert WhatsApp contact for re-engagement eligibility (opt-in + last order).
+  const phoneNormalized = normalizeLoyaltyPhone(customerPhone);
+  if (phoneNormalized) {
+    const { data: existing } = await supabase
+      .from("whatsapp_contacts")
+      .select("marketing_opt_in, opted_out_at")
+      .eq("restaurant_id", restaurantId)
+      .eq("phone_normalized", phoneNormalized)
+      .maybeSingle();
+
+    const optedOut = Boolean(existing?.opted_out_at);
+    await supabase.from("whatsapp_contacts").upsert(
+      {
+        restaurant_id: restaurantId,
+        phone_normalized: phoneNormalized,
+        marketing_opt_in: optedOut ? false : marketingOptIn || Boolean(existing?.marketing_opt_in),
+        last_order_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ...(marketingOptIn && !optedOut ? { opted_out_at: null } : {}),
+      },
+      { onConflict: "restaurant_id,phone_normalized" }
+    );
   }
 
   return NextResponse.json({

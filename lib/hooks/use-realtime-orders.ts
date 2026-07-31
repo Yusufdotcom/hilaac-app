@@ -197,6 +197,17 @@ export function useRealtimeOrders(
       setOrders((prev) => prev.map((o) => (o.id === orderId ? previous! : o)));
     }
 
+    // Fire-and-forget WhatsApp "order ready" — never blocks kitchen status update.
+    if (!error && status === "ready") {
+      void fetch("/api/notifications/whatsapp/order-ready", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      }).catch((err) => {
+        console.error("[whatsapp] order-ready notify failed", err);
+      });
+    }
+
     return error;
   }
 

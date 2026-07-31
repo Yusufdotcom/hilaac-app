@@ -5,6 +5,7 @@ import { Minus, Plus, UtensilsCrossed } from "lucide-react";
 import Image from "next/image";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { OrderPrimaryButton } from "@/components/order/order-primary-button";
+import { useOrderAppearanceOptional } from "@/components/order/order-appearance-context";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +13,7 @@ import {
   resolveItemAddOns,
   resolveSpecialInstructionsPlaceholder,
 } from "@/lib/order/resolve-item-addons";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import type { AddOn, Category, CategoryAddOn, MenuItem, MenuItemAddOn } from "@/types/database";
 import type { CartItem } from "@/lib/order/cart-types";
 
@@ -41,6 +42,7 @@ export function ItemCustomizeSheet({
   onSave?: (cartId: string, updates: Partial<CartItem>) => void;
 }) {
   const isEditing = Boolean(initialCartItem);
+  const appearance = useOrderAppearanceOptional();
 
   const [quantity, setQuantity] = useState(initialCartItem?.quantity ?? 1);
   const [selected, setSelected] = useState<AddOn[]>(initialCartItem?.selectedAddOns ?? []);
@@ -99,7 +101,10 @@ export function ItemCustomizeSheet({
     <Sheet open onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         side="bottom"
-        className="mx-auto flex max-h-[min(92vh,100dvh)] w-full max-w-lg flex-col gap-0 overflow-hidden rounded-t-3xl p-0 shadow-2xl"
+        className={cn(
+          "order-flow-surface mx-auto flex max-h-[min(92vh,100dvh)] w-full max-w-lg flex-col gap-0 overflow-hidden rounded-t-3xl border-border bg-background p-0 text-foreground shadow-2xl"
+        )}
+        data-order-theme={appearance?.theme ?? "light"}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <SheetHeader className="shrink-0 space-y-0 border-b border-border/50 px-5 pb-4 pt-5 pr-12 text-left">
@@ -111,7 +116,14 @@ export function ItemCustomizeSheet({
             <div className="space-y-4">
               <div className="relative h-40 w-full overflow-hidden rounded-2xl bg-muted shadow-sm">
                 {item.image_url ? (
-                  <Image src={item.image_url} alt={item.name} fill className="object-cover" />
+                  <Image
+                    src={item.image_url}
+                    alt={item.name}
+                    fill
+                    sizes="(max-width: 512px) 100vw, 512px"
+                    quality={70}
+                    className="object-cover"
+                  />
                 ) : (
                   <div className="flex h-full items-center justify-center text-muted-foreground">
                     <UtensilsCrossed className="h-8 w-8" />

@@ -185,3 +185,51 @@
     filter: brightness(1.03);
   }
 }
+
+/* ── Customer ordering flow appearance (scoped light / dark) ── */
+.order-flow,
+.order-flow-surface {
+  transition: background-color 0.25s ease, color 0.2s ease;
+}
+
+.order-flow[data-order-theme="light"],
+.order-flow-surface[data-order-theme="light"] {
+  --background: 36 40% 96%;
+  --foreground: 24 20% 12%;
+  --card: 36 45% 98%;
+  --card-foreground: 24 20% 12%;
+  --popover: 36 45% 98%;
+  --popover-foreground: 24 20% 12%;
+  --secondary: 34 28% 92%;
+  --secondary-foreground: 24 20% 14%;
+  --muted: 34 24% 91%;
+  --muted-foreground: 24 12% 38%;
+  --accent: 34 28% 92%;
+  --accent-foreground: 24 20% 14%;
+  --border: 30 18% 84%;
+  --input: 30 18% 84%;
+  --ring: 30 53% 64%;
+  background-color: hsl(36 40% 96%);
+  color: hsl(24 20% 12%);
+}
+
+.order-flow[data-order-theme="dark"],
+.order-flow-surface[data-order-theme="dark"] {
+  --background: 24 18% 10%;
+  --foreground: 36 30% 94%;
+  --card: 24 16% 14%;
+  --card-foreground: 36 30% 94%;
+  --popover: 24 16% 14%;
+  --popover-foreground: 36 30% 94%;
+  --secondary: 24 14% 18%;
+  --secondary-foreground: 36 28% 92%;
+  --muted: 24 12% 18%;
+  --muted-foreground: 30 14% 68%;
+  --accent: 24 14% 18%;
+  --accent-foreground: 36 28% 92%;
+  --border: 24 12% 22%;
+  --input: 24 12% 22%;
+  --ring: 30 53% 64%;
+  background-color: hsl(24 18% 10%);
+  color: hsl(36 30% 94%);
+}

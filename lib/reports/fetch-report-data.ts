@@ -10,6 +10,8 @@ import type {
   SpikedItem,
   WaiterPerformanceStat,
 } from "@/lib/reports/types";
+import { computeInsights } from "@/lib/reports/compute-insights";
+import { getAppDayBounds } from "@/lib/time/app-calendar";
 import {
   APP_TIMEZONE,
   fillRevenueBuckets,
@@ -172,6 +174,25 @@ export async function fetchReportData(
   // Chart buckets are finer than the selected window (e.g. daily points inside a week).
   const chartGranularity = getChartBucketGranularity(granularity);
 
+  // Underperform windows are absolute (today-based), not the selected report period.
+  // Last 14 calendar days inclusive of today; prior 30 days immediately before that.
+  const recent14Start = getAppDayBounds(-13).start;
+  const recent14End = getAppDayBounds(0).end;
+  const prior30Start = getAppDayBounds(-43).start;
+  const prior30End = recent14Start;
+  const recent14Rpc = {
+    p_restaurant_id: restaurantId,
+    p_start_date: recent14Start.toISOString(),
+    p_end_date: recent14End.toISOString(),
+    p_limit: 50,
+  };
+  const prior30Rpc = {
+    p_restaurant_id: restaurantId,
+    p_start_date: prior30Start.toISOString(),
+    p_end_date: prior30End.toISOString(),
+    p_limit: 50,
+  };
+
   const [
     kpiRes,
     prevKpiRes,
@@ -184,6 +205,8 @@ export async function fetchReportData(
     peakDaysRes,
     paymentSplitRes,
     waiterPerfRes,
+    recent14ItemsRes,
+    prior30ItemsRes,
   ] = await Promise.all([
     supabase.rpc("get_kpi_summary", rpcBase),
     supabase.rpc("get_kpi_summary", prevRpcBase),
@@ -192,13 +215,16 @@ export async function fetchReportData(
       ...prevRpcBase,
       p_granularity: chartGranularity,
     }),
-    supabase.rpc("get_top_items", { ...rpcBase, p_limit: 10 }),
+    // Wider list for trend insights; charts still use top 10.
+    supabase.rpc("get_top_items", { ...rpcBase, p_limit: 25 }),
     supabase.rpc("get_top_items", { ...prevRpcBase, p_limit: 25 }),
     supabase.rpc("get_least_ordered_items", { ...rpcBase, p_limit: 5 }),
     supabase.rpc("get_peak_hours", rpcBase),
     supabase.rpc("get_peak_days", rpcBase),
     supabase.rpc("get_payment_split", rpcBase),
     supabase.rpc("get_waiter_performance", rpcBase),
+    supabase.rpc("get_top_items", recent14Rpc),
+    supabase.rpc("get_top_items", prior30Rpc),
   ]);
 
   mapRpcError("get_kpi_summary", kpiRes.error, rpcBase);
@@ -211,13 +237,15 @@ export async function fetchReportData(
     ...prevRpcBase,
     granularity: chartGranularity,
   });
-  mapRpcError("get_top_items", topItemsRes.error, { ...rpcBase, p_limit: 10 });
+  mapRpcError("get_top_items", topItemsRes.error, { ...rpcBase, p_limit: 25 });
   mapRpcError("get_top_items(prev)", prevTopItemsRes.error, { ...prevRpcBase, p_limit: 25 });
   mapRpcError("get_least_ordered_items", leastItemsRes.error, { ...rpcBase, p_limit: 5 });
   mapRpcError("get_peak_hours", peakHoursRes.error, rpcBase);
   mapRpcError("get_peak_days", peakDaysRes.error, rpcBase);
   mapRpcError("get_payment_split", paymentSplitRes.error, rpcBase);
   mapRpcError("get_waiter_performance", waiterPerfRes.error, rpcBase);
+  mapRpcError("get_top_items(recent14)", recent14ItemsRes.error, recent14Rpc);
+  mapRpcError("get_top_items(prior30)", prior30ItemsRes.error, prior30Rpc);
 
   const kpiRow = (kpiRes.data?.[0] ?? {}) as Record<string, unknown>;
   const prevKpiRow = (prevKpiRes.data?.[0] ?? {}) as Record<string, unknown>;
@@ -234,9 +262,12 @@ export async function fetchReportData(
   const prevRevenue = Number(prevKpiRow.total_revenue ?? 0);
   const prevAov = Number(prevKpiRow.avg_order_value ?? prevKpiRow.average_order_value ?? 0);
 
-  const topItems = normalizeItems(topItemsRes.data ?? []).filter((i) => i.quantity_sold > 0);
+  const allCurrentItems = normalizeItems(topItemsRes.data ?? []).filter((i) => i.quantity_sold > 0);
+  const topItems = allCurrentItems.slice(0, 10);
   const prevTopItems = normalizeItems(prevTopItemsRes.data ?? []);
   const leastItems = normalizeItems(leastItemsRes.data ?? []).filter((i) => i.quantity_sold > 0);
+  const recent14Items = normalizeItems(recent14ItemsRes.data ?? []);
+  const prior30Items = normalizeItems(prior30ItemsRes.data ?? []);
 
   // Zero-fill buckets so Daily (hourly) always has 24 points, etc.
   const revenue = fillRevenueBuckets(
@@ -312,6 +343,26 @@ export async function fetchReportData(
     });
   }
 
+  const revenueTrend = trendFromValues(totalRevenue, prevRevenue);
+  const peakHours = ((peakHoursRes.data ?? []) as ReportData["peakHours"]).map((h) => ({
+    hour_of_day: Number(h.hour_of_day),
+    order_count: Number(h.order_count) || 0,
+    revenue: Number(h.revenue) || 0,
+  }));
+  const paymentSplit = normalizePayment(paymentSplitRes.data ?? []);
+
+  const insights = computeInsights({
+    granularity,
+    currentItems: allCurrentItems,
+    previousItems: prevTopItems,
+    recent14Items,
+    prior30Items,
+    peakHours,
+    paymentSplit,
+    revenueTrendPercent: revenueTrend.percent,
+    revenueTrendDirection: revenueTrend.direction,
+  });
+
   return {
     kpi: {
       total_orders: totalOrders,
@@ -322,7 +373,7 @@ export async function fetchReportData(
       items_sold: itemsSold,
       trends: {
         orders: trendFromValues(totalOrders, prevOrders),
-        revenue: trendFromValues(totalRevenue, prevRevenue),
+        revenue: revenueTrend,
         aov: trendFromValues(avgOrderValue, prevAov),
       },
     },
@@ -330,15 +381,12 @@ export async function fetchReportData(
     previousRevenue,
     topItems,
     leastItems,
-    peakHours: ((peakHoursRes.data ?? []) as ReportData["peakHours"]).map((h) => ({
-      hour_of_day: Number(h.hour_of_day),
-      order_count: Number(h.order_count) || 0,
-      revenue: Number(h.revenue) || 0,
-    })),
+    peakHours,
     peakDays,
-    paymentSplit: normalizePayment(paymentSplitRes.data ?? []),
+    paymentSplit,
     waiterPerformance: normalizeWaiters(waiterPerfRes.data ?? []),
     spikedItems: computeSpikedItems(topItems, prevTopItems),
+    insights,
     meta: {
       startDate: startIso,
       endDate: endIso,

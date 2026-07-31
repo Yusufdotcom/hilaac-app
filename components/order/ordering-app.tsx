@@ -21,7 +21,9 @@ import { MenuStep } from "@/components/order/menu-step";
 import { CartSheet } from "@/components/order/cart-sheet";
 import { ItemCustomizeSheet } from "@/components/order/item-customize-sheet";
 import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
+import { OrderAppearanceProvider } from "@/components/order/order-appearance-context";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
+import { pickHeroMenuImages } from "@/lib/order/appearance";
 
 type Step = "landing" | "table" | "menu";
 
@@ -87,6 +89,8 @@ export function OrderingApp({
     () => liveMenuItems.filter((m) => m.is_top_pick),
     [liveMenuItems]
   );
+
+  const heroItems = useMemo(() => pickHeroMenuImages(liveMenuItems), [liveMenuItems]);
 
   const unavailableMenuIds = useMemo(
     () => new Set(liveMenuItems.filter((m) => !m.is_available).map((m) => m.id)),
@@ -184,11 +188,15 @@ export function OrderingApp({
   }
 
   return (
-    <>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-muted/20">
+    <OrderAppearanceProvider>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
         <div key={step} className="flex min-h-0 flex-1 flex-col">
           {step === "landing" && (
-            <LandingStep restaurant={restaurant} onSelect={handleSelectOrderType} />
+            <LandingStep
+              restaurant={restaurant}
+              heroItems={heroItems}
+              onSelect={handleSelectOrderType}
+            />
           )}
 
           {step === "table" && (
@@ -269,7 +277,7 @@ export function OrderingApp({
           onClose={() => setUssdPayment(null)}
         />
       )}
-    </>
+    </OrderAppearanceProvider>
   );
 }
 

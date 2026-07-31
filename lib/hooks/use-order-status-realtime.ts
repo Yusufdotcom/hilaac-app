@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { LoyaltyCustomerStatus } from "@/lib/loyalty/types";
 import type { BillingModel, OrderStatus, OrderType, PaymentStatus } from "@/types/database";
 
 export interface TrackedOrder {
@@ -16,18 +17,36 @@ export interface TrackedOrder {
 }
 
 export type OrderStatusLoadState =
-  | { status: "loading"; order: null; error: null }
-  | { status: "ready"; order: TrackedOrder; error: null }
-  | { status: "error"; order: null; error: string };
+  | { status: "loading"; order: null; loyalty: null; error: null }
+  | { status: "ready"; order: TrackedOrder; loyalty: LoyaltyCustomerStatus | null; error: null }
+  | { status: "error"; order: null; loyalty: null; error: string };
+
+async function fetchTrack(orderId: string) {
+  const res = await fetch(`/api/orders/${orderId}/track`, { cache: "no-store" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.order) {
+    return {
+      ok: false as const,
+      error: (data.error as string) ?? "Could not load order status.",
+    };
+  }
+  return {
+    ok: true as const,
+    order: data.order as TrackedOrder,
+    loyalty: (data.loyalty as LoyaltyCustomerStatus | null) ?? null,
+  };
+}
 
 /**
  * Loads order status via the public track API (service role — works for guests),
  * then keeps it in sync via Supabase Realtime (anon key + RLS SELECT).
+ * Refetches loyalty when the order becomes delivered/completed.
  */
 export function useOrderStatusRealtime(orderId: string): OrderStatusLoadState {
   const [state, setState] = useState<OrderStatusLoadState>({
     status: "loading",
     order: null,
+    loyalty: null,
     error: null,
   });
 
@@ -36,6 +55,7 @@ export function useOrderStatusRealtime(orderId: string): OrderStatusLoadState {
       setState({
         status: "error",
         order: null,
+        loyalty: null,
         error: "Missing order id.",
       });
       return;
@@ -46,22 +66,23 @@ export function useOrderStatusRealtime(orderId: string): OrderStatusLoadState {
 
     async function loadInitial() {
       try {
-        const res = await fetch(`/api/orders/${orderId}/track`, { cache: "no-store" });
-        const data = await res.json().catch(() => ({}));
+        const result = await fetchTrack(orderId);
         if (!active) return;
 
-        if (!res.ok || !data.order) {
+        if (!result.ok) {
           setState({
             status: "error",
             order: null,
-            error: data.error ?? "Could not load order status.",
+            loyalty: null,
+            error: result.error,
           });
           return;
         }
 
         setState({
           status: "ready",
-          order: data.order as TrackedOrder,
+          order: result.order,
+          loyalty: result.loyalty,
           error: null,
         });
       } catch {
@@ -69,6 +90,7 @@ export function useOrderStatusRealtime(orderId: string): OrderStatusLoadState {
         setState({
           status: "error",
           order: null,
+          loyalty: null,
           error: "Could not load order status. Check your connection and try again.",
         });
       }
@@ -90,9 +112,11 @@ export function useOrderStatusRealtime(orderId: string): OrderStatusLoadState {
           const updated = payload.new as TrackedOrder;
           setState((prev) => {
             const base = prev.status === "ready" ? prev.order : null;
+            const prevLoyalty = prev.status === "ready" ? prev.loyalty : null;
             return {
               status: "ready",
               error: null,
+              loyalty: prevLoyalty,
               order: {
                 id: updated.id,
                 order_number: updated.order_number ?? null,
@@ -105,6 +129,18 @@ export function useOrderStatusRealtime(orderId: string): OrderStatusLoadState {
               },
             };
           });
+
+          // Punch-card credits on delivered — refresh loyalty snapshot.
+          if (updated.status === "delivered" || updated.status === "completed") {
+            void fetchTrack(orderId).then((result) => {
+              if (!active || !result.ok) return;
+              setState((prev) =>
+                prev.status === "ready"
+                  ? { ...prev, loyalty: result.loyalty, order: { ...prev.order, ...result.order } }
+                  : prev
+              );
+            });
+          }
         }
       )
       .subscribe();

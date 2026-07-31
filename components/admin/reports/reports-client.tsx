@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KpiCards } from "@/components/admin/reports/kpi-cards";
+import { InsightsCard } from "@/components/admin/reports/insights-card";
 import {
   MenuPerformancePanel,
   RevenueDeepDivePanel,
@@ -330,7 +331,8 @@ export function ReportsClient({
             <div>
               <p className="font-semibold">Upgrade to Pro for advanced analytics</p>
               <p className="mt-1 text-slate-500">
-                Unlock weekly, biweekly & yearly timeframes plus PDF/Excel exports.{" "}
+                Unlock Insights recommendations, weekly/biweekly/yearly timeframes, and PDF/Excel
+                exports.{" "}
                 <Link href={`/admin/${slug}/billing`} className="font-medium text-slate-900 underline">
                   Upgrade now
                 </Link>
@@ -367,6 +369,13 @@ export function ReportsClient({
                 kpi={data.kpi}
                 animateEntrance={!hasCountedUp}
                 onEntranceComplete={() => setHasCountedUp(true)}
+              />
+
+              <InsightsCard
+                insights={data.insights ?? []}
+                isPro={isPro && !isExpired}
+                slug={slug}
+                accent={accent}
               />
 
               {isEmpty ? (

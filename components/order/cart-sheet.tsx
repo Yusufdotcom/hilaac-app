@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
+import { useOrderAppearanceOptional } from "@/components/order/order-appearance-context";
 import {
   brandColorWithAlpha,
   customerAccentTextStyleFromAccent,
@@ -82,21 +83,24 @@ function CartItemCard({
   return (
     <article
       className={cn(
-        "rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.06)]",
-        isUnavailable && "border-amber-200 bg-amber-50/40"
+        "rounded-2xl border border-border/80 bg-card p-4 shadow-[0_4px_16px_rgba(15,23,42,0.06)]",
+        isUnavailable && "border-amber-200/80 bg-amber-50/30"
       )}
     >
       <div className="flex gap-3.5">
-        <div className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-100">
+        <div className="relative h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-2xl bg-muted ring-1 ring-border/60">
           {item.menuItem.image_url ? (
             <Image
               src={item.menuItem.image_url}
               alt={item.menuItem.name}
               fill
+              sizes="72px"
+              quality={60}
+              loading="lazy"
               className={cn("object-cover", isUnavailable && "grayscale opacity-70")}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-slate-300">
+            <div className="flex h-full w-full items-center justify-center text-muted-foreground/40">
               <UtensilsCrossed className="h-7 w-7" aria-hidden="true" />
             </div>
           )}
@@ -105,16 +109,16 @@ function CartItemCard({
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <h3 className="text-[17px] font-bold leading-snug tracking-tight text-slate-900">
+              <h3 className="text-[17px] font-bold leading-snug tracking-tight text-foreground">
                 {item.menuItem.name}
               </h3>
               {item.selectedAddOns.length > 0 && (
-                <p className="mt-1 text-[13px] leading-snug text-slate-500">
+                <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
                   {item.selectedAddOns.map((a) => a.name).join(" · ")}
                 </p>
               )}
               {item.notes && (
-                <p className="mt-1 text-xs italic text-slate-400">&ldquo;{item.notes}&rdquo;</p>
+                <p className="mt-1 text-xs italic text-muted-foreground/80">&ldquo;{item.notes}&rdquo;</p>
               )}
               {isUnavailable && (
                 <p className="mt-1 text-xs font-medium text-amber-700">
@@ -123,13 +127,13 @@ function CartItemCard({
               )}
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1">
-              <span className="text-[15px] font-semibold tabular-nums text-slate-700">
+              <span className="text-[15px] font-semibold tabular-nums text-foreground/80">
                 {formatCurrency(cartItemTotal(item))}
               </span>
               <button
                 type="button"
                 onClick={onRemove}
-                className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500"
                 aria-label={`Remove ${item.menuItem.name}`}
               >
                 <Trash2 className="h-4 w-4" />
@@ -138,22 +142,22 @@ function CartItemCard({
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-slate-50 p-0.5">
+            <div className="inline-flex w-fit items-center rounded-full border border-border bg-muted/60 p-0.5">
               <button
                 type="button"
                 onClick={() => onAdjustQuantity(-1)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-colors active:bg-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors active:bg-background"
                 aria-label="Decrease quantity"
               >
                 <Minus className="h-4 w-4" />
               </button>
-              <span className="min-w-[2rem] px-1 text-center text-base font-bold tabular-nums text-slate-900">
+              <span className="min-w-[2rem] px-1 text-center text-base font-bold tabular-nums text-foreground">
                 {item.quantity}
               </span>
               <button
                 type="button"
                 onClick={() => onAdjustQuantity(1)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition-colors active:bg-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors active:bg-background"
                 aria-label="Increase quantity"
               >
                 <Plus className="h-4 w-4" />
@@ -162,7 +166,7 @@ function CartItemCard({
             <button
               type="button"
               onClick={onEdit}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
             >
               <Pencil className="h-3 w-3" aria-hidden="true" />
               Edit
@@ -202,7 +206,9 @@ function CartSection({
 
   return (
     <section className="space-y-3.5">
-      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{title}</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {title}
+      </h2>
       <div className="space-y-3.5">
         {items.map((item) => (
           <CartItemCard
@@ -257,6 +263,7 @@ export function CartSheet({
   guestReady?: boolean;
 }) {
   const [phone, setPhone] = useState("");
+  const [whatsappMarketingOptIn, setWhatsappMarketingOptIn] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [placing, setPlacing] = useState<"evc" | "edahab" | "place" | null>(null);
   const [submittingOverlay, setSubmittingOverlay] = useState(false);
@@ -272,6 +279,7 @@ export function CartSheet({
   const redirectOrderIdRef = useRef<string | null>(null);
 
   const brand = useOrderBrandOptional();
+  const appearance = useOrderAppearanceOptional();
   const accent = brand?.accent ?? HILAAC_GOLD;
   const customBrandingActive = brand?.customBrandingActive ?? false;
   const accentStyle = customerAccentTextStyleFromAccent(accent);
@@ -343,6 +351,7 @@ export function CartSheet({
       billingModel: isPayBefore ? "pay_before" : "pay_after",
       ...(method ? { paymentMethod: method } : {}),
       customerPhone: phone || null,
+      whatsappMarketingOptIn,
       notes: null,
       items: cart.map((item) => ({
         menuItemId: item.menuItem.id,
@@ -664,29 +673,30 @@ export function CartSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          overlayClassName="bg-black/45 backdrop-blur-[2px]"
+          overlayClassName="bg-black/50 backdrop-blur-[2px]"
           className={cn(
-            "mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col gap-0 overflow-hidden",
-            "rounded-none border-0 bg-[#F4F6F8] p-0 shadow-2xl",
+            "order-flow-surface mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col gap-0 overflow-hidden",
+            "rounded-none border-0 bg-background p-0 text-foreground shadow-2xl",
             "sm:rounded-t-[1.75rem]"
           )}
+          data-order-theme={appearance?.theme ?? "light"}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {/* Drag hint + header */}
-          <div className="shrink-0 bg-white">
+          <div className="shrink-0 bg-card">
             <div className="flex justify-center pt-2.5" aria-hidden="true">
-              <span className="h-1 w-10 rounded-full bg-slate-200" />
+              <span className="h-1 w-10 rounded-full bg-muted-foreground/25" />
             </div>
-            <SheetHeader className="relative space-y-0 border-b border-slate-100 px-5 pb-4 pt-3 pr-12 text-left">
+            <SheetHeader className="relative space-y-0 border-b border-border/60 px-5 pb-4 pt-3 pr-12 text-left">
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                className="absolute left-4 top-3.5 flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                className="absolute left-4 top-3.5 flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Back to menu"
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              <SheetTitle className="flex items-center justify-center gap-2 pl-8 text-xl font-bold tracking-tight text-slate-900">
+              <SheetTitle className="flex items-center justify-center gap-2 pl-8 text-xl font-bold tracking-tight text-foreground">
                 <ShoppingBasket className="h-5 w-5" style={accentStyle} aria-hidden="true" />
                 Saladda
               </SheetTitle>
@@ -698,10 +708,10 @@ export function CartSheet({
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-5">
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-md">
-                    <ShoppingBasket className="h-8 w-8 text-slate-300" aria-hidden="true" />
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-card shadow-md">
+                    <ShoppingBasket className="h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
                   </div>
-                  <p className="text-base text-slate-500">Salaadu waxba kuma jiran.</p>
+                  <p className="text-base text-muted-foreground">Salaadu waxba kuma jiran.</p>
                 </div>
               ) : showGroupedSections ? (
                 <div className="space-y-7">
@@ -744,15 +754,15 @@ export function CartSheet({
 
             {/* Checkout footer — sticky, never nested-scroll */}
             {cart.length > 0 && (
-              <div className="shrink-0 space-y-5 rounded-t-[1.5rem] border-t border-slate-200/80 bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-14px_40px_rgba(15,23,42,0.08)]">
+              <div className="shrink-0 space-y-5 rounded-t-[1.5rem] border-t border-border/70 bg-card px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-14px_40px_rgba(15,23,42,0.12)]">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="cart-phone" className="text-[13px] font-semibold text-slate-600">
+                    <Label htmlFor="cart-phone" className="text-[13px] font-semibold text-muted-foreground">
                       Lambarka taleefanka <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative">
                       <Phone
-                        className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                        className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"
                         aria-hidden="true"
                       />
                       <Input
@@ -765,9 +775,9 @@ export function CartSheet({
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         className={cn(
-                          "h-14 rounded-2xl border-slate-200 bg-slate-50 pl-12 pr-4",
-                          "text-base leading-normal tracking-wide",
-                          "placeholder:text-slate-400 focus-visible:bg-white focus-visible:ring-2"
+                          "h-14 rounded-2xl border-border bg-muted/50 pl-12 pr-4",
+                          "text-base leading-normal tracking-wide text-foreground",
+                          "placeholder:text-muted-foreground focus-visible:bg-background focus-visible:ring-2"
                         )}
                         style={{
                           fontSize: 16,
@@ -780,6 +790,17 @@ export function CartSheet({
                     {phone.length > 0 && !phoneValid && (
                       <p className="text-xs text-red-600">Geli ugu yaraan 10 digit.</p>
                     )}
+                    <label className="flex cursor-pointer items-start gap-2.5 pt-1">
+                      <input
+                        type="checkbox"
+                        checked={whatsappMarketingOptIn}
+                        onChange={(e) => setWhatsappMarketingOptIn(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                      />
+                      <span className="text-[12px] leading-snug text-muted-foreground">
+                        Send me occasional offers via WhatsApp
+                      </span>
+                    </label>
                   </div>
 
                   {showTableLabel && (
@@ -803,14 +824,14 @@ export function CartSheet({
                   className="flex items-center justify-between rounded-2xl px-4 py-3.5"
                   style={{ backgroundColor: brandColorWithAlpha(accent, 0.1) }}
                 >
-                  <span className="text-base font-semibold text-slate-700">Wadarta</span>
+                  <span className="text-base font-semibold text-foreground/80">Wadarta</span>
                   <span className="text-2xl font-bold tracking-tight tabular-nums" style={accentStyle}>
                     {formatCurrency(total)}
                   </span>
                 </div>
 
                 {!isReady && (
-                  <p className="flex items-center justify-center gap-2 text-center text-xs text-slate-500">
+                  <p className="flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                     Diyaarinta…
                   </p>
@@ -860,7 +881,7 @@ export function CartSheet({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm text-slate-600">
+                    <p className="rounded-2xl border border-border bg-muted/50 px-4 py-3 text-center text-sm text-muted-foreground">
                       {payAfterMessage(orderType)}
                     </p>
                     <button

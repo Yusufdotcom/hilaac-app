@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { getLoyaltyStatusForOrder } from "@/lib/loyalty/customer-status";
 
 /**
  * GET /api/orders/[id]/track
  * Public endpoint used by the customer ordering flow to poll their own
  * order's status after checkout. Returns minimal status fields for the
  * customer status page (including takeaway delivery code via order_number).
+ * Loyalty snapshot is included when enabled — never exposes customer_phone.
  */
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createAdminClient();
@@ -22,5 +24,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ order });
+  const loyalty = await getLoyaltyStatusForOrder(supabase, params.id);
+
+  return NextResponse.json({ order, loyalty });
 }

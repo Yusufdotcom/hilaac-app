@@ -9,6 +9,8 @@ export interface CreateOrderApiPayload {
   paymentMethod?: "evc" | "edahab" | null;
   billingModel?: "pay_before" | "pay_after";
   customerPhone?: string | null;
+  /** Explicit marketing WhatsApp opt-in (re-engagement only). */
+  whatsappMarketingOptIn?: boolean;
   notes?: string | null;
   items: {
     menuItemId: string;

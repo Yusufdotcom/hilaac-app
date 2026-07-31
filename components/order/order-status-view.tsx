@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WaitingGame } from "@/components/order/WaitingGame";
+import { LoyaltyStatusCard } from "@/components/order/loyalty-status-card";
 import { useOrderStatusRealtime } from "@/lib/hooks/use-order-status-realtime";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
 import { customerStatusWorkflowMessage } from "@/lib/order/billing-model";
@@ -207,6 +208,7 @@ export function OrderStatusView({
 }) {
   const loadState = useOrderStatusRealtime(orderId);
   const order = loadState.status === "ready" ? loadState.order : null;
+  const loyalty = loadState.status === "ready" ? loadState.loyalty : null;
   const brand = useOrderBrandOptional();
   const accent = brand?.accent ?? resolveCustomerAccent(brand?.branding ?? {});
   const customBrandingActive = brand?.customBrandingActive ?? false;
@@ -412,6 +414,8 @@ export function OrderStatusView({
           <PremiumStatusStepper currentIndex={currentIndex} accent={accent} />
         )}
       </div>
+
+      {loyalty?.enabled && <LoyaltyStatusCard loyalty={loyalty} accent={accent} />}
 
       {!isFinal && (
         <div className="mt-3 shrink-0">

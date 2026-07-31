@@ -22,6 +22,7 @@ export default async function CashierPage({ params }: { params: { slug: string }
     <CashierBoard
       restaurantId={restaurant.id}
       restaurantName={restaurant.name}
+      slug={params.slug}
       initialOrders={(orders as OrderWithItems[]) ?? []}
     />
   );

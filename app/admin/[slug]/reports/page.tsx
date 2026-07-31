@@ -33,6 +33,7 @@ function emptyReport(granularity: ReportGranularity): ReportData {
     ],
     waiterPerformance: [],
     spikedItems: [],
+    insights: [],
     meta: {
       startDate: start.toISOString(),
       endDate: end.toISOString(),

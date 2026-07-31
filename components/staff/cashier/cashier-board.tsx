@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency, formatOrderLabel } from "@/lib/utils";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
+import { LoyaltyLookupPanel } from "@/components/staff/cashier/loyalty-lookup-panel";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import type { OrderStatus, OrderWithItems, PaymentStatus } from "@/types/database";
 import { PENDING_CASHIER_CONFIRMATION, isAwaitingCashierConfirmation } from "@/lib/payments/constants";
@@ -118,10 +119,12 @@ function PaymentAction({
 export function CashierBoard({
   restaurantId,
   restaurantName,
+  slug,
   initialOrders,
 }: {
   restaurantId: string;
   restaurantName: string;
+  slug: string;
   initialOrders: OrderWithItems[];
 }) {
   const { orders, updateOrderFields } = useRealtimeOrders(
@@ -194,6 +197,8 @@ export function CashierBoard({
           </Badge>
         </div>
       </header>
+
+      <LoyaltyLookupPanel slug={slug} />
 
       <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
         <div className="overflow-x-auto">

@@ -11,6 +11,10 @@
       {
         "path": "/api/jobs/demo-cleanup",
         "schedule": "0 0 * * *"
+      },
+      {
+        "path": "/api/jobs/whatsapp-reengagement",
+        "schedule": "0 9 * * *"
       }
     ]
   }

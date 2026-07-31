@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CartTrayFab } from "@/components/order/cart-tray-fab";
+import { OrderThemeToggle } from "@/components/order/order-theme-toggle";
 import { useOrderBrand } from "@/components/order/order-brand-context";
 import {
   brandColorWithAlpha,
@@ -84,6 +85,9 @@ function ItemCardContent({
             src={item.image_url}
             alt={item.name}
             fill
+            sizes="160px"
+            quality={65}
+            loading="lazy"
             className={cn("object-cover", unavailable && "grayscale")}
           />
         ) : (
@@ -285,10 +289,10 @@ export function MenuStep({
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
           <div className="text-center">
-            <p className="text-sm font-semibold">{restaurant.name}</p>
+            <p className="text-sm font-semibold text-foreground">{restaurant.name}</p>
             <p className="text-xs text-muted-foreground">{sessionLabel}</p>
           </div>
-          <div className="w-10" />
+          <OrderThemeToggle className="h-9 w-9" />
         </div>
 
         {showFocusToggle && (

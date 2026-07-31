@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft, Armchair } from "lucide-react";
 import { OrderPrimaryButton } from "@/components/order/order-primary-button";
+import { OrderThemeToggle } from "@/components/order/order-theme-toggle";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
 import {
   brandColorWithAlpha,
@@ -77,22 +78,25 @@ export function TableStep({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col px-5 py-4",
+        "relative flex min-h-0 flex-1 flex-col bg-background px-5 py-4 text-foreground",
         "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-3 motion-safe:duration-300",
         className
       )}
     >
       <div className="shrink-0">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-2 rounded-lg text-sm text-muted-foreground transition-colors active:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Dib u noqo
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-2 rounded-lg text-sm text-muted-foreground transition-colors active:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Dib u noqo
+          </button>
+          <OrderThemeToggle className="h-9 w-9" />
+        </div>
 
         <div className="mt-5 text-center">
-          <h1 className="text-xl font-bold tracking-tight">Dooro miiskaaga</h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Dooro miiskaaga</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Taabo lambarka miiska aad ku fadhiyo
           </p>

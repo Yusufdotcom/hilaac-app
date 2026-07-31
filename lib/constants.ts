@@ -37,6 +37,11 @@ export function canUseApiPayments(tier: string | null | undefined) {
   return tier === "pro" || tier === "trial";
 }
 
+/** Pro/trial: WhatsApp re-engagement (marketing) templates. */
+export function canUseWhatsAppReengagement(tier: string | null | undefined) {
+  return tier === "pro" || tier === "trial";
+}
+
 export const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
   manager: "Manager",
