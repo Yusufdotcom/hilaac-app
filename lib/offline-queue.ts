@@ -1,3 +1,5 @@
+import { saveOrderTokens } from "@/lib/order/order-access-storage";
+
 const STORAGE_KEY = "hilaac-offline-orders";
 const CREATE_ORDER_API = "/api/orders/create";
 
@@ -37,6 +39,9 @@ export interface QueuedOrder {
   confirmPayment?: boolean;
   /** Set when the order was already created server-side before going offline */
   serverOrderId?: string;
+  /** Order-scoped tokens for confirm-payment after sync */
+  chargeToken?: string;
+  accessToken?: string;
 }
 
 function isBrowser() {
@@ -109,16 +114,34 @@ function markSynced(queueId: string) {
   );
 }
 
-async function confirmPaymentViaApi(orderId: string): Promise<boolean> {
+async function confirmPaymentViaApi(
+  orderId: string,
+  tokens?: { chargeToken?: string; accessToken?: string }
+): Promise<boolean> {
   try {
-    const res = await fetch(`/api/orders/${orderId}/confirm-payment`, { method: "POST" });
+    const token = tokens?.accessToken ?? tokens?.chargeToken;
+    const res = await fetch(`/api/orders/${orderId}/confirm-payment`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        accessToken: tokens?.accessToken,
+        chargeToken: tokens?.chargeToken,
+      }),
+    });
     return res.ok;
   } catch {
     return false;
   }
 }
 
-async function createOrderViaApi(payload: CreateOrderApiPayload): Promise<string | null> {
+async function createOrderViaApi(payload: CreateOrderApiPayload): Promise<{
+  orderId: string;
+  chargeToken?: string;
+  accessToken?: string;
+} | null> {
   try {
     const res = await fetch(CREATE_ORDER_API, {
       method: "POST",
@@ -128,8 +151,17 @@ async function createOrderViaApi(payload: CreateOrderApiPayload): Promise<string
 
     if (!res.ok) return null;
 
-    const data = (await res.json()) as { orderId?: string };
-    return data.orderId ?? null;
+    const data = (await res.json()) as {
+      orderId?: string;
+      chargeToken?: string;
+      accessToken?: string;
+    };
+    if (!data.orderId) return null;
+    return {
+      orderId: data.orderId,
+      chargeToken: data.chargeToken,
+      accessToken: data.accessToken,
+    };
   } catch {
     return null;
   }
@@ -161,15 +193,26 @@ export async function syncOfflineOrders(): Promise<{ synced: number; failed: num
 
       if (orderId) {
         if (item.confirmPayment) {
-          success = await confirmPaymentViaApi(orderId);
+          success = await confirmPaymentViaApi(orderId, {
+            chargeToken: item.chargeToken,
+            accessToken: item.accessToken,
+          });
         } else {
           success = true;
         }
       } else {
-        orderId = await createOrderViaApi(item.payload);
-        if (orderId) {
+        const created = await createOrderViaApi(item.payload);
+        if (created) {
+          orderId = created.orderId;
+          saveOrderTokens(created.orderId, {
+            chargeToken: created.chargeToken,
+            accessToken: created.accessToken,
+          });
           if (item.confirmPayment) {
-            success = await confirmPaymentViaApi(orderId);
+            success = await confirmPaymentViaApi(orderId, {
+              chargeToken: created.chargeToken ?? item.chargeToken,
+              accessToken: created.accessToken ?? item.accessToken,
+            });
           } else {
             success = true;
           }

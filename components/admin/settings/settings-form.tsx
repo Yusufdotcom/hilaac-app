@@ -66,7 +66,14 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
       body: JSON.stringify(body),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? "Failed to save");
+    if (!res.ok) {
+      if (data.code === "aal2_required") {
+        const next = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/auth/mfa/challenge?next=${next}`;
+        throw new Error("Two-factor verification required");
+      }
+      throw new Error(data.error ?? "Failed to save");
+    }
     return data;
   }
 
@@ -210,9 +217,19 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
       const res = await fetch("/api/admin/restaurant/test-connection", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, merchantId, apiKey }),
+        body: JSON.stringify({
+          provider,
+          merchantId,
+          apiKey,
+          restaurant_id: restaurant.id,
+        }),
       });
       const data = await res.json();
+      if (res.status === 403 && data.code === "aal2_required") {
+        const next = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/auth/mfa/challenge?next=${next}`;
+        return;
+      }
       setTestResult((r) => ({ ...r, [provider]: { success: !!data.success, message: data.message ?? data.error } }));
       if (data.success) toast.success(data.message);
       else toast.error(data.error ?? "Connection failed");

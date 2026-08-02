@@ -15,6 +15,10 @@ import {
   customerPrimaryButtonStyleFromAccent,
   HILAAC_GOLD,
 } from "@/lib/brand/restaurant-brand";
+import {
+  loadOrderAccessToken,
+  loadOrderChargeToken,
+} from "@/lib/order/order-access-storage";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -68,13 +72,16 @@ export function PaymentConfirmationModal({
 
       if (!isOnline) {
         createPayloads.forEach((payload, index) => {
+          const oid = orderIds[index] ?? primaryOrderId;
           queueOrder({
             id: createQueueId(),
             slug,
             payload,
-            localOrderId: orderIds[index] ?? primaryOrderId,
+            localOrderId: oid,
             serverOrderId: orderIds[index],
             confirmPayment: true,
+            chargeToken: loadOrderChargeToken(oid) ?? undefined,
+            accessToken: loadOrderAccessToken(oid) ?? undefined,
           });
         });
         toast.message("Dalabka waa la keydiyay. Cashier-ka ayaa xaqiijin doona markaad isku xirto.");
@@ -88,8 +95,19 @@ export function PaymentConfirmationModal({
       }
 
       for (const orderId of orderIds) {
+        const accessToken = loadOrderAccessToken(orderId);
+        const chargeToken = loadOrderChargeToken(orderId);
+        const token = accessToken ?? chargeToken;
         const confirmRes = await fetch(`/api/orders/${orderId}/confirm-payment`, {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            accessToken: accessToken ?? undefined,
+            chargeToken: chargeToken ?? undefined,
+          }),
         });
 
         if (!confirmRes.ok) {
@@ -126,8 +144,8 @@ export function PaymentConfirmationModal({
           Bixinta ma xaqiijisay?
         </p>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Merchant gaan &apos;USSD code&apos; ku bixi. Haddii aad lacagta bixisay, taabo &apos;Haa, waan bixiyay&apos;
-          siyad u aragto dalabkaga halku marayo. Mahadsanid!
+          Merchant gaan &apos;USSD code&apos; ku bixi. Haddii aad lacagta bixisay, taabo &apos;Haa, waan
+          bixiyay&apos; siyad u aragto dalabkaga halku marayo. Mahadsanid!
         </p>
         {orderIds.length > 1 && (
           <p className="mt-2 text-xs text-muted-foreground">

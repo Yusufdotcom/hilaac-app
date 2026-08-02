@@ -27,6 +27,7 @@ import {
   ORDER_POLL_INTERVAL_MS,
   saveResolvedOrderId,
 } from "@/lib/order/pending-order-handoff";
+import { loadOrderAccessToken } from "@/lib/order/order-access-storage";
 import type { PaymentStatus } from "@/types/database";
 
 interface TrackedOrderRow {
@@ -83,9 +84,16 @@ export default function OrderStatusPage({
     !!loadError ||
     (!order && !!resolvedOrderId);
 
-  /** Public track API uses service role — works for guests / Incognito (no RLS). */
+  /** Track API requires order access token (sessionStorage) or staff session. */
   const fetchOrderById = useCallback(async (id: string) => {
-    const res = await fetch(`/api/orders/${id}/track`, { cache: "no-store" });
+    const accessToken = loadOrderAccessToken(id);
+    const url = accessToken
+      ? `/api/orders/${id}/track?accessToken=${encodeURIComponent(accessToken)}`
+      : `/api/orders/${id}/track`;
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.order) {
       return { order: null as TrackedOrderRow | null, error: data.error ?? ORDER_NOT_FOUND_ERROR };

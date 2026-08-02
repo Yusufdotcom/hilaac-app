@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { encrypt } from "@/lib/encryption";
 import { generateSlug } from "@/lib/utils";
+import { bodyTouchesPaymentSettings, requireAal2ForPrivilegedRole } from "@/lib/auth/aal";
 
 /**
  * PATCH /api/admin/restaurant/settings
@@ -30,6 +31,12 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
+
+  if (bodyTouchesPaymentSettings(body as Record<string, unknown>)) {
+    const aal = await requireAal2ForPrivilegedRole(supabase, profile.role);
+    if (!aal.ok) return aal.response;
+  }
+
   const restaurantId =
     typeof body.restaurant_id === "string" && body.restaurant_id
       ? body.restaurant_id

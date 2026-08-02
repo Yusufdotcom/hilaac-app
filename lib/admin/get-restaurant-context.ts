@@ -55,6 +55,7 @@ export async function getRestaurantContext(
 
   const resolvedProfile = await loadProfile(supabase, user.id);
   if (!resolvedProfile) redirect("/login");
+  if (resolvedProfile.is_active === false) redirect("/login?error=deactivated");
 
   const userCtx = await getUserRestaurantContext(supabase, user.id);
   if (!userCtx) redirect("/login?error=no-profile");

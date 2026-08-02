@@ -30,12 +30,17 @@ NEXT_PUBLIC_SUPABASE_URL=          # Project URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=     # anon/public key
 SUPABASE_SERVICE_ROLE_KEY=         # service role key — server-only, never expose to the client
 NEXT_PUBLIC_APP_NAME="Hilaac"
-NEXT_PUBLIC_APP_URL=https://hilaac.so   # used to build the QR-code ordering link
+NEXT_PUBLIC_APP_URL=https://hilaacapp.so   # canonical public origin (QR, OAuth, password reset)
 OPENAI_API_KEY=                    # for the AI menu image generator (Pro/trial only)
 ENCRYPTION_SECRET_KEY=             # 32-byte hex string or any passphrase, used for AES-256-GCM
 CRON_SECRET=                       # shared secret Vercel Cron sends as `Authorization: Bearer`
 EVC_API_BASE_URL=                  # EVC Plus merchant API base URL (payment_mode = 'api')
 EDAHAB_API_BASE_URL=               # eDahab merchant API base URL (payment_mode = 'api')
+CHARGE_TOKEN_SECRET=               # HMAC secret for short-lived customer charge tokens (min 32 chars)
+EVC_WEBHOOK_SECRET=                # HMAC secret for POST /api/webhooks/evc (fail-closed if unset)
+EDAHAB_WEBHOOK_SECRET=             # HMAC secret for POST /api/webhooks/edahab (fail-closed if unset)
+# PAYMENT_WEBHOOK_SECRET=          # optional shared fallback if per-provider secrets unset
+# PAYMENT_WEBHOOK_IP_ALLOWLIST=    # optional comma-separated IPs (second layer)
 
 # WhatsApp via Twilio (see docs/whatsapp-twilio-setup.md)
 TWILIO_ACCOUNT_SID=
@@ -78,6 +83,41 @@ Visit `http://localhost:3000`.
 
 Set `CRON_SECRET` in your Vercel project's environment variables — Vercel automatically sends it
 back as `Authorization: Bearer <CRON_SECRET>` on every cron invocation, which these routes verify.
+If `CRON_SECRET` is unset, job routes reject with 401 (fail-closed).
+
+## 6. Supabase CLI / migrations (local)
+
+`npm run db:push` loads `.env.local` and runs the CLI with `SUPABASE_DB_PASSWORD`.
+
+**Why a persistent password is required on this project:**
+
+| Path | What happens here |
+|------|-------------------|
+| `supabase link --skip-pooler` | Direct host `db.<ref>.supabase.co` is **IPv6-only**. This network has no working IPv6 → CLI error `LegacyDbConfigIpv6Error`. |
+| Pooler + temp `cli_login_postgres` | Default after `supabase link` without a password. Known flaky through Supavisor (stale password cache / timeouts). |
+| Pooler + `SUPABASE_DB_PASSWORD` in `.env.local` | **Supported path.** IPv4 pooler + real `postgres` role. |
+
+1. Put the database password in `.env.local` once (never commit it):
+
+```bash
+SUPABASE_DB_PASSWORD=…   # Dashboard → Settings → Database
+```
+
+2. Ensure the project is linked to the IPv4 pooler (not skip-pooler):
+
+```bash
+npx supabase link --project-ref ochbvlyunefjatwoxqup --yes
+```
+
+3. Push / query via the wrapper (not bare `supabase db push`):
+
+```bash
+npm run db:push
+npm run db:query -- "select 1 as ok"
+npm run db:migration-list
+```
+
+Optional: enable Supabase’s **IPv4 add-on** if you specifically need direct (non-pooler) connections from IPv4-only networks; otherwise prefer the password + pooler path above.
 
 ## Architecture notes
 

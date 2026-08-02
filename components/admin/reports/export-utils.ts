@@ -1,5 +1,20 @@
 "use client";
 
+/**
+ * =============================================================================
+ * STOP — Excel / xlsx security gate (H8 accepted risk)
+ * =============================================================================
+ * This file may GENERATE .xlsx downloads only (book_new → json_to_sheet → writeFile).
+ *
+ * If you are adding a feature that parses/reads user-uploaded .xlsx files, STOP —
+ * this changes the risk profile that made accepting CVE-2023-30533 and
+ * CVE-2024-22363 safe. Re-evaluate before proceeding: patch (SheetJS CDN ≥0.20.2),
+ * swap to ExcelJS, or otherwise mitigate.
+ *
+ * See docs/SECURITY-RECORD.md → H8.
+ * =============================================================================
+ */
+
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -134,6 +149,7 @@ export async function exportReportsPdf(options: {
   doc.save(`${restaurantName.replace(/\s+/g, "-").toLowerCase()}-insights.pdf`);
 }
 
+/** Export insights workbook. Write-only SheetJS usage — do not add file parsing here. */
 export async function exportReportsExcel(options: {
   slug: string;
   restaurantName: string;

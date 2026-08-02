@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { normalizeLoyaltyPhone } from "@/lib/loyalty/phone";
 import { paymentStatusAwaitingCashierWrite } from "@/lib/payments/constants";
+import { mintChargeToken, mintOrderAccessToken } from "@/lib/payments/charge-token";
 
 interface IncomingItem {
   menuItemId: string;
@@ -170,9 +171,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  let chargeToken: string | null = null;
+  let accessToken: string | null = null;
+  try {
+    chargeToken = mintChargeToken(order.id, restaurantId);
+    accessToken = mintOrderAccessToken(order.id, restaurantId);
+  } catch (err) {
+    console.warn("[orders] order tokens not minted", {
+      reason: err instanceof Error ? err.message : "unknown",
+    });
+  }
+
   return NextResponse.json({
     orderId: order.id,
     orderNumber: order.order_number,
     total,
+    chargeToken,
+    accessToken,
   });
 }

@@ -91,10 +91,13 @@ create table if not exists public.profiles (
   role public.user_role not null default 'owner',
   full_name text,
   phone text,
+  is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 comment on table public.profiles is 'Staff/user profile, 1:1 with auth.users, scoped to a restaurant.';
+comment on column public.profiles.is_active is
+  'When false, staff is deactivated. App should ban the auth user; middleware + RLS block existing JWTs.';
 
 create table if not exists public.tables (
   id uuid primary key default gen_random_uuid(),
@@ -227,7 +230,10 @@ security definer
 stable
 set search_path = public
 as $$
-  select restaurant_id from public.profiles where id = auth.uid();
+  select restaurant_id
+  from public.profiles
+  where id = auth.uid()
+    and is_active = true;
 $$;
 
 create or replace function public.get_my_role()
@@ -248,6 +254,24 @@ stable
 set search_path = public
 as $$
   select coalesce(public.get_my_role() in ('owner', 'manager'), false);
+$$;
+
+create or replace function public.is_staff(restaurant_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return exists (
+    select 1
+    from public.profiles
+    where profiles.restaurant_id = $1
+      and profiles.id = auth.uid()
+      and profiles.is_active = true
+      and profiles.role in ('owner', 'manager', 'waiter', 'kitchen', 'cashier')
+  );
+end;
 $$;
 
 
@@ -400,9 +424,16 @@ grant select (
   dine_in_enabled, takeaway_enabled, brand_color, custom_branding_enabled,
   is_active, is_demo, demo_expires_at, created_at
 ) on public.restaurants to anon, authenticated;
+-- Encrypted merchant columns: service_role only (never authenticated/anon).
+revoke select (
+  evc_merchant_id_encrypted, evc_api_key_encrypted, edahab_merchant_id_encrypted, edahab_api_key_encrypted
+) on public.restaurants from authenticated, anon;
 grant select (
   evc_merchant_id_encrypted, evc_api_key_encrypted, edahab_merchant_id_encrypted, edahab_api_key_encrypted
-) on public.restaurants to authenticated;
+) on public.restaurants to service_role;
+grant update (
+  evc_merchant_id_encrypted, evc_api_key_encrypted, edahab_merchant_id_encrypted, edahab_api_key_encrypted
+) on public.restaurants to service_role;
 grant update, insert on public.restaurants to authenticated;
 
 -- ---- profiles ---------------------------------------------------------------
@@ -416,7 +447,9 @@ create policy "owner/manager can view restaurant staff" on public.profiles
 
 drop policy if exists "user can update own profile" on public.profiles;
 create policy "user can update own profile" on public.profiles
-  for update using (id = auth.uid());
+  for update
+  using (id = auth.uid() and is_active = true)
+  with check (id = auth.uid() and is_active = true);
 
 drop policy if exists "owner/manager can manage staff" on public.profiles;
 create policy "owner/manager can manage staff" on public.profiles
@@ -424,11 +457,26 @@ create policy "owner/manager can manage staff" on public.profiles
 
 drop policy if exists "owner/manager can update staff" on public.profiles;
 create policy "owner/manager can update staff" on public.profiles
-  for update using (restaurant_id = public.get_my_restaurant_id() and public.is_manager_or_owner());
+  for update
+  using (
+    restaurant_id = public.get_my_restaurant_id()
+    and public.is_manager_or_owner()
+    and role <> 'owner'
+    and id <> auth.uid()
+  )
+  with check (
+    restaurant_id = public.get_my_restaurant_id()
+    and role <> 'owner'
+  );
 
 drop policy if exists "owner/manager can remove staff" on public.profiles;
 create policy "owner/manager can remove staff" on public.profiles
-  for delete using (restaurant_id = public.get_my_restaurant_id() and public.is_manager_or_owner());
+  for delete using (
+    restaurant_id = public.get_my_restaurant_id()
+    and public.is_manager_or_owner()
+    and role <> 'owner'
+    and id <> auth.uid()
+  );
 
 -- ---- tables ------------------------------------------------------------------
 drop policy if exists "public can view active tables" on public.tables;
@@ -513,18 +561,9 @@ create policy "managers can manage waiters" on public.waiters
 drop policy if exists "public can create orders" on public.orders;
 drop policy if exists "public can view order by id" on public.orders;
 
-drop policy if exists "customers can track recent orders" on public.orders;
-create policy "customers can track recent orders"
-  on public.orders
-  for select
-  to anon, authenticated
-  using (created_at >= (now() - interval '7 days'));
-
+-- Customers track a single order via GET /api/orders/[id]/track (service role).
+-- Anon has no SELECT on orders (prevents 7-day cross-tenant dumps).
 revoke all on public.orders from anon;
-grant select (
-  id, order_number, status, payment_status, order_type, billing_model,
-  customer_confirmed_at, total, created_at, updated_at
-) on public.orders to anon;
 grant insert on public.orders to anon;
 
 drop policy if exists "anon_can_insert_orders" on public.orders;
@@ -532,17 +571,37 @@ create policy "anon_can_insert_orders"
   on public.orders
   for insert
   to anon
-  with check (auth.role() = 'anon');
+  with check (
+    auth.role() = 'anon'
+    and exists (
+      select 1 from public.restaurants r
+      where r.id = orders.restaurant_id and r.is_active = true
+    )
+    and (
+      orders.table_id is null
+      or exists (
+        select 1 from public.tables t
+        where t.id = orders.table_id
+          and t.restaurant_id = orders.restaurant_id
+          and t.is_active = true
+      )
+    )
+  );
 
 drop policy if exists "customers can confirm payment on recent orders" on public.orders;
 
 drop policy if exists "staff can view own restaurant orders" on public.orders;
 create policy "staff can view own restaurant orders" on public.orders
-  for select using (restaurant_id = public.get_my_restaurant_id());
+  for select
+  to authenticated
+  using (restaurant_id = public.get_my_restaurant_id());
 
 drop policy if exists "staff can update own restaurant orders" on public.orders;
 create policy "staff can update own restaurant orders" on public.orders
-  for update using (restaurant_id = public.get_my_restaurant_id());
+  for update
+  to authenticated
+  using (restaurant_id = public.get_my_restaurant_id())
+  with check (restaurant_id = public.get_my_restaurant_id());
 
 drop policy if exists "service role can update orders" on public.orders;
 create policy "service role can update orders" on public.orders
@@ -557,30 +616,19 @@ drop policy if exists "public can create order_items" on public.order_items;
 drop policy if exists "public can view order_items" on public.order_items;
 
 drop policy if exists "customers can view recent order_items" on public.order_items;
-create policy "customers can view recent order_items"
-  on public.order_items
-  for select
-  to anon, authenticated
-  using (
-    exists (
-      select 1 from public.orders o
-      where o.id = order_id
-        and o.created_at >= (now() - interval '7 days')
-    )
-  );
 
 drop policy if exists "staff can view own order_items" on public.order_items;
 create policy "staff can view own order_items" on public.order_items
-  for select using (
+  for select
+  to authenticated
+  using (
     exists (
       select 1 from public.orders o
       where o.id = order_id and o.restaurant_id = public.get_my_restaurant_id()
     )
   );
 
-grant select (
-  id, order_id, menu_item_id, quantity, add_ons, notes, price_at_time
-) on public.order_items to anon;
+revoke all on public.order_items from anon;
 
 -- ----------------------------------------------------------------------------
 -- 8. STORAGE BUCKETS (logos + AI-generated menu images)
@@ -593,17 +641,44 @@ insert into storage.buckets (id, name, public)
 values ('restaurant-logos', 'restaurant-logos', true)
 on conflict (id) do nothing;
 
+-- Path must be {restaurant_id}/... for the caller's restaurant (or owned branch).
+create or replace function public.can_write_restaurant_storage(object_name text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    auth.role() = 'authenticated'
+    and public.is_manager_or_owner()
+    and (
+      (storage.foldername(object_name))[1] = public.get_my_restaurant_id()::text
+      or exists (
+        select 1 from public.restaurants r
+        where r.id::text = (storage.foldername(object_name))[1]
+          and r.owner_id = auth.uid()
+      )
+    );
+$$;
+
+revoke all on function public.can_write_restaurant_storage(text) from public;
+grant execute on function public.can_write_restaurant_storage(text) to authenticated;
+
 drop policy if exists "public read menu-images" on storage.objects;
 create policy "public read menu-images" on storage.objects
   for select using (bucket_id = 'menu-images');
 
 drop policy if exists "staff upload menu-images" on storage.objects;
 create policy "staff upload menu-images" on storage.objects
-  for insert with check (bucket_id = 'menu-images' and auth.role() = 'authenticated');
+  for insert to authenticated
+  with check (bucket_id = 'menu-images' and public.can_write_restaurant_storage(name));
 
 drop policy if exists "staff update menu-images" on storage.objects;
 create policy "staff update menu-images" on storage.objects
-  for update using (bucket_id = 'menu-images' and auth.role() = 'authenticated');
+  for update to authenticated
+  using (bucket_id = 'menu-images' and public.can_write_restaurant_storage(name))
+  with check (bucket_id = 'menu-images' and public.can_write_restaurant_storage(name));
 
 drop policy if exists "public read restaurant-logos" on storage.objects;
 create policy "public read restaurant-logos" on storage.objects
@@ -611,11 +686,14 @@ create policy "public read restaurant-logos" on storage.objects
 
 drop policy if exists "staff upload restaurant-logos" on storage.objects;
 create policy "staff upload restaurant-logos" on storage.objects
-  for insert with check (bucket_id = 'restaurant-logos' and auth.role() = 'authenticated');
+  for insert to authenticated
+  with check (bucket_id = 'restaurant-logos' and public.can_write_restaurant_storage(name));
 
 drop policy if exists "staff update restaurant-logos" on storage.objects;
 create policy "staff update restaurant-logos" on storage.objects
-  for update using (bucket_id = 'restaurant-logos' and auth.role() = 'authenticated');
+  for update to authenticated
+  using (bucket_id = 'restaurant-logos' and public.can_write_restaurant_storage(name))
+  with check (bucket_id = 'restaurant-logos' and public.can_write_restaurant_storage(name));
 
 -- ----------------------------------------------------------------------------
 -- 9. REALTIME

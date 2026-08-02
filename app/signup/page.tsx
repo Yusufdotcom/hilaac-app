@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthDivider, GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,6 +60,11 @@ export default function SignupPage() {
         </>
       }
     >
+      <GoogleAuthButton label="Continue with Google" />
+      <p className="mb-2 text-center text-xs text-[#94A3B8]">
+        New Google accounts will ask for your restaurant name next.
+      </p>
+      <AuthDivider />
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="restaurantName">Restaurant Name</Label>

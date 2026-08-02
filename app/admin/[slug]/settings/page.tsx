@@ -5,6 +5,8 @@ import { SettingsForm } from "@/components/admin/settings/settings-form";
 import { ManageBranches } from "@/components/admin/settings/manage-branches";
 import { LoyaltySettingsCard } from "@/components/admin/settings/loyalty-settings-card";
 import { WhatsAppSettingsCard } from "@/components/admin/settings/whatsapp-settings-card";
+import { MfaSettingsCard } from "@/components/admin/settings/mfa-settings-card";
+import { roleRequiresMfa } from "@/lib/auth/roles";
 import type { LoyaltyAdminStats, LoyaltySettings } from "@/lib/loyalty/types";
 import {
   canUseWhatsAppReengagement,
@@ -101,6 +103,7 @@ export default async function SettingsPage({ params }: { params: { slug: string 
           subscriptionTier={restaurant.subscription_tier}
         />
       )}
+      {roleRequiresMfa(profile.role) ? <MfaSettingsCard /> : null}
       <SettingsForm restaurant={restaurant} />
       <LoyaltySettingsCard
         slug={params.slug}

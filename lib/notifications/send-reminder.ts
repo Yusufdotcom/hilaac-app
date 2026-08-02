@@ -1,3 +1,5 @@
+import { maskPhoneForLog } from "@/lib/privacy/mask-phone";
+
 /**
  * Sends a payment-reminder SMS/WhatsApp message. Wire this up to a real
  * provider (Twilio, WhatsApp Business API, etc.) using env vars — never log
@@ -7,7 +9,9 @@ export async function sendPaymentReminder(phone: string, restaurantName: string,
   const message = `Hilaac: Salaan ${restaurantName}, xubinimadaadu waxay dhacaysaa ${daysRemaining} maalmood. Fadlan dib u cusboonaysii si aad u sii isticmaalto Hilaac.`;
 
   if (!process.env.SMS_PROVIDER_API_KEY) {
-    console.info(`[dev] Would send reminder to ${phone}: "${message}"`);
+    console.info(
+      `[dev] Would send reminder to ${maskPhoneForLog(phone)} (message omitted; daysRemaining=${daysRemaining})`
+    );
     return { sent: false, reason: "SMS provider not configured" };
   }
 

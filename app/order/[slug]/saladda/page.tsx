@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { OrderBrandProvider } from "@/components/order/order-brand-context";
 import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
+import { loadOrderAccessToken } from "@/lib/order/order-access-storage";
 
 /**
  * Payment screen (Saladda) — opened after an offline order syncs so the
@@ -28,12 +29,27 @@ export default function SaladdaPaymentPage({ params }: { params: { slug: string 
 
   useEffect(() => {
     if (!orderId) return;
+    const trackedOrderId = orderId;
 
     async function loadOrderContext() {
       const supabase = createClient();
 
       const [trackRes, { data: restaurant }, brandingRes] = await Promise.all([
-        fetch(`/api/orders/${orderId}/track`, { cache: "no-store" }),
+        fetch(
+          (() => {
+            const t = loadOrderAccessToken(trackedOrderId);
+            return t
+              ? `/api/orders/${trackedOrderId}/track?accessToken=${encodeURIComponent(t)}`
+              : `/api/orders/${trackedOrderId}/track`;
+          })(),
+          {
+            cache: "no-store",
+            headers: (() => {
+              const t = loadOrderAccessToken(trackedOrderId);
+              return t ? { Authorization: `Bearer ${t}` } : undefined;
+            })(),
+          }
+        ),
         supabase
           .from("restaurants")
           .select("id, evc_ussd_code, edahab_ussd_code")

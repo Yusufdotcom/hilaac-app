@@ -43,6 +43,11 @@ import {
   saveResolvedOrderId,
 } from "@/lib/order/pending-order-handoff";
 import { ensureGuestId, getGuestId } from "@/lib/order/guest-id";
+import {
+  loadOrderAccessToken,
+  loadOrderChargeToken,
+  saveOrderTokens,
+} from "@/lib/order/order-access-storage";
 import { createClient } from "@/lib/supabase/client";
 import type { OrderType, RestaurantTable } from "@/types/database";
 
@@ -412,16 +417,39 @@ export function CartSheet({
       throw new Error("Failed to create order. Please try again.");
     }
 
+    const chargeToken = (data.chargeToken as string | null | undefined) ?? null;
+    const accessToken = (data.accessToken as string | null | undefined) ?? null;
+    saveOrderTokens(data.orderId as string, { chargeToken, accessToken });
+
     return {
       orderId: data.orderId as string,
+      chargeToken,
+      accessToken,
       createPayload: payload,
       total: Number(data.total ?? total),
     };
   }
 
-  async function confirmPaymentForOrder(orderId: string, signal?: AbortSignal) {
+  async function confirmPaymentForOrder(
+    orderId: string,
+    signal?: AbortSignal,
+    tokens?: { chargeToken?: string | null; accessToken?: string | null }
+  ) {
+    const accessToken =
+      tokens?.accessToken ?? loadOrderAccessToken(orderId) ?? loadOrderChargeToken(orderId);
+    const chargeToken = tokens?.chargeToken ?? loadOrderChargeToken(orderId);
     const res = await fetch(`/api/orders/${orderId}/confirm-payment`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken || chargeToken
+          ? { Authorization: `Bearer ${accessToken ?? chargeToken}` }
+          : {}),
+      },
+      body: JSON.stringify({
+        accessToken: accessToken ?? undefined,
+        chargeToken: chargeToken ?? undefined,
+      }),
       signal,
     });
     if (!res.ok) {
@@ -522,7 +550,10 @@ export function CartSheet({
       if (!result) throw new Error("Failed to create order. Please try again.");
 
       if (options.confirmPayment) {
-        await confirmPaymentForOrder(result.orderId, controller.signal);
+        await confirmPaymentForOrder(result.orderId, controller.signal, {
+          chargeToken: result.chargeToken,
+          accessToken: result.accessToken,
+        });
       }
 
       saveResolvedOrderId(tempId, result.orderId);
@@ -591,10 +622,25 @@ export function CartSheet({
 
           setPendingOrderId(result.orderId);
 
+          if (!result.chargeToken) {
+            setPendingOrderId(null);
+            setSubmitError("Payment session could not be started. Please try again.");
+            toast.error("Payment session could not be started. Please try again.");
+            return;
+          }
+
           const res = await fetch("/api/payments/charge", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId: result.orderId, method, phone }),
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${result.chargeToken}`,
+            },
+            body: JSON.stringify({
+              orderId: result.orderId,
+              method,
+              phone,
+              chargeToken: result.chargeToken,
+            }),
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {

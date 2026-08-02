@@ -43,6 +43,11 @@ export type KpiTrend = {
   direction: "up" | "down" | "flat";
   current: number;
   previous: number;
+  /**
+   * True when the period has barely started and has no orders yet —
+   * UI shows a neutral "Not enough data" state instead of a stark −100%.
+   */
+  insufficientData?: boolean;
 };
 
 export type KpiSummary = {

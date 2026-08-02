@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import type { LoyaltyCustomerStatus } from "@/lib/loyalty/types";
+import { loadOrderAccessToken } from "@/lib/order/order-access-storage";
 import type { BillingModel, OrderStatus, OrderType, PaymentStatus } from "@/types/database";
 
 export interface TrackedOrder {
@@ -21,8 +21,17 @@ export type OrderStatusLoadState =
   | { status: "ready"; order: TrackedOrder; loyalty: LoyaltyCustomerStatus | null; error: null }
   | { status: "error"; order: null; loyalty: null; error: string };
 
+const POLL_MS = 4000;
+
 async function fetchTrack(orderId: string) {
-  const res = await fetch(`/api/orders/${orderId}/track`, { cache: "no-store" });
+  const accessToken = loadOrderAccessToken(orderId);
+  const url = accessToken
+    ? `/api/orders/${orderId}/track?accessToken=${encodeURIComponent(accessToken)}`
+    : `/api/orders/${orderId}/track`;
+  const res = await fetch(url, {
+    cache: "no-store",
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+  });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.order) {
     return {
@@ -38,9 +47,8 @@ async function fetchTrack(orderId: string) {
 }
 
 /**
- * Loads order status via the public track API (service role — works for guests),
- * then keeps it in sync via Supabase Realtime (anon key + RLS SELECT).
- * Refetches loyalty when the order becomes delivered/completed.
+ * Loads + refreshes a single order by id via GET /api/orders/[id]/track.
+ * Requires the order access token saved at checkout (sessionStorage).
  */
 export function useOrderStatusRealtime(orderId: string): OrderStatusLoadState {
   const [state, setState] = useState<OrderStatusLoadState>({
@@ -62,9 +70,8 @@ export function useOrderStatusRealtime(orderId: string): OrderStatusLoadState {
     }
 
     let active = true;
-    const supabase = createClient();
 
-    async function loadInitial() {
+    async function load() {
       try {
         const result = await fetchTrack(orderId);
         if (!active) return;
@@ -96,58 +103,14 @@ export function useOrderStatusRealtime(orderId: string): OrderStatusLoadState {
       }
     }
 
-    void loadInitial();
-
-    const channel = supabase
-      .channel(`order-status-${orderId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "orders",
-          filter: `id=eq.${orderId}`,
-        },
-        (payload) => {
-          const updated = payload.new as TrackedOrder;
-          setState((prev) => {
-            const base = prev.status === "ready" ? prev.order : null;
-            const prevLoyalty = prev.status === "ready" ? prev.loyalty : null;
-            return {
-              status: "ready",
-              error: null,
-              loyalty: prevLoyalty,
-              order: {
-                id: updated.id,
-                order_number: updated.order_number ?? null,
-                status: updated.status,
-                payment_status: updated.payment_status,
-                billing_model: updated.billing_model ?? null,
-                customer_confirmed_at: updated.customer_confirmed_at ?? null,
-                customer_phone: updated.customer_phone ?? null,
-                order_type: updated.order_type ?? base?.order_type ?? null,
-              },
-            };
-          });
-
-          // Punch-card credits on delivered — refresh loyalty snapshot.
-          if (updated.status === "delivered" || updated.status === "completed") {
-            void fetchTrack(orderId).then((result) => {
-              if (!active || !result.ok) return;
-              setState((prev) =>
-                prev.status === "ready"
-                  ? { ...prev, loyalty: result.loyalty, order: { ...prev.order, ...result.order } }
-                  : prev
-              );
-            });
-          }
-        }
-      )
-      .subscribe();
+    void load();
+    const timer = window.setInterval(() => {
+      void load();
+    }, POLL_MS);
 
     return () => {
       active = false;
-      void supabase.removeChannel(channel);
+      window.clearInterval(timer);
     };
   }, [orderId]);
 

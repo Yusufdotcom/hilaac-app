@@ -1,4 +1,5 @@
 import type { CreateOrderApiPayload } from "@/lib/offline-queue";
+import { saveOrderTokens } from "@/lib/order/order-access-storage";
 
 const STORAGE_PREFIX = "hilaac-pending-order:";
 const RESOLVED_PREFIX = "hilaac-resolved-order:";
@@ -106,10 +107,22 @@ export async function fulfillPendingOrderHandoff(
   }
 
   const orderId = data.orderId as string;
+  const chargeToken = (data.chargeToken as string | null | undefined) ?? null;
+  const accessToken = (data.accessToken as string | null | undefined) ?? null;
+  saveOrderTokens(orderId, { chargeToken, accessToken });
 
   if (handoff.confirmPayment) {
+    const token = accessToken ?? chargeToken;
     const confirmRes = await fetch(`/api/orders/${orderId}/confirm-payment`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        accessToken: accessToken ?? undefined,
+        chargeToken: chargeToken ?? undefined,
+      }),
       signal: options?.signal,
     });
     if (!confirmRes.ok) {

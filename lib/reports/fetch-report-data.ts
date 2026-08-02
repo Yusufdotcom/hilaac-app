@@ -18,6 +18,7 @@ import {
   getChartBucketGranularity,
   getDateRange,
   getPreviousDateRange,
+  shouldSuppressTrendForSparsePeriod,
 } from "@/lib/reports/timeframes";
 
 function mapRpcError(label: string, error: { message: string } | null, params?: Record<string, unknown>) {
@@ -27,7 +28,20 @@ function mapRpcError(label: string, error: { message: string } | null, params?: 
   }
 }
 
-function trendFromValues(current: number, previous: number): KpiTrend {
+function trendFromValues(
+  current: number,
+  previous: number,
+  options?: { insufficientData?: boolean }
+): KpiTrend {
+  if (options?.insufficientData) {
+    return {
+      percent: null,
+      direction: "flat",
+      current,
+      previous,
+      insufficientData: true,
+    };
+  }
   if (previous <= 0 && current <= 0) {
     return { percent: 0, direction: "flat", current, previous };
   }
@@ -343,7 +357,9 @@ export async function fetchReportData(
     });
   }
 
-  const revenueTrend = trendFromValues(totalRevenue, prevRevenue);
+  const insufficientData = shouldSuppressTrendForSparsePeriod(start, end, totalOrders);
+  const trendOpts = { insufficientData };
+  const revenueTrend = trendFromValues(totalRevenue, prevRevenue, trendOpts);
   const peakHours = ((peakHoursRes.data ?? []) as ReportData["peakHours"]).map((h) => ({
     hour_of_day: Number(h.hour_of_day),
     order_count: Number(h.order_count) || 0,
@@ -359,8 +375,8 @@ export async function fetchReportData(
     prior30Items,
     peakHours,
     paymentSplit,
-    revenueTrendPercent: revenueTrend.percent,
-    revenueTrendDirection: revenueTrend.direction,
+    revenueTrendPercent: insufficientData ? null : revenueTrend.percent,
+    revenueTrendDirection: insufficientData ? "flat" : revenueTrend.direction,
   });
 
   return {
@@ -372,9 +388,9 @@ export async function fetchReportData(
       top_item_quantity,
       items_sold: itemsSold,
       trends: {
-        orders: trendFromValues(totalOrders, prevOrders),
+        orders: trendFromValues(totalOrders, prevOrders, trendOpts),
         revenue: revenueTrend,
-        aov: trendFromValues(avgOrderValue, prevAov),
+        aov: trendFromValues(avgOrderValue, prevAov, trendOpts),
       },
     },
     revenue,

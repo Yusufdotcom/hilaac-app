@@ -22,11 +22,11 @@ export async function getUserRestaurantContext(
   supabase: SupabaseClient,
   userId: string
 ): Promise<UserRestaurantContext | null> {
-  let profile: Pick<Profile, "role" | "restaurant_id"> | null = null;
+  let profile: Pick<Profile, "role" | "restaurant_id" | "is_active"> | null = null;
 
   const { data: authProfile, error: profileError } = await supabase
     .from("profiles")
-    .select("role, restaurant_id")
+    .select("role, restaurant_id, is_active")
     .eq("id", userId)
     .maybeSingle();
 
@@ -41,13 +41,13 @@ export async function getUserRestaurantContext(
     const admin = createAdminClient();
     const { data: adminProfile } = await admin
       .from("profiles")
-      .select("role, restaurant_id")
+      .select("role, restaurant_id, is_active")
       .eq("id", userId)
       .maybeSingle();
     profile = adminProfile;
   }
 
-  if (!profile?.restaurant_id) return null;
+  if (!profile?.restaurant_id || profile.is_active === false) return null;
 
   let restaurant: { slug: string; is_demo: boolean | null } | null = null;
 

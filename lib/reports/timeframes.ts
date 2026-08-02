@@ -4,9 +4,11 @@ import {
   APP_TIMEZONE,
   formatAppDateRangeLabel,
   getAppDayBounds,
-  getAppMonthBounds,
   getAppYearBounds,
 } from "@/lib/time/app-calendar";
+
+/** Fraction of a period that must elapse before a 0→N decline is treated as a real trend. */
+export const TREND_MIN_ELAPSED_FRACTION = 0.2;
 
 export function hasProReports(tier: SubscriptionTier, subscriptionStatus: string): boolean {
   if (subscriptionStatus === "expired") return false;
@@ -32,6 +34,9 @@ export function getAllGranularities(): ReportGranularity[] {
 /**
  * Half-open [start, end) in absolute UTC, using APP_TIMEZONE calendar days.
  * Same definition as Dashboard "today" RPCs.
+ *
+ * Daily / Weekly / Biweekly / Monthly are trailing windows ending on the
+ * selected day. Yearly remains a fixed calendar year (accounting view).
  */
 export function getDateRange(
   granularity: ReportGranularity,
@@ -54,7 +59,10 @@ export function getDateRange(
       return { start, end };
     }
     case "monthly": {
-      return getAppMonthBounds(periodOffset);
+      // 30 calendar days ending on selected day (inclusive) — not a fixed calendar month.
+      const { end } = getAppDayBounds(periodOffset * 30);
+      const { start } = getAppDayBounds(periodOffset * 30 - 29);
+      return { start, end };
     }
     case "yearly": {
       return getAppYearBounds(periodOffset);
@@ -71,6 +79,32 @@ export function getPreviousDateRange(
   periodOffset = 0
 ): { start: Date; end: Date } {
   return getDateRange(granularity, periodOffset - 1);
+}
+
+/** How much of [start, end) has elapsed as of `now` (0–1). */
+export function getPeriodElapsedFraction(
+  start: Date,
+  end: Date,
+  now: Date = new Date()
+): number {
+  const durationMs = end.getTime() - start.getTime();
+  if (durationMs <= 0) return 1;
+  const elapsedMs = Math.min(durationMs, Math.max(0, now.getTime() - start.getTime()));
+  return elapsedMs / durationMs;
+}
+
+/**
+ * Suppress alarming decline badges when the current window has barely started
+ * and has no orders yet (e.g. just after midnight on Daily, or early January on Yearly).
+ */
+export function shouldSuppressTrendForSparsePeriod(
+  start: Date,
+  end: Date,
+  currentOrders: number,
+  now: Date = new Date()
+): boolean {
+  if (currentOrders > 0) return false;
+  return getPeriodElapsedFraction(start, end, now) < TREND_MIN_ELAPSED_FRACTION;
 }
 
 export {

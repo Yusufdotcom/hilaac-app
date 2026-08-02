@@ -45,6 +45,18 @@ function useCountUp(target: number, enabled: boolean, durationMs = 700) {
 }
 
 function TrendBadge({ trend }: { trend: KpiTrend }) {
+  if (trend.insufficientData) {
+    return (
+      <span
+        className="inline-flex max-w-[9.5rem] items-center gap-0.5 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold leading-tight text-slate-500"
+        title="Not enough data yet this period"
+      >
+        <Minus className="h-3 w-3 shrink-0" aria-hidden="true" />
+        <span>Not enough data yet</span>
+      </span>
+    );
+  }
+
   if (trend.direction === "flat" || trend.percent == null) {
     return (
       <span className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
@@ -111,9 +123,14 @@ function ComparisonTooltip({
       className="pointer-events-none fixed z-[100] w-max max-w-[240px] -translate-x-1/2 -translate-y-full rounded-lg bg-slate-900 px-3 py-2 text-center text-xs font-medium text-white shadow-lg"
       style={{ left, top }}
     >
-      {format(trend.current)} vs {format(trend.previous)} last period
+      {trend.insufficientData
+        ? "Not enough data yet this period"
+        : `${format(trend.current)} vs ${format(trend.previous)} last period`}
       <span className="sr-only">
-        {label}: {format(trend.current)} versus {format(trend.previous)} last period
+        {label}:{" "}
+        {trend.insufficientData
+          ? "Not enough data yet this period"
+          : `${format(trend.current)} versus ${format(trend.previous)} last period`}
       </span>
     </div>,
     document.body
@@ -234,7 +251,11 @@ export function KpiCards({
             {card.value}
           </p>
           {card.sub && <p className="mt-1.5 text-xs font-medium text-slate-400">{card.sub}</p>}
-          {card.trend && <p className="mt-2 text-[11px] text-slate-400">vs previous period</p>}
+          {card.trend && (
+            <p className="mt-2 text-[11px] text-slate-400">
+              {card.trend.insufficientData ? "Not enough data yet this period" : "vs previous period"}
+            </p>
+          )}
         </article>
       ))}
       {activeCard?.trend && activeCard.format && (

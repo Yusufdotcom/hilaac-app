@@ -1,7 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-
-const HILAAC_URL = "https://hilaac-app.vercel.app";
+import { getAppUrl } from "@/lib/app-url";
 
 type PoweredByHilaacProps = {
   variant?: "light" | "dark";
@@ -12,7 +11,7 @@ export function PoweredByHilaac({ variant = "light", className }: PoweredByHilaa
   return (
     <footer className={cn("flex justify-center", className)}>
       <a
-        href={HILAAC_URL}
+        href={getAppUrl()}
         target="_blank"
         rel="noopener noreferrer"
         className={cn(

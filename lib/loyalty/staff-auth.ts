@@ -20,7 +20,9 @@ export async function getLoyaltyStaffContext(
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile || !roles.includes(profile.role as UserRole)) return null;
+  if (!profile || profile.is_active === false || !roles.includes(profile.role as UserRole)) {
+    return null;
+  }
 
   const admin = createAdminClient();
   const { data: restaurant } = await admin

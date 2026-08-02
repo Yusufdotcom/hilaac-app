@@ -1,4 +1,5 @@
 import { getTwilioConfig, isWhatsAppDryRun } from "@/lib/whatsapp/config";
+import { maskPhoneForLog } from "@/lib/privacy/mask-phone";
 
 export type TwilioSendResult =
   | { ok: true; dryRun: true; sid: null }
@@ -19,9 +20,9 @@ export async function sendWhatsAppTemplate(params: {
 
   if (dryRun || !cfg.configured || !params.contentSid) {
     console.info("[whatsapp] dry-run / unconfigured send", {
-      to: params.toWhatsApp,
+      to: maskPhoneForLog(params.toWhatsApp),
       contentSid: params.contentSid || "(missing)",
-      variables: params.contentVariables,
+      variableKeys: Object.keys(params.contentVariables),
       dryRun,
       configured: cfg.configured,
     });

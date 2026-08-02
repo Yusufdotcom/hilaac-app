@@ -53,6 +53,7 @@ async function provisionRestaurantAndProfile(
       restaurant_id: restaurant.id,
       role: "owner",
       full_name: fullName,
+      is_active: true,
     });
 
     if (profileError) {
@@ -109,8 +110,10 @@ export async function signupAction(
   }
 
   try {
-    const slug = await provisionRestaurantAndProfile(userId, restaurantName, fullName);
-    redirect(`/admin/${slug}/dashboard`);
+    await provisionRestaurantAndProfile(userId, restaurantName, fullName);
+    const { resolvePostAuthRedirect } = await import("@/lib/auth/post-login");
+    const destination = await resolvePostAuthRedirect(supabase, userId);
+    redirect(destination);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Could not create restaurant.";
     return { error: message };
