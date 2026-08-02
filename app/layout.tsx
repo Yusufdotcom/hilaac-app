@@ -11,6 +11,10 @@ export const metadata: Metadata = {
   title: "Hilaac — Run your restaurant smarter.",
   description:
     "The all-in-one restaurant SaaS platform: QR ordering, real-time kitchen dashboards, AI menus, and mobile money payments.",
+  // Google Search Console — content token only (not the full <meta> HTML string).
+  verification: {
+    google: "upyzLjyhHRlmAKLA_zLXatlB9wri6sUSHN52C3IyOcw",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
