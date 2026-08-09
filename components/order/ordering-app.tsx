@@ -24,6 +24,12 @@ import { PaymentConfirmationModal } from "@/components/order/payment-confirmatio
 import { OrderAppearanceProvider } from "@/components/order/order-appearance-context";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { pickHeroMenuImages } from "@/lib/order/appearance";
+import {
+  clearOrderDraft,
+  loadOrderDraft,
+  saveOrderDraft,
+} from "@/lib/order/draft-cart-storage";
+import { resolveItemAddOns } from "@/lib/order/resolve-item-addons";
 
 type Step = "landing" | "table" | "menu";
 
@@ -77,11 +83,71 @@ export function OrderingApp({
     createPayloads: CreateOrderApiPayload[];
   } | null>(null);
   const [guestReady, setGuestReady] = useState(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
 
   useEffect(() => {
     ensureGuestId();
     setGuestReady(true);
   }, []);
+
+  // Restore in-progress cart / table after reload (same restaurant, within TTL).
+  useEffect(() => {
+    const draft = loadOrderDraft(restaurant.slug, restaurant.id);
+    if (!draft) {
+      setDraftHydrated(true);
+      return;
+    }
+    const menuById = new Map(menuItems.map((m) => [m.id, m]));
+    const restoredCart = draft.cart
+      .map((item) => {
+        const live = menuById.get(item.menuItem?.id);
+        if (!live || !live.is_available) return null;
+        return { ...item, menuItem: live };
+      })
+      .filter((item): item is CartItem => Boolean(item));
+
+    if (draft.orderType === "dine-in" || draft.orderType === "takeaway") {
+      setOrderType(draft.orderType);
+    }
+    if (draft.tableNumber) setTableNumber(draft.tableNumber);
+    setCart(restoredCart);
+
+    if (draft.step === "menu" || draft.step === "table") {
+      if (draft.orderType === "dine-in" && !draft.tableNumber && draft.step === "menu") {
+        setStep("table");
+      } else {
+        setStep(draft.step);
+      }
+    }
+    setDraftHydrated(true);
+    // Intentionally once per restaurant mount — not on every menuItems refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurant.id, restaurant.slug]);
+
+  useEffect(() => {
+    if (!draftHydrated) return;
+    if (step === "landing" && cart.length === 0 && !tableNumber) {
+      clearOrderDraft(restaurant.slug);
+      return;
+    }
+    saveOrderDraft({
+      restaurantId: restaurant.id,
+      slug: restaurant.slug,
+      step,
+      orderType,
+      tableNumber,
+      cart,
+      savedAt: Date.now(),
+    });
+  }, [
+    draftHydrated,
+    restaurant.id,
+    restaurant.slug,
+    step,
+    orderType,
+    tableNumber,
+    cart,
+  ]);
 
   const { menuItems: liveMenuItems } = useRealtimeMenuItems(restaurant.id, menuItems);
 
@@ -166,6 +232,28 @@ export function OrderingApp({
   function handleOrderPlaced(_orderId: string) {
     setCart([]);
     setCartOpen(false);
+    clearOrderDraft(restaurant.slug);
+  }
+
+  function handleQuickAddItem(item: MenuItem) {
+    const availableAddOns = resolveItemAddOns({
+      item,
+      addOns,
+      categoryAddOns,
+      menuItemAddOns,
+    });
+    if (availableAddOns.length > 0) {
+      setCustomizeItem(item);
+      return;
+    }
+    handleAddToCart({
+      cartId: crypto.randomUUID(),
+      menuItem: item,
+      quantity: 1,
+      selectedAddOns: [],
+      notes: "",
+      orderType,
+    });
   }
 
   function handleUssdPaymentStarted(payload: {
@@ -176,6 +264,7 @@ export function OrderingApp({
     setUssdPayment(payload);
     setCart([]);
     setCartOpen(false);
+    clearOrderDraft(restaurant.slug);
   }
 
   function handleBackFromMenu() {
@@ -226,6 +315,10 @@ export function OrderingApp({
               }}
               onBack={handleBackFromMenu}
               onSelectItem={setCustomizeItem}
+              onQuickAddItem={handleQuickAddItem}
+              addOns={addOns}
+              categoryAddOns={categoryAddOns}
+              menuItemAddOns={menuItemAddOns}
               onOpenCart={() => setCartOpen(true)}
             />
           )}

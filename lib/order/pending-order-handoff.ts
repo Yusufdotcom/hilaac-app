@@ -4,11 +4,37 @@ import { saveOrderTokens } from "@/lib/order/order-access-storage";
 const STORAGE_PREFIX = "hilaac-pending-order:";
 const RESOLVED_PREFIX = "hilaac-resolved-order:";
 
-/** Guaranteed navigation to status even when create is still in flight. */
-export const ORDER_REDIRECT_DELAY_MS = 3_000;
+/**
+ * Brief overlay on the cart before navigating to Status.
+ * Status page is the sole creator for the pending-handoff path (avoids double POST).
+ */
+export const ORDER_REDIRECT_DELAY_MS = 600;
 /** Show Retry on the loading UI if create still hasn't completed. */
-export const ORDER_CREATE_TIMEOUT_MS = 5_000;
+export const ORDER_CREATE_TIMEOUT_MS = 12_000;
 export const ORDER_POLL_INTERVAL_MS = 2_000;
+
+/** In-memory locks so React Strict Mode remounts cannot double-fulfill. */
+const fulfillLocks = new Map<string, "inflight" | "done">();
+
+export function beginFulfillLock(tempId: string): boolean {
+  const state = fulfillLocks.get(tempId);
+  if (state === "inflight" || state === "done") return false;
+  fulfillLocks.set(tempId, "inflight");
+  return true;
+}
+
+export function completeFulfillLock(tempId: string) {
+  fulfillLocks.set(tempId, "done");
+}
+
+/** Release after failure or explicit Retry so create can run again. */
+export function releaseFulfillLock(tempId: string) {
+  fulfillLocks.delete(tempId);
+}
+
+export function isPendingTempOrderId(id: string): boolean {
+  return id.startsWith("pending-");
+}
 
 export type PendingOrderHandoff = {
   tempId: string;
@@ -26,11 +52,12 @@ function resolvedKey(tempId: string) {
   return `${RESOLVED_PREFIX}${tempId}`;
 }
 
+/** Client-only placeholder — never a bare UUID (avoids looking like a real order id). */
 export function createTempOrderId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
+    return `pending-${crypto.randomUUID()}`;
   }
-  return `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `pending-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export function savePendingOrderHandoff(handoff: PendingOrderHandoff) {

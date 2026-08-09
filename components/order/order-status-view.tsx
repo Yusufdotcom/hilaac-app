@@ -46,7 +46,7 @@ const STATUS_STEPS: {
   { key: "ready", label: "Diyaar", icon: <Bell className="h-4 w-4" strokeWidth={2.25} /> },
   {
     key: "delivered",
-    label: "La geeyay",
+    label: "Walagu Keenay",
     icon: <Footprints className="h-4 w-4" strokeWidth={2.25} />,
   },
 ];
@@ -79,7 +79,7 @@ function PremiumStatusStepper({
       <div className="relative mx-auto max-w-sm pt-1">
         {/* Track */}
         <div
-          className="absolute left-[12%] right-[12%] top-[22px] h-1.5 overflow-hidden rounded-full bg-gray-100"
+          className="absolute left-[12%] right-[12%] top-[22px] h-1.5 overflow-hidden rounded-full bg-muted"
           aria-hidden="true"
         >
           <div
@@ -102,8 +102,8 @@ function PremiumStatusStepper({
               <div key={step.key} className="flex w-[22%] flex-col items-center gap-1.5">
                 <div
                   className={cn(
-                    "relative flex h-11 w-11 items-center justify-center rounded-2xl border-2 bg-white transition-all duration-500",
-                    isFuture && "border-gray-200 text-gray-400",
+                    "relative flex h-11 w-11 items-center justify-center rounded-2xl border-2 bg-card transition-all duration-500",
+                    isFuture && "border-border text-muted-foreground",
                     isPast && "text-white",
                     isCurrent && "text-white"
                   )}
@@ -133,7 +133,11 @@ function PremiumStatusStepper({
                 <span
                   className={cn(
                     "max-w-[4.75rem] text-center text-[10px] font-semibold leading-tight transition-colors duration-300",
-                    isCurrent ? "text-[#0F172A]" : isPast ? "text-gray-600" : "text-gray-400"
+                    isCurrent
+                      ? "text-foreground"
+                      : isPast
+                        ? "text-foreground/70"
+                        : "text-muted-foreground"
                   )}
                   style={isCurrent ? customerAccentTextStyleFromAccent(accent) : undefined}
                 >
@@ -178,7 +182,7 @@ function DeliveredCelebration({ accent }: { accent: string }) {
         />
       </div>
       <div>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           Receipt ka waxa ku keenaya waiter ka. Mahadsanid!
         </p>
       </div>
@@ -265,9 +269,9 @@ export function OrderStatusView({
           className
         )}
       >
-        <Clock className="h-6 w-6 animate-pulse text-gray-400" aria-hidden="true" />
-        <p className="text-sm font-medium text-gray-900">Dalabkaga waa la diyaarinayaa  ...</p>
-        <p className="text-xs text-gray-500">Fadlan sug…</p>
+        <Clock className="h-6 w-6 animate-pulse text-muted-foreground" aria-hidden="true" />
+        <p className="text-sm font-medium text-foreground">Dalabkaga waa la diyaarinayaa  ...</p>
+        <p className="text-xs text-muted-foreground">Fadlan sug…</p>
       </div>
     );
   }
@@ -280,10 +284,10 @@ export function OrderStatusView({
           className
         )}
       >
-        <p className="text-sm font-bold text-gray-900">
+        <p className="text-sm font-bold text-foreground">
           {loadState.status === "error" ? loadState.error : "Could not load order status."}
         </p>
-        <p className="max-w-xs text-xs text-gray-500">
+        <p className="max-w-xs text-xs text-muted-foreground">
           Dalabkaagu wuu jiraa, laakiin lama akhriyi karin. Isku day mar kale.
         </p>
         <Button
@@ -327,14 +331,14 @@ export function OrderStatusView({
         </div>
 
         {!isTakeaway && (
-          <div className="mx-auto inline-flex max-w-full items-center justify-center rounded-full bg-white px-3 py-0.5 text-sm font-bold tracking-wide text-[#0F172A] shadow-sm ring-1 ring-gray-100">
+          <div className="mx-auto inline-flex max-w-full items-center justify-center rounded-full bg-card px-3 py-0.5 text-sm font-bold tracking-wide text-foreground shadow-sm ring-1 ring-border">
             <span className="truncate">{formatOrderLabel(order)}</span>
           </div>
         )}
 
         {isTakeaway && (
           <div
-            className="mx-auto inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-sm font-bold shadow-sm ring-1 ring-black/5"
+            className="mx-auto inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-sm font-bold shadow-sm ring-1 ring-border/60"
             style={{
               backgroundColor: brandColorWithAlpha(accent, customBrandingActive ? 0.16 : 0.12),
               color: accent,
@@ -343,16 +347,16 @@ export function OrderStatusView({
             <span className="text-[11px] font-semibold uppercase tracking-wide opacity-80">
               Delivery Code
             </span>
-            <span className="text-base tracking-wide text-[#0F172A]">
+            <span className="text-base tracking-wide text-foreground">
               {deliveryCodeLabel(order)}
             </span>
           </div>
         )}
 
-        <h1 className="text-lg font-bold leading-tight tracking-tight text-[#0F172A]">
+        <h1 className="text-lg font-bold leading-tight tracking-tight text-foreground">
           {isFinal ? "Dalabkaagu wuu dhamaaday!" : "Dalabkaagu wuu socdaa!"}
         </h1>
-        <p className="text-[11px] leading-snug text-gray-500">{restaurantName}</p>
+        <p className="text-[11px] leading-snug text-muted-foreground">{restaurantName}</p>
       </div>
 
       {isTakeaway && takeawayHotline && !isFinal && (
@@ -396,13 +400,13 @@ export function OrderStatusView({
       )}
 
       {paymentMessage && (
-        <p className="mt-1 line-clamp-2 text-center text-[11px] leading-snug text-gray-600">
+        <p className="mt-1 line-clamp-2 text-center text-[11px] leading-snug text-muted-foreground">
           {paymentMessage}
         </p>
       )}
 
       {workflowMessage && (
-        <p className="mt-1 line-clamp-2 text-center text-[10px] leading-snug text-gray-500">
+        <p className="mt-1 line-clamp-2 text-center text-[10px] leading-snug text-muted-foreground">
           {workflowMessage}
         </p>
       )}

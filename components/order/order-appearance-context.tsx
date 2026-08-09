@@ -28,11 +28,12 @@ type OrderAppearanceContextValue = {
 const OrderAppearanceContext = createContext<OrderAppearanceContextValue | null>(null);
 
 export function OrderAppearanceProvider({ children }: { children: React.ReactNode }) {
+  // SSR always starts light; hydrate from localStorage after mount (Next won't
+  // re-run useState initializers on the client during hydration).
   const [theme, setThemeState] = useState<OrderTheme>("light");
 
   useEffect(() => {
-    const stored = readStoredOrderTheme();
-    setThemeState(stored ?? (systemPrefersDark() ? "dark" : "light"));
+    setThemeState(readStoredOrderTheme() ?? (systemPrefersDark() ? "dark" : "light"));
   }, []);
 
   const setTheme = useCallback((next: OrderTheme) => {

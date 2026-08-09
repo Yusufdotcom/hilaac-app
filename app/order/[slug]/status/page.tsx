@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, WifiOff } from "lucide-react";
 import { toast } from "sonner";
@@ -17,17 +17,23 @@ import { OrderStatusView } from "@/components/order/order-status-view";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
+  beginFulfillLock,
   clearPendingOrderHandoff,
   clearResolvedOrderId,
+  completeFulfillLock,
   fulfillPendingOrderHandoff,
+  isPendingTempOrderId,
   loadPendingOrderHandoff,
   loadResolvedOrderId,
   ORDER_CREATE_TIMEOUT_MS,
   ORDER_POLL_INTERVAL_MS,
+  releaseFulfillLock,
   saveResolvedOrderId,
 } from "@/lib/order/pending-order-handoff";
 import { loadOrderAccessToken } from "@/lib/order/order-access-storage";
+import { OrderAppearanceProvider } from "@/components/order/order-appearance-context";
 import type { PaymentStatus } from "@/types/database";
 
 interface TrackedOrderRow {
@@ -71,8 +77,6 @@ export default function OrderStatusPage({
   const [retrying, setRetrying] = useState(false);
   const [retryNonce, setRetryNonce] = useState(0);
   const [showRetry, setShowRetry] = useState(false);
-
-  const fulfillStartedRef = useRef(false);
 
   const pendingSync = isOrderPendingSync(resolvedOrderId);
   const showRetrySync = pendingSync || !isOnline;
@@ -157,7 +161,6 @@ export default function OrderStatusPage({
     setLoadError(null);
     setAwaitingOrder(false);
     setShowRetry(false);
-    fulfillStartedRef.current = false;
   }, [orderId, retryNonce]);
 
   // Restaurant context via public branding API (service role) — no client RLS.
@@ -198,26 +201,25 @@ export default function OrderStatusPage({
     return () => window.clearTimeout(timer);
   }, [order, loadError, showPreparing, retryNonce]);
 
-  // Pending handoff / resolved mapping from the 3s redirect path.
+  // Pending handoff: Status is the sole creator. Module lock prevents Strict Mode double POST.
   useEffect(() => {
     if (!orderId) return;
 
     const handoff = loadPendingOrderHandoff(orderId);
     const alreadyResolved = loadResolvedOrderId(orderId);
-    if (!isPendingParam && !handoff && !alreadyResolved) return;
-    if (fulfillStartedRef.current) return;
-    fulfillStartedRef.current = true;
+    const looksPending = isPendingParam || isPendingTempOrderId(orderId);
+    if (!looksPending && !handoff && !alreadyResolved) return;
 
     setAwaitingOrder(true);
     setLoading(true);
     setLoadError(null);
 
-    const controller = new AbortController();
     let cancelled = false;
 
     async function adoptRealId(realId: string) {
       clearPendingOrderHandoff(orderId);
       clearResolvedOrderId(orderId);
+      completeFulfillLock(orderId);
       setResolvedOrderId(realId);
       const { order: data, error } = await fetchOrderById(realId);
       if (cancelled) return;
@@ -225,7 +227,10 @@ export default function OrderStatusPage({
         setOrder(data);
         setAwaitingOrder(false);
         setLoading(false);
-        window.location.replace(`/order/${params.slug}/status?orderId=${realId}`);
+        // Never leave a pending-* id in the address bar.
+        if (realId !== orderId) {
+          window.location.replace(`/order/${params.slug}/status?orderId=${realId}`);
+        }
         return;
       }
       setLoadError(error ?? ORDER_NOT_FOUND_ERROR);
@@ -237,32 +242,38 @@ export default function OrderStatusPage({
     void (async () => {
       try {
         let realId = loadResolvedOrderId(orderId);
-        if (!realId) {
-          const waitUntil = Date.now() + ORDER_CREATE_TIMEOUT_MS;
-          while (!realId && Date.now() < waitUntil) {
-            if (cancelled) return;
-            await new Promise((r) => window.setTimeout(r, 400));
-            realId = loadResolvedOrderId(orderId);
-          }
-        }
-
         if (realId) {
           await adoptRealId(realId);
           return;
         }
 
-        const activeHandoff = loadPendingOrderHandoff(orderId);
-        if (!activeHandoff) {
+        // Acquire create lock before fulfill — remounts must not insert again.
+        if (!beginFulfillLock(orderId)) {
+          // Another effect already creating — poll until resolved or timeout.
+          const waitUntil = Date.now() + ORDER_CREATE_TIMEOUT_MS;
+          while (!realId && Date.now() < waitUntil) {
+            if (cancelled) return;
+            await new Promise((r) => window.setTimeout(r, 300));
+            realId = loadResolvedOrderId(orderId);
+          }
+          if (realId) {
+            await adoptRealId(realId);
+            return;
+          }
           throw new Error(ORDER_NOT_FOUND_ERROR);
         }
 
-        const created = await fulfillPendingOrderHandoff(activeHandoff, {
-          signal: controller.signal,
-        });
-        if (cancelled) return;
+        const activeHandoff = loadPendingOrderHandoff(orderId);
+        if (!activeHandoff) {
+          releaseFulfillLock(orderId);
+          throw new Error(ORDER_NOT_FOUND_ERROR);
+        }
+
+        const created = await fulfillPendingOrderHandoff(activeHandoff);
         saveResolvedOrderId(orderId, created.orderId);
         await adoptRealId(created.orderId);
       } catch (err) {
+        releaseFulfillLock(orderId);
         if (cancelled) return;
         const message = err instanceof Error ? err.message : ORDER_NOT_FOUND_ERROR;
         setLoadError(message);
@@ -273,9 +284,8 @@ export default function OrderStatusPage({
     })();
 
     return () => {
+      // Do not abort in-flight create / reset locks — that caused duplicate orders.
       cancelled = true;
-      fulfillStartedRef.current = false;
-      controller.abort();
     };
   }, [orderId, isPendingParam, params.slug, fetchOrderById, retryNonce]);
 
@@ -380,26 +390,32 @@ export default function OrderStatusPage({
   }, [isOnline, order, resolvedOrderId, params.slug, router, fetchOrderById]);
 
   function handleCreateRetry() {
-    fulfillStartedRef.current = false;
+    releaseFulfillLock(orderId);
     setLoadError(null);
     setShowRetry(false);
     setRetryNonce((n) => n + 1);
   }
 
+  const shell = (children: ReactNode) => (
+    <OrderAppearanceProvider>
+      <div className={cn(PAGE_SHELL, "bg-background text-foreground")}>{children}</div>
+    </OrderAppearanceProvider>
+  );
+
   if (!orderId) {
-    return (
-      <div className={PAGE_SHELL}>
+    return shell(
+      <>
         <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
           Order not found.
         </div>
         <PoweredByHilaac className="shrink-0 pb-2" />
-      </div>
+      </>
     );
   }
 
   if (showPreparing && !order) {
-    return (
-      <div className={PAGE_SHELL}>
+    return shell(
+      <>
         <OrderBrandProvider
           brandColor={branding.brand_color}
           customBrandingEnabled={branding.custom_branding_enabled ?? false}
@@ -425,13 +441,13 @@ export default function OrderStatusPage({
           </div>
         </OrderBrandProvider>
         <PoweredByHilaac className="shrink-0 pb-2" />
-      </div>
+      </>
     );
   }
 
   if (!restaurantName || !order) {
-    return (
-      <div className={PAGE_SHELL}>
+    return shell(
+      <>
         <OrderBrandProvider
           brandColor={branding.brand_color}
           customBrandingEnabled={branding.custom_branding_enabled ?? false}
@@ -446,12 +462,12 @@ export default function OrderStatusPage({
           />
         </OrderBrandProvider>
         <PoweredByHilaac className="shrink-0 pb-2" />
-      </div>
+      </>
     );
   }
 
-  return (
-    <div className={PAGE_SHELL}>
+  return shell(
+    <>
       {showExtras && (
         <div className="mx-auto w-full max-w-sm shrink-0 pt-1">
           <OrderStatusExtras />
@@ -475,6 +491,6 @@ export default function OrderStatusPage({
       </OrderBrandProvider>
 
       <PoweredByHilaac className="mx-auto shrink-0 pb-2 pt-1" />
-    </div>
+    </>
   );
 }

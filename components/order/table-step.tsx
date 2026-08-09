@@ -175,8 +175,8 @@ export function TableStep({
       <div className="shrink-0 space-y-2 pt-3">
         {selected && (
           <p className="text-center text-sm text-muted-foreground">
-            Selected:{" "}
-            <span className="font-semibold text-foreground">Table {selected}</span>
+            La doortay:{" "}
+            <span className="font-semibold text-foreground">Miiska {selected}</span>
           </p>
         )}
         <OrderPrimaryButton

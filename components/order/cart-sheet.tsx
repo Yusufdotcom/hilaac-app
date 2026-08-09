@@ -36,11 +36,9 @@ import type { CreateOrderApiPayload } from "@/lib/offline-queue";
 import { PaymentConfirmationModal } from "@/components/order/payment-confirmation-modal";
 import { OrderSubmittingOverlay } from "@/components/order/order-preparing-screen";
 import {
-  clearPendingOrderHandoff,
   createTempOrderId,
   ORDER_REDIRECT_DELAY_MS,
   savePendingOrderHandoff,
-  saveResolvedOrderId,
 } from "@/lib/order/pending-order-handoff";
 import { ensureGuestId, getGuestId } from "@/lib/order/guest-id";
 import {
@@ -528,6 +526,8 @@ export function CartSheet({
       return;
     }
 
+    // Sole create path is the Status page (fulfillPendingOrderHandoff).
+    // Parallel create here raced with navigation unload and could insert twice.
     const tempId = createTempOrderId();
     redirectOrderIdRef.current = tempId;
     savePendingOrderHandoff({
@@ -538,40 +538,10 @@ export function CartSheet({
       createdAt: Date.now(),
     });
 
-    // Guaranteed Status landing after 3s. Status page creates the order from the handoff
-    // (avoids double-create if we also kicked off create here).
     redirectTimerRef.current = window.setTimeout(() => {
+      if (controller.signal.aborted || navigatedRef.current) return;
       goToStatusPage(tempId, { pending: true });
     }, ORDER_REDIRECT_DELAY_MS);
-
-    // Kick off create early so the order often exists before/when Status mounts.
-    try {
-      const result = await createOrder(options.method, controller.signal);
-      if (!result) throw new Error("Failed to create order. Please try again.");
-
-      if (options.confirmPayment) {
-        await confirmPaymentForOrder(result.orderId, controller.signal, {
-          chargeToken: result.chargeToken,
-          accessToken: result.accessToken,
-        });
-      }
-
-      saveResolvedOrderId(tempId, result.orderId);
-      clearPendingOrderHandoff(tempId);
-      redirectOrderIdRef.current = result.orderId;
-
-      if (controller.signal.aborted || navigatedRef.current) return;
-
-      // Prefer real id as soon as create succeeds; 3s timer still covers slow networks.
-      goToStatusPage(result.orderId);
-    } catch (err) {
-      if (controller.signal.aborted || navigatedRef.current) return;
-      // Leave handoff intact for Status to fulfill; keep the 3s redirect timer.
-      const message =
-        err instanceof Error ? err.message : "Failed to create order. Please try again.";
-      setSubmitError(message);
-      setPlacing(null);
-    }
   }
 
   async function handlePlaceOrderWithoutPayment() {
@@ -719,10 +689,11 @@ export function CartSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          overlayClassName="bg-black/50 backdrop-blur-[2px]"
+          overlayClassName="bg-black/50"
           className={cn(
-            "order-flow-surface mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col gap-0 overflow-hidden",
+            "order-flow-surface mx-auto flex !h-[100dvh] !max-h-[100dvh] w-full max-w-lg flex-col gap-0 overflow-hidden",
             "rounded-none border-0 bg-background p-0 text-foreground shadow-2xl",
+            "isolate data-[state=open]:duration-300 [contain:paint]",
             "sm:rounded-t-[1.75rem]"
           )}
           data-order-theme={appearance?.theme ?? "light"}
@@ -749,9 +720,9 @@ export function CartSheet({
             </SheetHeader>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col">
-            {/* Single scroll: cart items only */}
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-5">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            {/* Single scroll: cart items only — isolated to avoid compositor fracture on scroll-up */}
+            <div className="relative z-0 min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain px-4 py-5 [-webkit-overflow-scrolling:touch]">
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-card shadow-md">
@@ -800,7 +771,7 @@ export function CartSheet({
 
             {/* Checkout footer — sticky, never nested-scroll */}
             {cart.length > 0 && (
-              <div className="shrink-0 space-y-5 rounded-t-[1.5rem] border-t border-border/70 bg-card px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-14px_40px_rgba(15,23,42,0.12)]">
+              <div className="relative z-10 shrink-0 space-y-5 rounded-t-[1.5rem] border-t border-border/70 bg-card px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-14px_40px_rgba(15,23,42,0.12)]">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="cart-phone" className="text-[13px] font-semibold text-muted-foreground">
@@ -860,7 +831,7 @@ export function CartSheet({
                         }}
                       >
                         <Armchair className="h-4 w-4" aria-hidden="true" />
-                        Table {tableNumber}
+                        Miiska {tableNumber}
                       </span>
                     </div>
                   )}

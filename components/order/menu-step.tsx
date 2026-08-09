@@ -27,14 +27,25 @@ import {
   splitMenuCategories,
 } from "@/lib/order/drinks-category";
 import { cn, formatCurrency } from "@/lib/utils";
-import type { Category, MenuItem } from "@/types/database";
+import { resolveItemAddOns } from "@/lib/order/resolve-item-addons";
+import type {
+  AddOn,
+  Category,
+  CategoryAddOn,
+  MenuItem,
+  MenuItemAddOn,
+} from "@/types/database";
 
 function ItemCard({
   item,
+  canQuickAdd,
   onSelect,
+  onQuickAdd,
 }: {
   item: MenuItem;
+  canQuickAdd: boolean;
   onSelect: (item: MenuItem) => void;
+  onQuickAdd: (item: MenuItem) => void;
 }) {
   const { accent, customBrandingActive } = useOrderBrand();
   const unavailable = !item.is_available;
@@ -51,16 +62,42 @@ function ItemCard({
       )}
     >
       {!unavailable ? (
-        <button type="button" onClick={() => onSelect(item)} className="flex flex-1 flex-col text-left">
-          <ItemCardContent
-            item={item}
-            unavailable={false}
-            plusStyle={plusStyle}
-            accentTextStyle={accentTextStyle}
-          />
-        </button>
+        <>
+          <button type="button" onClick={() => onSelect(item)} className="flex flex-1 flex-col text-left">
+            <ItemCardContent
+              item={item}
+              unavailable={false}
+              accentTextStyle={accentTextStyle}
+              showPlus={false}
+            />
+          </button>
+          <div className="absolute bottom-3 right-3 z-10">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canQuickAdd) onQuickAdd(item);
+                else onSelect(item);
+              }}
+              className="flex h-7 w-7 items-center justify-center rounded-full shadow-sm"
+              style={plusStyle}
+              aria-label={
+                canQuickAdd
+                  ? `Add ${item.name} to cart`
+                  : `Customize ${item.name}`
+              }
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        </>
       ) : (
-        <ItemCardContent item={item} unavailable plusStyle={plusStyle} accentTextStyle={accentTextStyle} />
+        <ItemCardContent
+          item={item}
+          unavailable
+          accentTextStyle={accentTextStyle}
+          showPlus={false}
+        />
       )}
     </div>
   );
@@ -69,13 +106,15 @@ function ItemCard({
 function ItemCardContent({
   item,
   unavailable,
-  plusStyle,
   accentTextStyle,
+  showPlus,
+  plusStyle,
 }: {
   item: MenuItem;
   unavailable: boolean;
-  plusStyle: React.CSSProperties;
   accentTextStyle: React.CSSProperties;
+  showPlus: boolean;
+  plusStyle?: React.CSSProperties;
 }) {
   return (
     <>
@@ -118,11 +157,11 @@ function ItemCardContent({
         {item.description && (
           <p className="line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
         )}
-        <div className="mt-auto flex items-center justify-between pt-1">
+        <div className="mt-auto flex items-center justify-between pt-1 pr-8">
           <span className="font-bold" style={accentTextStyle}>
             {formatCurrency(Number(item.price))}
           </span>
-          {!unavailable && (
+          {showPlus && !unavailable && plusStyle && (
             <span
               className="flex h-7 w-7 items-center justify-center rounded-full shadow-sm"
               style={plusStyle}
@@ -152,6 +191,10 @@ export function MenuStep({
   onDismissDrinksUpsell,
   onBack,
   onSelectItem,
+  onQuickAddItem,
+  addOns = [],
+  categoryAddOns = [],
+  menuItemAddOns = [],
   onOpenCart,
 }: {
   restaurant: { name: string };
@@ -166,6 +209,10 @@ export function MenuStep({
   onDismissDrinksUpsell?: () => void;
   onBack: () => void;
   onSelectItem: (item: MenuItem) => void;
+  onQuickAddItem: (item: MenuItem) => void;
+  addOns?: AddOn[];
+  categoryAddOns?: CategoryAddOn[];
+  menuItemAddOns?: MenuItemAddOn[];
   onOpenCart: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -232,9 +279,20 @@ export function MenuStep({
   const sessionLabel =
     orderType === "dine-in"
       ? tableNumber
-        ? `Fadhi · Table ${tableNumber}`
+        ? `Fadhi · Miiska ${tableNumber}`
         : "Fadhi"
       : "Qaadasho";
+
+  function itemCanQuickAdd(item: MenuItem) {
+    return (
+      resolveItemAddOns({
+        item,
+        addOns,
+        categoryAddOns,
+        menuItemAddOns,
+      }).length === 0
+    );
+  }
 
   useEffect(() => {
     scrollRef.current?.scrollTo(0, 0);
@@ -411,7 +469,13 @@ export function MenuStep({
               </h2>
               <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
                 {visibleTopPicks.map((item) => (
-                  <ItemCard key={item.id} item={item} onSelect={onSelectItem} />
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    canQuickAdd={itemCanQuickAdd(item)}
+                    onSelect={onSelectItem}
+                    onQuickAdd={onQuickAddItem}
+                  />
                 ))}
               </div>
             </section>
@@ -432,7 +496,13 @@ export function MenuStep({
                 <h2 className="mb-3 text-lg font-bold">{category.name}</h2>
                 <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
                   {items.map((item) => (
-                    <ItemCard key={item.id} item={item} onSelect={onSelectItem} />
+                    <ItemCard
+                      key={item.id}
+                      item={item}
+                      canQuickAdd={itemCanQuickAdd(item)}
+                      onSelect={onSelectItem}
+                      onQuickAdd={onQuickAddItem}
+                    />
                   ))}
                 </div>
               </section>
