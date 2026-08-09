@@ -323,7 +323,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
   }
 
   return (
-    <div className="w-full min-w-0 space-y-4 overflow-x-hidden sm:space-y-5">
+    <div className="w-full min-w-0 space-y-4 overflow-x-clip sm:space-y-5">
       {/* Restaurant details */}
       <Card className="w-full overflow-hidden">
         <CardHeader>
@@ -629,7 +629,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
                       Test Connection
                     </Button>
                     {testResult.evc && (
-                      <span className={`flex items-center gap-1 text-sm ${testResult.evc.success ? "text-hilaac-gold" : "text-destructive"}`}>
+                      <span className={`flex items-center gap-1 text-sm ${testResult.evc.success ? "text-[color:var(--admin-brand,var(--brand-accent,#0F172A))]" : "text-destructive"}`}>
                         {testResult.evc.success ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                         {testResult.evc.message}
                       </span>
@@ -658,7 +658,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
                       Test Connection
                     </Button>
                     {testResult.edahab && (
-                      <span className={`flex items-center gap-1 text-sm ${testResult.edahab.success ? "text-hilaac-gold" : "text-destructive"}`}>
+                      <span className={`flex items-center gap-1 text-sm ${testResult.edahab.success ? "text-[color:var(--admin-brand,var(--brand-accent,#0F172A))]" : "text-destructive"}`}>
                         {testResult.edahab.success ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                         {testResult.edahab.message}
                       </span>

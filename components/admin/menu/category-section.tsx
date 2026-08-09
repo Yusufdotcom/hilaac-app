@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency } from "@/lib/utils";
+import { adminBrandTextClass } from "@/lib/brand/admin-tokens";
+import { cn, formatCurrency } from "@/lib/utils";
 import type { AddOn, Category, CategoryAddOn } from "@/types/database";
 
 export function CategorySection({
@@ -138,8 +139,8 @@ export function CategorySection({
   }
 
   return (
-    <Card className="mt-4">
-      <CardContent className="space-y-6 p-6">
+    <Card className="w-full overflow-hidden">
+      <CardContent className="space-y-6 p-4 sm:p-6">
         <form onSubmit={handleAdd} className="flex gap-2">
           <Input
             placeholder="e.g. Appetizers"
@@ -235,7 +236,7 @@ export function CategorySection({
                         />
                         {addOn.name}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className={cn("text-xs font-semibold", adminBrandTextClass)}>
                         {formatCurrency(Number(addOn.price))}
                       </span>
                     </label>

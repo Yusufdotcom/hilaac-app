@@ -24,25 +24,38 @@ export function MenuManager({
   menuItemAddOns: MenuItemAddOn[];
   canUseAi: boolean;
 }) {
-  const [tab, setTab] = useState("items");
+  const [tab, setTab] = useState("categories");
 
   return (
-    <div className="w-full space-y-6 overflow-x-hidden">
+    <div className="w-full min-w-0 space-y-4 sm:space-y-5">
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold">Menu</h1>
-        <p className="text-muted-foreground">
-          Manage categories, dishes, and category-scoped add-ons.
+        <h1 className="text-2xl font-bold tracking-tight">Menu</h1>
+        <p className="text-sm text-muted-foreground sm:text-base">
+          Set up categories and add-ons first, then build menu items.
         </p>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="items">Menu Items</TabsTrigger>
+      <Tabs value={tab} onValueChange={setTab} className="w-full min-w-0 space-y-4">
+        <TabsList className="h-auto w-full flex-wrap justify-start gap-1 sm:w-auto">
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="addons">Add-ons</TabsTrigger>
+          <TabsTrigger value="items">Menu Items</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="items">
+        <TabsContent value="categories" className="mt-0 focus-visible:ring-0">
+          <CategorySection
+            restaurantId={restaurantId}
+            categories={categories}
+            addOns={addOns}
+            categoryAddOns={categoryAddOns}
+          />
+        </TabsContent>
+
+        <TabsContent value="addons" className="mt-0 focus-visible:ring-0">
+          <AddOnSection restaurantId={restaurantId} addOns={addOns} />
+        </TabsContent>
+
+        <TabsContent value="items" className="mt-0 focus-visible:ring-0">
           <MenuItemSection
             restaurantId={restaurantId}
             categories={categories}
@@ -52,19 +65,6 @@ export function MenuManager({
             menuItemAddOns={menuItemAddOns}
             canUseAi={canUseAi}
           />
-        </TabsContent>
-
-        <TabsContent value="categories">
-          <CategorySection
-            restaurantId={restaurantId}
-            categories={categories}
-            addOns={addOns}
-            categoryAddOns={categoryAddOns}
-          />
-        </TabsContent>
-
-        <TabsContent value="addons">
-          <AddOnSection restaurantId={restaurantId} addOns={addOns} />
         </TabsContent>
       </Tabs>
     </div>

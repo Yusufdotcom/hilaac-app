@@ -15,8 +15,10 @@ import {
 import { toast } from "sonner";
 import { BrandButton } from "@/components/admin/brand-button";
 import { useAdminBrandColor } from "@/components/admin/admin-brand-context";
+import { adminBrandRingClass } from "@/lib/brand/admin-tokens";
 import { resolveBrandColor } from "@/lib/brand/restaurant-brand";
 import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -55,7 +57,8 @@ function StaffDashboardCard({
       className={cn(
         "group flex w-full flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm",
         "transition-all duration-200 hover:scale-[1.02] hover:shadow-lg",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A373] focus-visible:ring-offset-2"
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        adminBrandRingClass
       )}
     >
       <div className="bg-[#0F172A] px-6 py-8">
@@ -111,10 +114,13 @@ export function StaffAccessBoard({
   slug,
   appUrl,
   restaurantName,
+  embedded = false,
 }: {
   slug: string;
   appUrl: string;
   restaurantName: string;
+  /** When true, omit page-level hero (used inside Staff hub tabs). */
+  embedded?: boolean;
 }) {
   const brandColor = useAdminBrandColor();
   const brandAccent = resolveBrandColor(brandColor);
@@ -178,16 +184,27 @@ export function StaffAccessBoard({
   const activeUrl = activeDashboard ? buildFullUrl(activeDashboard.path) : "";
 
   return (
-    <div className="w-full space-y-6">
-      <header className="w-full overflow-hidden rounded-2xl bg-[#0F172A] px-4 py-6 sm:px-6 sm:py-8">
-        <p className="text-sm font-medium uppercase tracking-wider" style={{ color: brandAccent }}>
-          Team access
-        </p>
-        <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Staff Access</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[#94A3B8] sm:text-base">
-          Open a dashboard with one click, or share the link / QR code for tablet setup.
-        </p>
-      </header>
+    <div className="w-full space-y-4 sm:space-y-5">
+      {!embedded ? (
+        <header className="w-full overflow-hidden rounded-2xl bg-[#0F172A] px-4 py-6 sm:px-6 sm:py-8">
+          <p className="text-sm font-medium uppercase tracking-wider" style={{ color: brandAccent }}>
+            Team access
+          </p>
+          <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Staff Access</h1>
+          <p className="mt-2 max-w-2xl text-sm text-[#94A3B8] sm:text-base">
+            Open a dashboard with one click, or share the link / QR code for tablet setup.
+          </p>
+        </header>
+      ) : (
+        <Card className="w-full overflow-hidden border-[#E2E8F0]">
+          <CardHeader>
+            <CardTitle className="text-lg">Dashboard Access</CardTitle>
+            <CardDescription>
+              Open a floor dashboard with one click, or share the link / QR code for tablet setup.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
 
       <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
         <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />

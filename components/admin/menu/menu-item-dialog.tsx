@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { BrandButton } from "@/components/admin/brand-button";
+import { adminBrandTextClass } from "@/lib/brand/admin-tokens";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import type { AddOn, Category, CategoryAddOn, MenuItem, MenuItemAddOn } from "@/types/database";
 
 const EMPTY_FORM = {
@@ -354,7 +355,7 @@ export function MenuItemDialog({
                         />
                         {addOn.name}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className={cn("text-xs font-semibold", adminBrandTextClass)}>
                         {formatCurrency(Number(addOn.price))}
                       </span>
                     </label>

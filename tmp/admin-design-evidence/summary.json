@@ -1,0 +1,49 @@
+{
+  "outDir": "C:\\hilaac-app\\tmp\\admin-design-evidence",
+  "before": {
+    "spacerHeight": 4089,
+    "spacerAlignSelf": "auto",
+    "mainOverflow": {
+      "overflow": "hidden auto",
+      "overflowX": "hidden",
+      "overflowY": "auto"
+    },
+    "emptyTall": [
+      {
+        "className": "hidden shrink-0 md:block w-64",
+        "height": 4089,
+        "width": 256,
+        "alignSelf": "auto",
+        "overflow": "visible",
+        "minHeight": "auto"
+      }
+    ],
+    "gapRestaurantToPayment": 730
+  },
+  "after": {
+    "spacerHeight": 0,
+    "spacerAlignSelf": "flex-start",
+    "mainOverflow": {
+      "overflow": "clip visible",
+      "overflowX": "clip",
+      "overflowY": "visible"
+    },
+    "emptyTall": [],
+    "gapRestaurantToPayment": 730
+  },
+  "priceColors": {
+    "brandVar": "#C45C26",
+    "samples": [
+      {
+        "text": "$1.50",
+        "color": "rgb(196, 92, 38)",
+        "className": "font-bold text-[color:var(--admin-brand,var(--brand-accent,#0F172A))]"
+      },
+      {
+        "text": "$0.75",
+        "color": "rgb(196, 92, 38)",
+        "className": "font-bold text-[color:var(--admin-brand,var(--brand-accent,#0F172A))]"
+      }
+    ]
+  }
+}

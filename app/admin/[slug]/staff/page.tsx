@@ -1,7 +1,8 @@
+import { Suspense } from "react";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
-import { WaiterManager } from "@/components/admin/staff/waiter-manager";
-import { StaffAccountsManager } from "@/components/admin/staff/staff-accounts-manager";
+import { StaffHub } from "@/components/admin/staff/staff-hub";
+import { getAppUrl } from "@/lib/app-url";
 import type { Profile, Waiter } from "@/types/database";
 
 export default async function StaffPage({ params }: { params: { slug: string } }) {
@@ -10,11 +11,7 @@ export default async function StaffPage({ params }: { params: { slug: string } }
   const admin = createAdminClient();
 
   const [{ data: waiters, error }, { data: staff, error: staffError }] = await Promise.all([
-    supabase
-      .from("waiters")
-      .select("*")
-      .eq("restaurant_id", restaurant.id)
-      .order("name"),
+    supabase.from("waiters").select("*").eq("restaurant_id", restaurant.id).order("name"),
     admin
       .from("profiles")
       .select("id, full_name, role, phone, is_active")
@@ -30,12 +27,17 @@ export default async function StaffPage({ params }: { params: { slug: string } }
   }
 
   return (
-    <div className="w-full space-y-8">
-      <StaffAccountsManager
+    <Suspense fallback={<div className="text-sm text-muted-foreground">Loading staff…</div>}>
+      <StaffHub
         restaurantId={restaurant.id}
-        staff={(staff as Pick<Profile, "id" | "full_name" | "role" | "phone" | "is_active">[]) ?? []}
+        slug={restaurant.slug}
+        appUrl={getAppUrl()}
+        restaurantName={restaurant.name}
+        staff={
+          (staff as Pick<Profile, "id" | "full_name" | "role" | "phone" | "is_active">[]) ?? []
+        }
+        waiters={(waiters as Waiter[]) ?? []}
       />
-      <WaiterManager restaurantId={restaurant.id} waiters={(waiters as Waiter[]) ?? []} />
-    </div>
+    </Suspense>
   );
 }

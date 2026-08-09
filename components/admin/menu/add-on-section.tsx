@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { formatCurrency } from "@/lib/utils";
+import { adminBrandTextClass } from "@/lib/brand/admin-tokens";
+import { cn, formatCurrency } from "@/lib/utils";
 import type { AddOn } from "@/types/database";
 
 export function AddOnSection({ restaurantId, addOns }: { restaurantId: string; addOns: AddOn[] }) {
@@ -48,13 +49,13 @@ export function AddOnSection({ restaurantId, addOns }: { restaurantId: string; a
   }
 
   return (
-    <Card className="mt-4">
-      <CardContent className="p-6">
-        <p className="mb-4 text-sm text-muted-foreground">
+    <Card className="w-full overflow-hidden">
+      <CardContent className="space-y-6 p-4 sm:p-6">
+        <p className="text-sm text-muted-foreground">
           Add-ons are a shared catalog. Assign them to categories (or override per item) so drinks
           don&apos;t show food options like &ldquo;Extra cheese.&rdquo;
         </p>
-        <form onSubmit={handleAdd} className="mb-6 flex gap-2">
+        <form onSubmit={handleAdd} className="flex flex-col gap-2 sm:flex-row">
           <Input
             placeholder="e.g. Extra cheese"
             value={form.name}
@@ -83,7 +84,7 @@ export function AddOnSection({ restaurantId, addOns }: { restaurantId: string; a
             <div key={addOn.id} className="flex items-center justify-between rounded-lg border p-3">
               <span className="font-medium">{addOn.name}</span>
               <div className="flex items-center gap-4">
-                <span className="text-muted-foreground">
+                <span className={cn("font-bold", adminBrandTextClass)}>
                   {formatCurrency(Number(addOn.price))}
                 </span>
                 <Button variant="ghost" size="icon" onClick={() => handleDelete(addOn.id)}>

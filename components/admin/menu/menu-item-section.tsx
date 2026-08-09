@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { MenuItemImage } from "@/components/admin/menu/menu-item-image";
 import { createClient } from "@/lib/supabase/client";
+import { adminBrandTextClass } from "@/lib/brand/admin-tokens";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { AddOn, Category, CategoryAddOn, MenuItem, MenuItemAddOn } from "@/types/database";
 import { MenuItemDialog } from "@/components/admin/menu/menu-item-dialog";
@@ -70,7 +71,7 @@ export function MenuItemSection({
   }
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="space-y-4">
       <div className="flex justify-end">
         <BrandButton onClick={openCreate} disabled={categories.length === 0}>
           <Plus className="h-4 w-4" /> Add Menu Item
@@ -82,14 +83,17 @@ export function MenuItemSection({
       )}
 
       {menuItems.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-12 text-center text-muted-foreground">
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed bg-card p-12 text-center text-muted-foreground">
           <UtensilsCrossed className="h-8 w-8" />
           No menu items yet.
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {menuItems.map((item) => (
-            <div key={item.id} className="overflow-hidden rounded-xl border bg-card">
+            <div
+              key={item.id}
+              className="overflow-hidden rounded-xl border bg-card transition-colors hover:border-[#CBD5E1]"
+            >
               <div className="relative h-36 w-full overflow-hidden bg-muted">
                 <MenuItemImage src={item.image_url} alt={item.name} />
                 {item.is_top_pick && (
@@ -109,7 +113,9 @@ export function MenuItemSection({
                     <p className="font-semibold leading-tight">{item.name}</p>
                     <p className="text-xs text-muted-foreground">{categoryName(item.category_id)}</p>
                   </div>
-                  <p className="whitespace-nowrap font-bold text-primary">{formatCurrency(Number(item.price))}</p>
+                  <p className={cn("whitespace-nowrap font-bold", adminBrandTextClass)}>
+                    {formatCurrency(Number(item.price))}
+                  </p>
                 </div>
                 {item.description && <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>}
 

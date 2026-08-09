@@ -24,7 +24,7 @@ import { formatCurrency } from "@/lib/utils";
 
 const NAVY = "#0F172A";
 const INDIGO = "#6366F1";
-const GOLD = "#D4A373";
+const GOLD = "#D4A373"; // eDahab payment-method slice only — not restaurant brand
 /** Display label → slice/legend color (must stay in sync). */
 const PAYMENT_COLORS: Record<string, string> = {
   EVC: "#10B981",
@@ -271,7 +271,7 @@ export function RevenueTrendPanel({
   compact?: boolean;
 }) {
   const brandAccent = resolveBrandColor(useAdminBrandColor());
-  const accent = brandAccent || GOLD;
+  const accent = brandAccent;
   const reduceMotion = usePrefersReducedMotion();
   const { revenueData, revenuePeriodTotal } = useReportChartData(data);
   const revenueMax = useMemo(
@@ -701,7 +701,7 @@ export function StaffPerformancePanel({
   onRetryWaiter?: () => void;
 }) {
   const brandAccent = resolveBrandColor(useAdminBrandColor());
-  const accent = brandAccent || GOLD;
+  const accent = brandAccent;
   const reduceMotion = usePrefersReducedMotion();
   const { waiterData } = useReportChartData(data);
   const hasWaiters = waiterData.length > 0;

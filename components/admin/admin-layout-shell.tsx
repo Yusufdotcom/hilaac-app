@@ -69,8 +69,13 @@ export function AdminLayoutShell({
   return (
     <AdminBrandProvider brandColor={brandColor}>
       <StaffIdleGuardian role={userRole} />
+      {/*
+        overflow-x-clip (not hidden): overflow-x:hidden forces overflow-y to compute to auto,
+        creating nested scrollports. Spacer must be self-start + zero height so align-items:stretch
+        does not inflate an empty full-page column beside content (measured ~4kpx tall, textLen=0).
+      */}
       <div
-        className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[#F8FAFC]"
+        className="flex min-h-screen w-full max-w-[100vw] overflow-x-clip bg-[#F8FAFC]"
         style={sidebarCssVars}
       >
         {mobileOpen && (
@@ -82,11 +87,10 @@ export function AdminLayoutShell({
           />
         )}
 
-        {/* Desktop spacer — sidebar is fixed; content uses flex-1 for remaining width (no ml-64). */}
+        {/* Desktop width reserve only — fixed sidebar paints on top; do not stretch with page height. */}
         <div
-          className="hidden shrink-0 md:block"
+          className="hidden h-0 w-[var(--admin-sidebar-width)] shrink-0 self-start md:block"
           style={{
-            width: "var(--admin-sidebar-width)",
             transition: `width ${offsetTransition}`,
           }}
           aria-hidden="true"
@@ -111,8 +115,8 @@ export function AdminLayoutShell({
 
         <div
           className={cn(
-            "flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden",
-            mobileOpen && "overflow-hidden md:overflow-x-hidden"
+            "flex min-h-screen min-w-0 flex-1 flex-col overflow-x-clip",
+            mobileOpen && "overflow-hidden md:overflow-x-clip"
           )}
         >
           <header
@@ -124,7 +128,7 @@ export function AdminLayoutShell({
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg text-[#D4A373] transition-colors hover:bg-white/10 md:hidden"
+              className="flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg text-[color:var(--admin-brand,var(--brand-accent,#D4A373))] transition-colors hover:bg-white/10 md:hidden"
               aria-label="Open menu"
               aria-expanded={mobileOpen}
               aria-controls="admin-sidebar"
@@ -146,12 +150,11 @@ export function AdminLayoutShell({
             </div>
           </header>
 
-          <main className="app-light-surface relative z-0 flex min-w-0 w-full flex-1 flex-col overflow-x-hidden text-[#0F172A]">
-            {/* Avoid flex-1 on the content shell — it inflated empty scroll space on long pages (Settings). */}
+          <main className="app-light-surface relative z-0 flex min-w-0 w-full flex-1 flex-col overflow-x-clip text-[#0F172A]">
             <div className="mx-auto w-full min-w-0 max-w-7xl p-4 sm:p-6">
               {children}
             </div>
-            <PoweredByHilaac className="mt-auto pb-4 pt-2 sm:pb-6" />
+            <PoweredByHilaac className="pb-4 pt-2 sm:pb-6" />
           </main>
         </div>
       </div>

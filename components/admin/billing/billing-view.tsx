@@ -18,8 +18,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { adminBrandBorderClass, adminBrandTextClass } from "@/lib/brand/admin-tokens";
 import { PLANS } from "@/lib/constants";
-import { formatDate, daysUntil } from "@/lib/utils";
+import { cn, formatDate, daysUntil } from "@/lib/utils";
 import type { Restaurant } from "@/types/database";
 
 const HILAAC_PAYMENT_CODES = {
@@ -103,7 +104,14 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
 
       <div className="grid gap-6 sm:grid-cols-2">
         {Object.entries(PLANS).map(([key, plan]) => (
-          <Card key={key} className={restaurant.subscription_tier === key || (key === "pro" && isPro) ? "border-primary" : ""}>
+          <Card
+            key={key}
+            className={
+              restaurant.subscription_tier === key || (key === "pro" && isPro)
+                ? cn("border-2", adminBrandBorderClass)
+                : ""
+            }
+          >
             <CardHeader>
               <CardTitle className="text-lg">{plan.name}</CardTitle>
               <div className="text-3xl font-bold">{plan.priceLabel}</div>
@@ -113,7 +121,7 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
               <ul className="space-y-2 text-sm">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {f}
+                    <CheckCircle2 className={cn("mt-0.5 h-4 w-4 shrink-0", adminBrandTextClass)} /> {f}
                   </li>
                 ))}
               </ul>

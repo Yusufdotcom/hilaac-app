@@ -14,7 +14,6 @@ import {
   CreditCard,
   LogOut,
   Users,
-  UserRound,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,8 +37,7 @@ const NAV_DEFS = [
   { key: "tables", label: "Tables", icon: Table, href: (s: string) => `/admin/${s}/tables` },
   { key: "orders", label: "Orders", icon: ListOrdered, href: (s: string) => `/admin/${s}/orders` },
   { key: "reports", label: "Reports", icon: BarChart3, href: (s: string) => `/admin/${s}/reports` },
-  { key: "staff-access", label: "Staff Access", icon: Users, href: (s: string) => `/admin/${s}/staff-access` },
-  { key: "waiters", label: "Waiters", icon: UserRound, href: (s: string) => `/admin/${s}/staff` },
+  { key: "staff", label: "Staff", icon: Users, href: (s: string) => `/admin/${s}/staff` },
   { key: "settings", label: "Settings", icon: Settings, href: (s: string) => `/admin/${s}/settings` },
   { key: "billing", label: "Billing", icon: CreditCard, href: (s: string) => `/admin/${s}/billing` },
 ] as const;
@@ -189,6 +187,13 @@ export function AdminSidebar({
   }
 
   function isNavActive(href: string) {
+    if (href === `/admin/${slug}/staff`) {
+      return (
+        pathname === href ||
+        pathname.startsWith(`${href}/`) ||
+        pathname.startsWith(`/admin/${slug}/staff-access`)
+      );
+    }
     if (href === `/staff/${slug}`) {
       return pathname === href || pathname.startsWith(`/staff/${slug}/`);
     }

@@ -1,0 +1,15 @@
+{
+  "brandVar": "#C45C26",
+  "samples": [
+    {
+      "text": "$1.50",
+      "color": "rgb(196, 92, 38)",
+      "className": "font-bold text-[color:var(--admin-brand,var(--brand-accent,#0F172A))]"
+    },
+    {
+      "text": "$0.75",
+      "color": "rgb(196, 92, 38)",
+      "className": "font-bold text-[color:var(--admin-brand,var(--brand-accent,#0F172A))]"
+    }
+  ]
+}

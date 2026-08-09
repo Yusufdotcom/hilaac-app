@@ -14,9 +14,12 @@ import type { Waiter } from "@/types/database";
 export function WaiterManager({
   restaurantId,
   waiters,
+  embedded = false,
 }: {
   restaurantId: string;
   waiters: Waiter[];
+  /** When true, omit page-level title (used inside Staff hub tabs). */
+  embedded?: boolean;
 }) {
   const supabase = createClient();
   const router = useRouter();
@@ -56,13 +59,16 @@ export function WaiterManager({
   }
 
   return (
-    <div className="w-full space-y-6">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-bold">Waiters</h1>
-        <p className="text-muted-foreground">
-          Add the names of your waiters. They select their name on the shared tablet when delivering orders.
-        </p>
-      </div>
+    <div className="w-full space-y-4 sm:space-y-5">
+      {!embedded && (
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight">Waiters</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">
+            Add the names of your waiters. They select their name on the shared tablet when delivering
+            orders.
+          </p>
+        </div>
+      )}
 
       <Card className="w-full overflow-hidden">
         <CardHeader>

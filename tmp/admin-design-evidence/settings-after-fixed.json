@@ -1,0 +1,46 @@
+{
+  "layoutMode": "fixed",
+  "scrollHeight": 4089,
+  "spacer": {
+    "height": 0,
+    "width": 256,
+    "alignSelf": "flex-start",
+    "heightCss": "0px",
+    "minHeight": "auto",
+    "overflow": "visible",
+    "className": "hidden shrink-0 md:block h-0 w-64 self-start"
+  },
+  "mainOverflow": {
+    "overflow": "clip visible",
+    "overflowX": "clip",
+    "overflowY": "visible"
+  },
+  "cards": {
+    "restaurantDetails": {
+      "title": "Restaurant Details",
+      "top": 692,
+      "bottom": 1284,
+      "height": 592
+    },
+    "brandSettings": {
+      "title": "🎨 Brand Settings",
+      "top": 1304,
+      "bottom": 1674,
+      "height": 370
+    },
+    "orderTypes": {
+      "title": "Order Types",
+      "top": 1694,
+      "bottom": 1994,
+      "height": 300
+    },
+    "paymentRules": {
+      "title": "Payment Rules per Order Type",
+      "top": 2014,
+      "bottom": 2442,
+      "height": 428
+    }
+  },
+  "gapRestaurantToPayment": 730,
+  "emptyTall": []
+}
