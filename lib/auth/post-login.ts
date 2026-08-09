@@ -77,8 +77,13 @@ export async function resolvePostAuthRedirect(
     return destination;
   }
 
-  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (!aal) return destination;
+  const { data: aal, error: aalError } =
+    await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+  // Fail-closed: missing AAL must not skip MFA for owner/manager.
+  if (aalError || !aal) {
+    return `/auth/mfa/enroll?next=${encodeURIComponent(destination)}`;
+  }
 
   // MFA enrolled but this session is only aal1 → challenge
   if (aal.currentLevel === "aal1" && aal.nextLevel === "aal2") {

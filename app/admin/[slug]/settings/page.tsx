@@ -89,7 +89,7 @@ export default async function SettingsPage({ params }: { params: { slug: string 
   const twilio = getTwilioConfig();
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full min-w-0 space-y-4 sm:space-y-5">
       <div className="min-w-0">
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground">

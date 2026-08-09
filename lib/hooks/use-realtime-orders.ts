@@ -230,6 +230,21 @@ export function useRealtimeOrders(
     return error;
   }
 
+  /** Local-only patch after a server API already wrote the row (avoid double UPDATE). */
+  function patchOrderLocal(
+    orderId: string,
+    fields: Partial<Pick<OrderWithItems, "status" | "payment_status" | "delivered_by" | "updated_at">>
+  ) {
+    setOrders((prev) => {
+      const updated = prev.map((o) => (o.id === orderId ? { ...o, ...fields } : o));
+      const nextOrder = updated.find((o) => o.id === orderId);
+      if (nextOrder && !passesFilters(nextOrder)) {
+        return updated.filter((o) => o.id !== orderId);
+      }
+      return updated;
+    });
+  }
+
   async function updateOrderFields(
     orderId: string,
     fields: { status?: string; payment_status?: string; delivered_by?: string }
@@ -269,5 +284,13 @@ export function useRealtimeOrders(
     return error;
   }
 
-  return { orders, removeOrder, restoreOrder, updateOrderStatus, updatePaymentStatus, updateOrderFields };
+  return {
+    orders,
+    removeOrder,
+    restoreOrder,
+    updateOrderStatus,
+    updatePaymentStatus,
+    updateOrderFields,
+    patchOrderLocal,
+  };
 }

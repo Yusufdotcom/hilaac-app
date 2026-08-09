@@ -55,6 +55,24 @@ If a password account already exists for an email and Google sign-in fails to li
 | owner / manager | Enroll on first admin access; challenge each aal1 session; AAL2 required for payment settings + order export with phones |
 | kitchen / waiter / cashier | Never prompted |
 
+## Staff idle timeout
+
+Same role split as MFA. A warning toast appears ~60s before logout. Public QR ordering is unaffected.
+
+| Role | Default idle |
+|------|----------------|
+| owner / manager | **18 minutes** |
+| kitchen / waiter / cashier | **60 minutes** |
+
+Optional overrides (minutes, clamped 5–240):
+
+```bash
+NEXT_PUBLIC_STAFF_IDLE_PRIVILEGED_MINUTES=18   # owner/manager
+NEXT_PUBLIC_STAFF_IDLE_FLOOR_MINUTES=60        # kitchen/waiter/cashier
+# Escape hatch — one value for all roles (overrides the two above):
+# NEXT_PUBLIC_STAFF_IDLE_TIMEOUT_MINUTES=30
+```
+
 ## Manual verification checklist
 
 1. Owner login → MFA enroll (QR) → dashboard  

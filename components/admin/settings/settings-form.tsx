@@ -323,7 +323,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
   }
 
   return (
-    <div className="w-full space-y-6 overflow-x-hidden">
+    <div className="w-full min-w-0 space-y-4 overflow-x-hidden sm:space-y-5">
       {/* Restaurant details */}
       <Card className="w-full overflow-hidden">
         <CardHeader>

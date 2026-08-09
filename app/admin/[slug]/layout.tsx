@@ -41,6 +41,7 @@ export default async function AdminLayout({
       subscriptionTier={restaurant.subscription_tier}
       brandColor={restaurant.brand_color}
       userName={userName}
+      userRole={profile.role}
       currentSlug={params.slug}
       branches={branches}
     >

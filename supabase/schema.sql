@@ -366,7 +366,9 @@ begin
 end;
 $$;
 
-grant execute on function public.create_demo_restaurant() to anon, authenticated;
+-- Demo RPC: service_role only (N4). Public demo uses gated /api/demo/create.
+revoke execute on function public.create_demo_restaurant() from anon, authenticated;
+grant execute on function public.create_demo_restaurant() to service_role;
 
 create or replace function public.cleanup_expired_demos()
 returns void
@@ -431,7 +433,13 @@ revoke select (
 grant select (
   evc_merchant_id_encrypted, evc_api_key_encrypted, edahab_merchant_id_encrypted, edahab_api_key_encrypted
 ) on public.restaurants to service_role;
+-- Billing + encrypted writes: service_role only (N1/N2).
+revoke update (
+  subscription_tier, subscription_status, subscription_end_date,
+  evc_merchant_id_encrypted, evc_api_key_encrypted, edahab_merchant_id_encrypted, edahab_api_key_encrypted
+) on public.restaurants from authenticated, anon;
 grant update (
+  subscription_tier, subscription_status, subscription_end_date,
   evc_merchant_id_encrypted, evc_api_key_encrypted, edahab_merchant_id_encrypted, edahab_api_key_encrypted
 ) on public.restaurants to service_role;
 grant update, insert on public.restaurants to authenticated;
@@ -450,6 +458,45 @@ create policy "user can update own profile" on public.profiles
   for update
   using (id = auth.uid() and is_active = true)
   with check (id = auth.uid() and is_active = true);
+
+-- N3: freeze role / restaurant_id / is_active on self-update (staff updates still allowed).
+create or replace function public.profiles_prevent_privilege_escalation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    return new;
+  end if;
+
+  if new.id is distinct from auth.uid()
+     and public.is_manager_or_owner()
+     and old.role is distinct from 'owner'
+     and new.role is distinct from 'owner'
+     and new.restaurant_id = public.get_my_restaurant_id()
+  then
+    return new;
+  end if;
+
+  if new.role is distinct from old.role
+     or new.restaurant_id is distinct from old.restaurant_id
+     or new.is_active is distinct from old.is_active
+  then
+    raise exception 'Cannot change role, restaurant_id, or is_active on this profile'
+      using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_prevent_privilege_escalation on public.profiles;
+create trigger profiles_prevent_privilege_escalation
+  before update on public.profiles
+  for each row
+  execute function public.profiles_prevent_privilege_escalation();
 
 drop policy if exists "owner/manager can manage staff" on public.profiles;
 create policy "owner/manager can manage staff" on public.profiles

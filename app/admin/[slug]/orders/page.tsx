@@ -4,7 +4,10 @@ import { AdminOrdersBoard } from "@/components/admin/orders/admin-orders-board";
 import type { OrderWithItems } from "@/types/database";
 
 export default async function AdminOrdersPage({ params }: { params: { slug: string } }) {
-  const { restaurant } = await getRestaurantContext(params.slug);
+  const { restaurant, profile } = await getRestaurantContext(params.slug, [
+    "owner",
+    "manager",
+  ]);
   const supabase = createClient();
 
   const { data: orders } = await supabase
@@ -18,6 +21,7 @@ export default async function AdminOrdersPage({ params }: { params: { slug: stri
     <AdminOrdersBoard
       restaurantId={restaurant.id}
       initialOrders={(orders as OrderWithItems[]) ?? []}
+      actorRole={profile.role}
     />
   );
 }

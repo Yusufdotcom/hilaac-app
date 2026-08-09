@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChefHat, CreditCard, LogOut, Menu, UserRound, X } from "lucide-react";
+import { ArrowLeft, ChefHat, CreditCard, LogOut, Menu, UserRound, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { SidebarBrandHeader } from "@/components/dashboard/sidebar-brand-header";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/brand/restaurant-brand";
 import type { UserRole } from "@/types/database";
 
+/** Same role source as page gates: profiles.role from getRestaurantContext. */
 const STAFF_NAV = [
   {
     key: "kitchen",
@@ -34,10 +35,13 @@ const STAFF_NAV = [
     label: "Cashier",
     icon: CreditCard,
     href: (slug: string) => `/staff/${slug}/cashier`,
-    // Cashier-only: owners/managers reach cashier via Admin → Staff Hub.
-    roles: ["cashier"] as UserRole[],
+    roles: ["owner", "manager", "cashier"] as UserRole[],
   },
 ] as const;
+
+function canReturnToAdmin(role: UserRole) {
+  return role === "owner" || role === "manager";
+}
 
 export function StaffSidebar({
   slug,
@@ -59,6 +63,7 @@ export function StaffSidebar({
   const [open, setOpen] = useState(false);
 
   const navItems = STAFF_NAV.filter((item) => item.roles.includes(role));
+  const showBackToAdmin = canReturnToAdmin(role);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -145,7 +150,18 @@ export function StaffSidebar({
           )}
         </nav>
 
-        <div className="shrink-0 border-t border-white/10 p-3">
+        <div className="shrink-0 space-y-1 border-t border-white/10 p-3">
+          {showBackToAdmin && (
+            <Link
+              href={`/admin/${slug}/dashboard`}
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/10"
+              style={{ color: SIDEBAR_TEXT_COLOR }}
+            >
+              <ArrowLeft className="h-5 w-5 shrink-0" aria-hidden="true" />
+              Back to Admin
+            </Link>
+          )}
           <button
             type="button"
             onClick={handleLogout}

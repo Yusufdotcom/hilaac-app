@@ -21,20 +21,25 @@ function fail(n, d = "") {
 }
 
 const src = fs.readFileSync("app/api/admin/restaurant/test-connection/route.ts", "utf8");
-if (src.includes('["owner", "manager"]') && src.includes("isPrimary") && src.includes("isOwner")) {
-  pass("source enforces owner/manager + tenant match");
+if (
+  src.includes("requireActiveStaff") &&
+  src.includes('roles: ["owner", "manager"]') &&
+  src.includes("isPrimary") &&
+  src.includes("isOwner")
+) {
+  pass("source enforces active owner/manager + tenant match");
 } else {
-  fail("source enforces owner/manager + tenant match");
+  fail("source enforces active owner/manager + tenant match");
 }
 if (src.includes("restaurant_id") && src.includes("createAdminClient")) {
   pass("source loads restaurant and checks ownership");
 } else {
   fail("source loads restaurant and checks ownership");
 }
-if (!src.includes("if (!user) return") && !src.includes('if (!user) return NextResponse.json({ error: "Unauthorized" }')) {
-  // keep flexible
-}
-if (src.includes("Unauthorized") && src.includes("Forbidden")) {
+if (
+  (src.includes("Unauthorized") && src.includes("Forbidden")) ||
+  (src.includes("requireActiveStaff") && src.includes("Forbidden"))
+) {
   pass("source returns 401/403 for auth failures");
 } else {
   fail("source returns 401/403 for auth failures");

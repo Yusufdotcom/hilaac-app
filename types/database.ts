@@ -10,7 +10,24 @@ export type OrderStatus =
   | "preparing"
   | "ready"
   | "delivered"
-  | "completed";
+  | "completed"
+  | "cancelled";
+
+export type OrderActionType = "confirm_payment" | "cancel" | "update_status";
+
+export interface OrderActionLog {
+  id: string;
+  restaurant_id: string;
+  order_id: string;
+  action: OrderActionType;
+  reason: string | null;
+  actor_id: string;
+  previous_status: string | null;
+  new_status: string | null;
+  previous_payment_status: string | null;
+  new_payment_status: string | null;
+  created_at: string;
+}
 export type PaymentStatus = "pending" | "pending_cashier_confirmation" | "paid" | "failed";
 export type PaymentMethod = "evc" | "edahab";
 

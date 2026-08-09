@@ -76,22 +76,28 @@ export async function updateSession(request: NextRequest) {
     }
 
     // MFA: owner/manager only — never kitchen/waiter/cashier (shared tablets).
+    // Fail-closed: null/error AAL → enroll (do not skip MFA).
     if (pathname.startsWith("/admin") && roleRequiresMfa(profile.role) && !isMfaRoute) {
-      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aal) {
-        const nextParam = encodeURIComponent(pathname + request.nextUrl.search);
-        if (aal.currentLevel === "aal1" && aal.nextLevel === "aal2") {
-          const url = request.nextUrl.clone();
-          url.pathname = "/auth/mfa/challenge";
-          url.search = `?next=${nextParam}`;
-          return NextResponse.redirect(url);
-        }
-        if (aal.nextLevel === "aal1") {
-          const url = request.nextUrl.clone();
-          url.pathname = "/auth/mfa/enroll";
-          url.search = `?next=${nextParam}`;
-          return NextResponse.redirect(url);
-        }
+      const { data: aal, error: aalError } =
+        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const nextParam = encodeURIComponent(pathname + request.nextUrl.search);
+      if (aalError || !aal) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/auth/mfa/enroll";
+        url.search = `?next=${nextParam}`;
+        return NextResponse.redirect(url);
+      }
+      if (aal.currentLevel === "aal1" && aal.nextLevel === "aal2") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/auth/mfa/challenge";
+        url.search = `?next=${nextParam}`;
+        return NextResponse.redirect(url);
+      }
+      if (aal.nextLevel === "aal1") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/auth/mfa/enroll";
+        url.search = `?next=${nextParam}`;
+        return NextResponse.redirect(url);
       }
     }
 

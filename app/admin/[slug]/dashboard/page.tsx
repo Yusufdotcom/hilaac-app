@@ -1,9 +1,11 @@
-import { ShoppingBag, DollarSign, Table2, Clock, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { ShoppingBag, DollarSign, Table2, Clock, AlertCircle, CreditCard } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { DashboardRecentOrders } from "@/components/admin/dashboard/dashboard-recent-orders";
+import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
 import { formatCurrency, daysUntil } from "@/lib/utils";
 import { APP_TIMEZONE, getAppDayBounds } from "@/lib/time/app-calendar";
 import type { OrderWithItems } from "@/types/database";
@@ -37,6 +39,8 @@ export default async function DashboardPage({ params }: { params: { slug: string
     todaysOrdersResult,
     activeTablesResult,
     openOrdersResult,
+    awaitingCashierEnumResult,
+    awaitingCashierLegacyResult,
   ] = await Promise.all([
     supabase.rpc("get_dashboard_orders_today", {
       p_restaurant_id: restaurant.id,
@@ -66,6 +70,18 @@ export default async function DashboardPage({ params }: { params: { slug: string
       .lt("created_at", dayEndIso)
       .neq("status", "completed")
       .neq("status", "delivered"),
+    // All-time backlog (not today-only) — surfaces stale unconfirmed orders too.
+    supabase
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .eq("restaurant_id", restaurant.id)
+      .eq("payment_status", PENDING_CASHIER_CONFIRMATION),
+    supabase
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .eq("restaurant_id", restaurant.id)
+      .eq("payment_status", "pending")
+      .not("customer_confirmed_at", "is", null),
   ]);
 
   if (ordersTodayResult.error) {
@@ -83,12 +99,26 @@ export default async function DashboardPage({ params }: { params: { slug: string
   if (openOrdersResult.error) {
     fetchErrors.push({ label: "Open orders", message: openOrdersResult.error.message });
   }
+  if (awaitingCashierEnumResult.error) {
+    fetchErrors.push({
+      label: "Awaiting payment confirmation",
+      message: awaitingCashierEnumResult.error.message,
+    });
+  }
+  if (awaitingCashierLegacyResult.error) {
+    fetchErrors.push({
+      label: "Awaiting payment confirmation (legacy)",
+      message: awaitingCashierLegacyResult.error.message,
+    });
+  }
 
   const ordersToday = Number(ordersTodayResult.data ?? 0);
   const revenueToday = Number(revenueTodayResult.data ?? 0);
   const todaysOrders = (todaysOrdersResult.data as OrderWithItems[]) ?? [];
   const activeTables = activeTablesResult.count ?? 0;
   const openOrders = openOrdersResult.count ?? 0;
+  const awaitingPaymentConfirmation =
+    (awaitingCashierEnumResult.count ?? 0) + (awaitingCashierLegacyResult.count ?? 0);
   const trialDaysLeft = daysUntil(restaurant.subscription_end_date);
 
   if (todaysOrders.length !== ordersToday && !ordersTodayResult.error && !todaysOrdersResult.error) {
@@ -136,6 +166,31 @@ export default async function DashboardPage({ params }: { params: { slug: string
               ))}
             </ul>
           </div>
+        </div>
+      )}
+
+      {awaitingPaymentConfirmation > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+            <div>
+              <p className="font-semibold">
+                {awaitingPaymentConfirmation}{" "}
+                {awaitingPaymentConfirmation === 1 ? "order" : "orders"} awaiting payment
+                confirmation
+              </p>
+              <p className="mt-0.5 text-amber-900/80">
+                Not counted in today&apos;s paid Orders/Revenue. Includes any older backlog still
+                waiting on cashier confirmation.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/admin/${params.slug}/orders`}
+            className="shrink-0 rounded-lg bg-amber-700 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-amber-800"
+          >
+            Review orders
+          </Link>
         </div>
       )}
 

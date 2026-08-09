@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { clientIpFromRequest, isDemoCreateRateLimited } from "@/lib/demo/rate-limit";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +57,22 @@ function errorResponse(message: string, status = 500, details?: string) {
   );
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  if (process.env.DEMO_CREATE_ENABLED?.trim() !== "true") {
+    return NextResponse.json(
+      { success: false, error: "Demo create is disabled", code: "demo_create_disabled" },
+      { status: 403 }
+    );
+  }
+
+  const ip = clientIpFromRequest(req);
+  if (isDemoCreateRateLimited(ip)) {
+    return NextResponse.json(
+      { success: false, error: "Too many demo requests. Try again later.", code: "rate_limited" },
+      { status: 429 }
+    );
+  }
+
   const supabase = createClient();
   const admin = createAdminClient();
 

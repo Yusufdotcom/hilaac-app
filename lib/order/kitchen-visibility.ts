@@ -10,7 +10,7 @@ export function isKitchenVisible(order: {
   status: OrderStatus;
   payment_status: PaymentStatus;
 }) {
-  if (order.status === "awaiting_payment") return false;
+  if (order.status === "awaiting_payment" || order.status === "cancelled") return false;
   if (!KITCHEN_ACTIVE_STATUSES.includes(order.status)) return false;
   return order.payment_status === "paid";
 }

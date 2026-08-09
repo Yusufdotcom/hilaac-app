@@ -1,5 +1,6 @@
 /**
- * C1 verification: anon must not list recent orders; track API still works by id.
+ * C1 verification: anon must not list recent orders.
+ * Track API must reject UUID-only access (401) — H2 owns token/staff auth.
  */
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
@@ -65,14 +66,15 @@ if (!anyOrder?.id) {
   const base = process.env.C1_BASE_URL ?? "http://localhost:3010";
   try {
     const res = await fetch(`${base}/api/orders/${anyOrder.id}/track`);
-    if (res.ok) {
-      const json = await res.json();
-      if (json.order?.id === anyOrder.id) pass("track API returns order by id");
-      else fail("track API", "missing order payload");
-    } else if (res.status === 404 || res.status === 500) {
+    // H2: UUID alone must not authorize. 401/403 = covered; 404 = order missing.
+    if (res.status === 401 || res.status === 403) {
+      pass(`track API rejects UUID-only access (${res.status})`);
+    } else if (res.status === 404 || res.status === 500 || res.status === 503) {
       console.log("SKIP track API HTTP", res.status, "(dev server / env)");
+    } else if (res.ok) {
+      fail("track API", "returned order without token — IDOR still open");
     } else {
-      fail("track API", `status ${res.status}`);
+      fail("track API", `unexpected status ${res.status}`);
     }
   } catch (e) {
     console.log("SKIP track API unreachable", e instanceof Error ? e.message : e);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireActiveStaff } from "@/lib/auth/require-active-staff";
 import { canUseAiFeatures, canUseApiPayments } from "@/lib/constants";
 import { daysUntil } from "@/lib/utils";
 
@@ -10,17 +10,15 @@ import { daysUntil } from "@/lib/utils";
  * the full restaurant row.
  */
 export async function GET() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireActiveStaff();
+  if (!auth.ok) return auth.response;
 
-  const { data: profile } = await supabase.from("profiles").select("restaurant_id").eq("id", user.id).maybeSingle();
-  if (!profile?.restaurant_id) return NextResponse.json({ error: "No restaurant linked" }, { status: 404 });
+  const { supabase, profile } = auth;
 
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select("subscription_tier, subscription_status, subscription_end_date, payment_mode")
-    .eq("id", profile.restaurant_id)
+    .eq("id", profile.restaurant_id!)
     .single();
 
   if (!restaurant) return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });

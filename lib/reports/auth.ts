@@ -23,7 +23,10 @@ export async function getVerifiedReportsContext(
   if (!user) return null;
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-  if (!profile || !["owner", "manager"].includes(profile.role)) return null;
+  // H4 residual: API routes are outside page middleware — refuse inactive JWTs here.
+  if (!profile || profile.is_active === false || !["owner", "manager"].includes(profile.role)) {
+    return null;
+  }
 
   let restaurant: Restaurant | null = null;
 

@@ -19,7 +19,7 @@ export async function requireAal2ForPrivilegedRole(
   }
 
   const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (error) {
+  if (error || !data) {
     return {
       ok: false,
       response: NextResponse.json(

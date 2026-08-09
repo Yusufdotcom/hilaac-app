@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthorizedCronRequest } from "@/lib/jobs/verify-cron";
+import { maskPhoneForLog } from "@/lib/privacy/mask-phone";
 import { createAdminClient } from "@/lib/supabase/server";
 import { isWhatsAppDryRun } from "@/lib/whatsapp/config";
 import {
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
       count: candidates.length,
       sample: candidates.slice(0, 10).map((c) => ({
         restaurant: c.restaurant_name,
-        phone: c.phone_normalized.slice(0, 6) + "…",
+        phone: maskPhoneForLog(c.phone_normalized),
         idle_days: c.idle_days,
       })),
     });
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
       candidates: candidates.map((c) => ({
         restaurant_id: c.restaurant_id,
         restaurant_name: c.restaurant_name,
-        phone_normalized: c.phone_normalized,
+        phone_normalized: maskPhoneForLog(c.phone_normalized),
         idle_days: c.idle_days,
         last_order_at: c.last_order_at,
       })),

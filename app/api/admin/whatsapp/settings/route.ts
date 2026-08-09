@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { requireAal2ForPrivilegedRole } from "@/lib/auth/aal";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { ADMIN_LOYALTY_ROLES, getLoyaltyStaffContext } from "@/lib/loyalty/staff-auth";
 import {
   canUseWhatsAppReengagement,
@@ -80,6 +81,10 @@ export async function PATCH(req: NextRequest) {
 
   const ctx = await getLoyaltyStaffContext(slug, ADMIN_LOYALTY_ROLES);
   if (!ctx) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const supabase = createClient();
+  const aal = await requireAal2ForPrivilegedRole(supabase, ctx.profile.role);
+  if (!aal.ok) return aal.response;
 
   const orderReadyEnabled = Boolean(body.order_ready_enabled);
   let reengagementEnabled = Boolean(body.reengagement_enabled);

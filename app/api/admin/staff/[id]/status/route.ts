@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { requireAal2ForPrivilegedRole } from "@/lib/auth/aal";
+import { requireActiveStaff } from "@/lib/auth/require-active-staff";
+import { createAdminClient } from "@/lib/supabase/server";
 
 const BAN_DURATION = "876000h"; // ~100 years — reversible via ban_duration: "none"
 
@@ -17,25 +19,13 @@ export async function PATCH(
     return NextResponse.json({ error: "Missing staff id" }, { status: 400 });
   }
 
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireActiveStaff({ roles: ["owner", "manager"] });
+  if (!auth.ok) return auth.response;
 
-  const { data: caller } = await supabase
-    .from("profiles")
-    .select("restaurant_id, role, is_active")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { supabase, user, profile: caller } = auth;
 
-  if (
-    !caller?.restaurant_id ||
-    !caller.is_active ||
-    !["owner", "manager"].includes(caller.role)
-  ) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const aal = await requireAal2ForPrivilegedRole(supabase, caller.role);
+  if (!aal.ok) return aal.response;
 
   let body: { is_active?: unknown; restaurant_id?: unknown };
   try {

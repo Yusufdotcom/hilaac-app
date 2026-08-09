@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { requireAal2ForPrivilegedRole } from "@/lib/auth/aal";
+import { requireActiveStaff } from "@/lib/auth/require-active-staff";
+import { createAdminClient } from "@/lib/supabase/server";
 import { generateSlug } from "@/lib/utils";
 
 /**
@@ -7,21 +9,13 @@ import { generateSlug } from "@/lib/utils";
  * Creates a new branch restaurant for Pro plan owners.
  */
 export async function POST(req: NextRequest) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireActiveStaff({ roles: ["owner"] });
+  if (!auth.ok) return auth.response;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("restaurant_id, role")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { supabase, user, profile } = auth;
 
-  if (!profile?.restaurant_id || profile.role !== "owner") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const aal = await requireAal2ForPrivilegedRole(supabase, profile.role);
+  if (!aal.ok) return aal.response;
 
   const { data: currentRestaurant } = await supabase
     .from("restaurants")

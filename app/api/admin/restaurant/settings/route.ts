@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { encrypt } from "@/lib/encryption";
 import { generateSlug } from "@/lib/utils";
-import { bodyTouchesPaymentSettings, requireAal2ForPrivilegedRole } from "@/lib/auth/aal";
+import { requireAal2ForPrivilegedRole } from "@/lib/auth/aal";
+import { requireActiveStaff } from "@/lib/auth/require-active-staff";
 
 /**
  * PATCH /api/admin/restaurant/settings
@@ -14,28 +15,16 @@ import { bodyTouchesPaymentSettings, requireAal2ForPrivilegedRole } from "@/lib/
  * printed QR codes at `/order/[old-slug]` keep working via redirect.
  */
 export async function PATCH(req: NextRequest) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireActiveStaff({ roles: ["owner", "manager"] });
+  if (!auth.ok) return auth.response;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("restaurant_id, role")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { supabase, user, profile } = auth;
 
-  if (!profile?.restaurant_id || !["owner", "manager"].includes(profile.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  // N6: all settings mutations require AAL2 for owner/manager (payment fields included).
+  const aal = await requireAal2ForPrivilegedRole(supabase, profile.role);
+  if (!aal.ok) return aal.response;
 
   const body = await req.json();
-
-  if (bodyTouchesPaymentSettings(body as Record<string, unknown>)) {
-    const aal = await requireAal2ForPrivilegedRole(supabase, profile.role);
-    if (!aal.ok) return aal.response;
-  }
 
   const restaurantId =
     typeof body.restaurant_id === "string" && body.restaurant_id

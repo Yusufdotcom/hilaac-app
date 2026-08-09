@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAal2ForPrivilegedRole } from "@/lib/auth/aal";
 import { getVerifiedReportsContext } from "@/lib/reports/auth";
 import { fetchReportData } from "@/lib/reports/fetch-report-data";
 import type { ReportGranularity } from "@/lib/reports/types";
@@ -23,6 +24,9 @@ export async function POST(req: NextRequest) {
 
     const ctx = await getVerifiedReportsContext(slug);
     if (!ctx) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const aal = await requireAal2ForPrivilegedRole(ctx.supabase, ctx.profile.role);
+    if (!aal.ok) return aal.response;
 
     // Never trust slug alone — restaurant_id must match authenticated access.
     if (!ctx.restaurant.id || ctx.restaurant.slug !== slug) {

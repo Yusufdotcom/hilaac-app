@@ -6,11 +6,13 @@ import { Menu } from "lucide-react";
 import { AdminBrandProvider } from "@/components/admin/admin-brand-context";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminUserMenu } from "@/components/admin/admin-user-menu";
+import { StaffIdleGuardian } from "@/components/auth/staff-idle-guardian";
 import { HilaacLogo } from "@/components/brand/hilaac-logo";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { useSnapSidebar } from "@/lib/hooks/use-snap-sidebar";
 import { cn } from "@/lib/utils";
 import type { OwnerBranch } from "@/lib/admin/owner-branches";
+import type { UserRole } from "@/types/database";
 
 export function AdminLayoutShell({
   children,
@@ -19,6 +21,7 @@ export function AdminLayoutShell({
   subscriptionTier,
   brandColor,
   userName,
+  userRole,
   currentSlug,
   branches = [],
 }: {
@@ -28,6 +31,7 @@ export function AdminLayoutShell({
   subscriptionTier: string;
   brandColor?: string | null;
   userName: string;
+  userRole: UserRole;
   currentSlug: string;
   branches?: OwnerBranch[];
 }) {
@@ -64,6 +68,7 @@ export function AdminLayoutShell({
 
   return (
     <AdminBrandProvider brandColor={brandColor}>
+      <StaffIdleGuardian role={userRole} />
       <div
         className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[#F8FAFC]"
         style={sidebarCssVars}
@@ -142,10 +147,11 @@ export function AdminLayoutShell({
           </header>
 
           <main className="app-light-surface relative z-0 flex min-w-0 w-full flex-1 flex-col overflow-x-hidden text-[#0F172A]">
-            <div className="mx-auto w-full min-w-0 max-w-7xl flex-1 p-4 sm:p-6">
+            {/* Avoid flex-1 on the content shell — it inflated empty scroll space on long pages (Settings). */}
+            <div className="mx-auto w-full min-w-0 max-w-7xl p-4 sm:p-6">
               {children}
             </div>
-            <PoweredByHilaac className="pb-4 pt-2 sm:pb-6" />
+            <PoweredByHilaac className="mt-auto pb-4 pt-2 sm:pb-6" />
           </main>
         </div>
       </div>

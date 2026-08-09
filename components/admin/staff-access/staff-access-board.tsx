@@ -8,6 +8,7 @@ import {
   Copy,
   CreditCard,
   Download,
+  Info,
   QrCode,
   UserRound,
 } from "lucide-react";
@@ -187,6 +188,14 @@ export function StaffAccessBoard({
           Open a dashboard with one click, or share the link / QR code for tablet setup.
         </p>
       </header>
+
+      <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+        <p>
+          Each dashboard has its own link — share the QR code or link with staff devices. Never
+          enter your own owner login on a shared tablet.
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         {dashboards.map((dashboard) => (

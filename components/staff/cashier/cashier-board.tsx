@@ -19,6 +19,7 @@ const ORDER_STATUS_STYLE: Record<OrderStatus, string> = {
   ready: "bg-emerald-100 text-emerald-900",
   delivered: "bg-violet-100 text-violet-900",
   completed: "bg-emerald-100 text-emerald-900",
+  cancelled: "bg-red-100 text-red-800",
 };
 
 const PAYMENT_STATUS_STYLE: Record<PaymentStatus, string> = {

@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Dialog,
@@ -29,6 +31,7 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
   const router = useRouter();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [method, setMethod] = useState<"evc" | "edahab" | null>(null);
+  const [txRef, setTxRef] = useState("");
   const [confirming, setConfirming] = useState(false);
 
   const daysLeft = daysUntil(restaurant.subscription_end_date);
@@ -41,17 +44,23 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
   }
 
   async function handleConfirmPayment() {
+    const ref = txRef.trim();
+    if (ref.length < 4) {
+      toast.error("Enter the mobile money transaction reference (at least 4 characters).");
+      return;
+    }
     setConfirming(true);
     try {
       const res = await fetch("/api/admin/subscriptions/confirm-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restaurantId: restaurant.id, method }),
+        body: JSON.stringify({ restaurantId: restaurant.id, method, txRef: ref }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not confirm payment");
       toast.success("Upgraded to Pro! Enjoy AI menus and API payments.");
       setUpgradeOpen(false);
+      setTxRef("");
       router.refresh();
     } catch (err: any) {
       toast.error(err?.message ?? "Something went wrong");
@@ -130,16 +139,30 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
           </div>
 
           {method && (
-            <div className="rounded-lg border bg-muted/50 p-4 text-sm">
+            <div className="space-y-3 rounded-lg border bg-muted/50 p-4 text-sm">
               <p>
                 Dialing <span className="font-mono font-semibold">{HILAAC_PAYMENT_CODES[method]}</span> on your phone. Once
-                you&apos;ve completed the payment, tap the button below.
+                you&apos;ve completed the payment, enter the transaction reference and confirm.
               </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="billing-tx-ref">Transaction reference</Label>
+                <Input
+                  id="billing-tx-ref"
+                  value={txRef}
+                  onChange={(e) => setTxRef(e.target.value)}
+                  placeholder="e.g. SMS confirmation code"
+                  autoComplete="off"
+                />
+              </div>
             </div>
           )}
 
           <DialogFooter>
-            <BrandButton onClick={handleConfirmPayment} disabled={!method || confirming} className="w-full">
+            <BrandButton
+              onClick={handleConfirmPayment}
+              disabled={!method || confirming || txRef.trim().length < 4}
+              className="w-full"
+            >
               {confirming && <Loader2 className="h-4 w-4 animate-spin" />}
               Haa, waan bixiyay (Yes, I&apos;ve paid)
             </BrandButton>

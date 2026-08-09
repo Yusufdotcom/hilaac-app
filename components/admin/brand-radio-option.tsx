@@ -24,7 +24,7 @@ export function BrandRadioOption({
   return (
     <label
       className={cn(
-        "flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors",
+        "flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors",
         className
       )}
       style={
@@ -36,8 +36,8 @@ export function BrandRadioOption({
           : undefined
       }
     >
-      <RadioGroupItem value={value} id={id} />
-      {children}
+      <RadioGroupItem value={value} id={id} className="mt-0.5 shrink-0" />
+      <div className="min-w-0 flex-1">{children}</div>
     </label>
   );
 }

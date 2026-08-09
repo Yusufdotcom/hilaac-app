@@ -29,6 +29,8 @@ function LoginForm() {
       toast.error("This account isn't linked to a restaurant yet.");
     } else if (error === "deactivated") {
       toast.error("This account has been deactivated.");
+    } else if (error === "idle") {
+      toast.error("Signed out due to inactivity. Sign in again to continue.");
     } else if (error.toLowerCase().includes("identity") || error.toLowerCase().includes("linked")) {
       toast.error(
         "This Google account email already belongs to a password login. Sign in with email/password, or link Google from Settings after logging in."

@@ -1,5 +1,6 @@
 "use client";
 
+import { StaffIdleGuardian } from "@/components/auth/staff-idle-guardian";
 import { StaffSidebar } from "@/components/staff/staff-sidebar";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { resolveBrandColor } from "@/lib/brand/restaurant-brand";
@@ -29,6 +30,7 @@ export function StaffLayoutShell({
       className="flex min-h-screen w-full flex-col bg-[#F8FAFC]"
       style={{ ["--brand-accent" as string]: accent }}
     >
+      <StaffIdleGuardian role={role} />
       <StaffSidebar
         slug={slug}
         role={role}

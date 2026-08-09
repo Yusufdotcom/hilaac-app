@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Plus, Pencil, Trash2, Star, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { MenuItemImage } from "@/components/admin/menu/menu-item-image";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { AddOn, Category, CategoryAddOn, MenuItem, MenuItemAddOn } from "@/types/database";
@@ -90,14 +90,8 @@ export function MenuItemSection({
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {menuItems.map((item) => (
             <div key={item.id} className="overflow-hidden rounded-xl border bg-card">
-              <div className="relative h-36 w-full bg-muted">
-                {item.image_url ? (
-                  <Image src={item.image_url} alt={item.name} fill className="object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-muted-foreground">
-                    <UtensilsCrossed className="h-8 w-8" />
-                  </div>
-                )}
+              <div className="relative h-36 w-full overflow-hidden bg-muted">
+                <MenuItemImage src={item.image_url} alt={item.name} />
                 {item.is_top_pick && (
                   <Badge className="absolute left-2 top-2 gap-1">
                     <Star className="h-3 w-3 fill-current" /> Top Pick
