@@ -40,7 +40,7 @@ async function fetchTrack(orderId: string) {
         ok: false as const,
         error:
           apiError ??
-          "Order status is only available on the device you ordered from.",
+          "To view this order on a new device, re-enter the phone number used when you ordered.",
       };
     }
     return {
@@ -57,7 +57,7 @@ async function fetchTrack(orderId: string) {
 
 /**
  * Loads + refreshes a single order by id via GET /api/orders/[id]/track.
- * Requires the order access token saved at checkout (sessionStorage).
+ * Requires the order access token saved at checkout (localStorage), or a reminted token.
  */
 export function useOrderStatusRealtime(orderId: string): OrderStatusLoadState {
   const [state, setState] = useState<OrderStatusLoadState>({

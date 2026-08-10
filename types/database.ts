@@ -73,8 +73,38 @@ export interface Profile {
   phone: string | null;
   avatar_url?: string | null;
   is_active: boolean;
+  /** Platform Super Admin — never grantable via restaurant Staff UI. */
+  is_platform_admin?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export type SubscriptionRenewalStatus =
+  | "pending_confirmation"
+  | "confirmed"
+  | "rejected";
+
+export interface SubscriptionRenewal {
+  id: string;
+  restaurant_id: string;
+  requested_by: string;
+  tier: "starter" | "pro" | "trial";
+  amount: number;
+  method: PaymentMethod;
+  status: SubscriptionRenewalStatus;
+  tx_ref: string | null;
+  confirmed_by: string | null;
+  confirmed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlatformSettings {
+  id: number;
+  evc_ussd_code_encrypted: string | null;
+  edahab_ussd_code_encrypted: string | null;
+  updated_at: string;
+  updated_by: string | null;
 }
 
 export interface RestaurantTable {

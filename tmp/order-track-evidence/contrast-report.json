@@ -1,0 +1,46 @@
+[
+  {
+    "state": "error",
+    "background": "rgb(30, 25, 21)",
+    "backgroundLuminance": 0.10107529411764705,
+    "title": {
+      "text": "Order status unavailable",
+      "color": "rgb(244, 241, 235)",
+      "luminance": 0.9459003921568626,
+      "fontSize": "18px",
+      "paddingLeft": "0px",
+      "className": "text-lg font-bold leading-tight tracking-tight text-foreground"
+    },
+    "body": {
+      "text": "To view this order on a new device, re-enter the phone number used when you ordered.",
+      "color": "rgb(185, 173, 162)",
+      "luminance": 0.685321568627451,
+      "fontSize": "11px",
+      "paddingLeft": "0px",
+      "className": "mx-auto max-w-sm text-[11px] leading-snug text-muted-foreground"
+    },
+    "theme": "dark"
+  },
+  {
+    "state": "normal",
+    "background": "rgb(30, 25, 21)",
+    "title": {
+      "text": "Dalabkaagu wuu socdaa!",
+      "color": "rgb(244, 241, 235)",
+      "luminance": 0.9459003921568626,
+      "fontSize": "18px",
+      "paddingLeft": "0px",
+      "className": "text-lg font-bold leading-tight tracking-tight text-foreground"
+    },
+    "body": {
+      "text": "Baba's Grill and Cafe",
+      "color": "rgb(185, 173, 162)",
+      "luminance": 0.685321568627451,
+      "fontSize": "11px",
+      "paddingLeft": "0px",
+      "className": "text-[11px] leading-snug text-muted-foreground"
+    },
+    "theme": "dark",
+    "rootPadding": "12px"
+  }
+]

@@ -2,7 +2,11 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 /** Short-lived token for API charge + USSD confirm. */
 const DEFAULT_TTL_SEC = 15 * 60;
-/** Longer-lived token for customer order status polling. */
+/**
+ * Longer-lived token for customer order status polling.
+ * 24h covers a full dining visit and same-device return visits;
+ * cross-device recovery uses POST /recover-access (phone remint).
+ */
 export const ORDER_ACCESS_TTL_SEC = 24 * 60 * 60;
 
 function getChargeTokenSecret(): string {

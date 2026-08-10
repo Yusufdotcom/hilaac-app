@@ -32,8 +32,9 @@ import {
   releaseFulfillLock,
   saveResolvedOrderId,
 } from "@/lib/order/pending-order-handoff";
-import { loadOrderAccessToken } from "@/lib/order/order-access-storage";
+import { loadOrderAccessToken, saveOrderTokens } from "@/lib/order/order-access-storage";
 import { OrderAppearanceProvider } from "@/components/order/order-appearance-context";
+import { isOrderAccessError } from "@/components/order/order-preparing-screen";
 import type { PaymentStatus } from "@/types/database";
 
 interface TrackedOrderRow {
@@ -88,7 +89,7 @@ export default function OrderStatusPage({
     !!loadError ||
     (!order && !!resolvedOrderId);
 
-  /** Track API requires order access token (sessionStorage) or staff session. */
+  /** Track API requires order access token (localStorage) or staff session. */
   const fetchOrderById = useCallback(async (id: string) => {
     const accessToken = loadOrderAccessToken(id);
     const url = accessToken
@@ -106,16 +107,66 @@ export default function OrderStatusPage({
           order: null as TrackedOrderRow | null,
           error:
             apiError ??
-            "Order status is only available on the device you ordered from.",
+            "To view this order on a new device, re-enter the phone number used when you ordered.",
+          accessDenied: true as const,
+          status: res.status,
         };
       }
       return {
         order: null as TrackedOrderRow | null,
         error: apiError ?? ORDER_NOT_FOUND_ERROR,
+        accessDenied: false as const,
+        status: res.status,
       };
     }
-    return { order: data.order as TrackedOrderRow, error: null };
+    return {
+      order: data.order as TrackedOrderRow,
+      error: null,
+      accessDenied: false as const,
+      status: res.status,
+    };
   }, []);
+
+  const recoverOrderAccess = useCallback(
+    async (phone: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      const id = resolvedOrderId || orderId;
+      if (!id) return { ok: false, error: "Order not found." };
+
+      const res = await fetch(`/api/orders/${id}/recover-access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || typeof data.accessToken !== "string") {
+        return {
+          ok: false,
+          error:
+            typeof data.error === "string"
+              ? data.error
+              : "Phone number does not match this order.",
+        };
+      }
+
+      saveOrderTokens(id, { accessToken: data.accessToken });
+      const tracked = await fetchOrderById(id);
+      if (!tracked.order) {
+        return {
+          ok: false,
+          error: tracked.error ?? "Could not load order status after verification.",
+        };
+      }
+
+      setOrder(tracked.order);
+      setResolvedOrderId(id);
+      setLoadError(null);
+      setAwaitingOrder(false);
+      setLoading(false);
+      setShowRetry(false);
+      return { ok: true };
+    },
+    [resolvedOrderId, orderId, fetchOrderById]
+  );
 
   async function handleRetrySync() {
     setRetrying(true);
@@ -316,37 +367,43 @@ export default function OrderStatusPage({
     setLoading(false);
 
     async function lookup() {
-      const { order: data, error } = await fetchOrderById(orderId);
-      if (cancelled) return false;
+      const { order: data, error, accessDenied } = await fetchOrderById(orderId);
+      if (cancelled) return "stop" as const;
       if (data) {
         found = true;
         setOrder(data);
         setAwaitingOrder(false);
         setLoading(false);
         setLoadError(null);
-        return true;
+        return "found" as const;
       }
-      if (error) {
-        // Keep polling briefly — order may still be committing.
+      if (accessDenied || isOrderAccessError(error)) {
+        setLoadError(error ?? ORDER_NOT_FOUND_ERROR);
+        setAwaitingOrder(false);
+        setLoading(false);
+        setShowRetry(true);
+        return "stop" as const;
       }
-      return false;
+      // Keep polling briefly — order may still be committing.
+      return "retry" as const;
     }
 
     void (async () => {
-      if (await lookup()) return;
-      if (cancelled) return;
+      const first = await lookup();
+      if (first !== "retry" || cancelled) return;
 
       interval = window.setInterval(async () => {
         if (cancelled) return;
-        if (await lookup()) {
-          if (interval !== undefined) window.clearInterval(interval);
+        const result = await lookup();
+        if (result !== "retry" && interval !== undefined) {
+          window.clearInterval(interval);
         }
       }, ORDER_POLL_INTERVAL_MS);
     })();
 
     const failTimer = window.setTimeout(() => {
       if (cancelled || found) return;
-      setLoadError(ORDER_NOT_FOUND_ERROR);
+      setLoadError((prev) => prev ?? ORDER_NOT_FOUND_ERROR);
       setAwaitingOrder(false);
       setShowRetry(true);
       if (interval !== undefined) window.clearInterval(interval);
@@ -449,6 +506,7 @@ export default function OrderStatusPage({
               submessage={loadError ? undefined : "Fadlan aayar sug…"}
               error={loadError}
               onRetry={showRetry || loadError ? handleCreateRetry : undefined}
+              onRecoverAccess={loadError ? recoverOrderAccess : undefined}
             />
           </div>
         </OrderBrandProvider>
@@ -471,6 +529,7 @@ export default function OrderStatusPage({
             submessage="Fadlan sug…"
             error={loadError}
             onRetry={showRetry || loadError ? handleCreateRetry : undefined}
+            onRecoverAccess={loadError ? recoverOrderAccess : undefined}
           />
         </OrderBrandProvider>
         <PoweredByHilaac className="shrink-0 pb-2" />

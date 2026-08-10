@@ -27,10 +27,15 @@ type OrderAppearanceContextValue = {
 
 const OrderAppearanceContext = createContext<OrderAppearanceContextValue | null>(null);
 
+function initialOrderTheme(): OrderTheme {
+  if (typeof window === "undefined") return "light";
+  return readStoredOrderTheme() ?? (systemPrefersDark() ? "dark" : "light");
+}
+
 export function OrderAppearanceProvider({ children }: { children: React.ReactNode }) {
-  // SSR always starts light; hydrate from localStorage after mount (Next won't
-  // re-run useState initializers on the client during hydration).
-  const [theme, setThemeState] = useState<OrderTheme>("light");
+  // Client first paint uses stored/system theme so dark-mode text tokens are correct
+  // immediately (avoids light muted-slate on a dark background).
+  const [theme, setThemeState] = useState<OrderTheme>(initialOrderTheme);
 
   useEffect(() => {
     setThemeState(readStoredOrderTheme() ?? (systemPrefersDark() ? "dark" : "light"));

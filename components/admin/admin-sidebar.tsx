@@ -150,7 +150,7 @@ function PlanCard({
           : "Renew to keep API payments & AI tools active."}
       </p>
       <Link
-        href={`/admin/${slug}/billing`}
+        href={`/admin/${slug}/billing?renew=1`}
         onClick={() => onNavigate?.()}
         className="block w-full rounded-lg bg-white py-1.5 text-center text-xs font-semibold"
         style={{ color: "var(--admin-brand, #9E2E2E)" }}

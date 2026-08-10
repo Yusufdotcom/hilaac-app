@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Loader2, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Building2, Camera, Loader2, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -31,10 +32,12 @@ export function AdminUserMenu({
   userName,
   userRole,
   avatarUrl: initialAvatarUrl,
+  isPlatformAdmin = false,
 }: {
   userName: string;
   userRole: UserRole;
   avatarUrl?: string | null;
+  isPlatformAdmin?: boolean;
 }) {
   const supabase = createClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -108,6 +111,14 @@ export function AdminUserMenu({
             <p className="text-xs text-muted-foreground">{roleLabel}</p>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {isPlatformAdmin && (
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link href="/platform/dashboard">
+                <Building2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                Platform dashboard
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             disabled={uploading}
             onSelect={(e) => {

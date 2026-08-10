@@ -60,6 +60,7 @@ export default async function AdminLayout({
       userName={userName}
       userRole={profile.role}
       avatarUrl={profile.avatar_url ?? null}
+      isPlatformAdmin={profile.is_platform_admin === true}
       currentSlug={params.slug}
       branches={branches}
       awaitingOrdersCount={awaitingOrdersCount}

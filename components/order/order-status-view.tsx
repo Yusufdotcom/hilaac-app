@@ -177,7 +177,7 @@ function DeliveredCelebration({ accent }: { accent: string }) {
           aria-hidden="true"
         />
         <PartyPopper
-          className="absolute -right-1 -top-1 h-5 w-5 text-[#0F172A]"
+          className="absolute -right-1 -top-1 h-5 w-5 text-foreground"
           aria-hidden="true"
         />
       </div>
@@ -265,13 +265,20 @@ export function OrderStatusView({
     return (
       <div
         className={cn(
-          "flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center gap-2 px-4 text-center",
+          "flex h-full min-h-0 w-full max-w-lg flex-1 flex-col justify-center overflow-hidden px-1 text-center",
           className
         )}
       >
-        <Clock className="h-6 w-6 animate-pulse text-muted-foreground" aria-hidden="true" />
-        <p className="text-sm font-medium text-foreground">Dalabkaga waa la diyaarinayaa  ...</p>
-        <p className="text-xs text-muted-foreground">Fadlan sug…</p>
+        <div className="shrink-0 space-y-2">
+          <Clock
+            className="mx-auto h-6 w-6 animate-pulse text-muted-foreground"
+            aria-hidden="true"
+          />
+          <p className="text-lg font-bold leading-tight tracking-tight text-foreground">
+            Dalabkaga waa la diyaarinayaa...
+          </p>
+          <p className="text-[11px] leading-snug text-muted-foreground">Fadlan sug…</p>
+        </div>
       </div>
     );
   }
@@ -280,28 +287,52 @@ export function OrderStatusView({
     return (
       <div
         className={cn(
-          "flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 px-4 text-center",
+          "flex h-full min-h-0 w-full max-w-lg flex-1 flex-col justify-center overflow-hidden px-1",
+          "animate-in fade-in slide-in-from-bottom-3 duration-500",
           className
         )}
       >
-        <p className="text-sm font-bold text-foreground">
-          {loadState.status === "error" ? loadState.error : "Could not load order status."}
-        </p>
-        <p className="max-w-xs text-xs text-muted-foreground">
-          Dalabkaagu wuu jiraa, laakiin lama akhriyi karin. Isku day mar kale.
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="rounded-xl"
-          onClick={() => window.location.reload()}
-        >
-          Retry
-        </Button>
-        <Button variant="outline" size="sm" className="rounded-xl" asChild>
-          <Link href={newOrderHref}>Dalab kale ma rabtaa?</Link>
-        </Button>
+        <div className="shrink-0 space-y-2 text-center">
+          <div
+            className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl"
+            style={{
+              backgroundColor: brandColorWithAlpha(accent, 0.15),
+              color: accent,
+            }}
+          >
+            <span className="text-base font-bold" aria-hidden="true">
+              !
+            </span>
+          </div>
+          <h1 className="text-lg font-bold leading-tight tracking-tight text-[var(--foreground)] [color:hsl(var(--foreground))]">
+            Order status unavailable
+          </h1>
+          <p className="mx-auto max-w-sm text-[13px] leading-snug text-[hsl(var(--muted-foreground))]">
+            {loadState.status === "error" ? loadState.error : "Could not load order status."}
+          </p>
+          <p className="mx-auto max-w-xs text-[13px] leading-snug text-[hsl(var(--muted-foreground))]">
+            Dalabkaagu wuu jiraa, laakiin lama akhriyi karin. Isku day mar kale.
+          </p>
+        </div>
+        <div className="mt-3 flex flex-col items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-xl border-border text-foreground"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl border-border text-foreground"
+            asChild
+          >
+            <Link href={newOrderHref}>Dalab kale ma rabtaa?</Link>
+          </Button>
+        </div>
       </div>
     );
   }
@@ -372,7 +403,7 @@ export function OrderStatusView({
           <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           <span>
             For takeaway tracking, call:{" "}
-            <span className="font-bold text-[#0F172A]">{takeawayHotline}</span>
+            <span className="font-bold text-foreground">{takeawayHotline}</span>
           </span>
         </a>
       )}
@@ -438,7 +469,7 @@ export function OrderStatusView({
           )}
           style={{
             background: `linear-gradient(135deg, ${brandColorWithAlpha(accent, 0.16)}, ${brandColorWithAlpha(accent, 0.06)})`,
-            color: "#0F172A",
+            color: "hsl(var(--foreground))",
             border: `1px solid ${brandColorWithAlpha(accent, 0.28)}`,
             boxShadow: `0 6px 20px ${brandColorWithAlpha(accent, 0.14)}`,
           }}

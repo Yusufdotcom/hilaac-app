@@ -76,7 +76,7 @@ const orderId = order.id;
 try {
   {
     const auth = await authorizeOrderAccess({ orderId, token: null });
-    if (!auth.ok && auth.status === 401 && /device|unable/i.test(auth.error)) {
+    if (!auth.ok && auth.status === 401 && /phone|device|unable/i.test(auth.error)) {
       pass("no token → 401 clear message", auth.error);
     } else {
       fail("no token → 401 clear message", JSON.stringify(auth));

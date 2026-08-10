@@ -91,15 +91,15 @@ export async function authorizeOrderAccess(options: {
 function customerAuthError(reason: string): string {
   switch (reason) {
     case "expired":
-      return "This order status session has expired. Open the status page again from the device you used to place the order.";
+      return "This order status session has expired. Re-enter the phone number used on the order to continue.";
     case "missing_token":
-      return "Order status is only available on the device you ordered from. Reopen the link from that browser, or ask staff for help.";
+      return "To view this order on a new device, re-enter the phone number used when you ordered.";
     case "invalid_signature":
     case "malformed_token":
     case "order_mismatch":
-      return "This order status link is not valid.";
+      return "This order status link is not valid. Re-enter the phone number used on the order to continue.";
     default:
-      return "Unable to load this order status.";
+      return "Unable to load this order status. Re-enter the phone number used on the order to continue.";
   }
 }
 

@@ -1,6 +1,5 @@
 /**
- * N1: Manual subscription confirm is fail-closed without env flag;
- * source requires txRef + AAL2 + admin client.
+ * N1: Owner self-confirm is retired (410). Confirmation is platform_admin only.
  */
 import { readFileSync } from "fs";
 import { resolve } from "path";
@@ -16,16 +15,24 @@ function fail(name, detail) {
 const routePath = resolve("app/api/admin/subscriptions/confirm-payment/route.ts");
 const src = readFileSync(routePath, "utf8");
 
-if (src.includes("ALLOW_MANUAL_SUBSCRIPTION_CONFIRM") && src.includes("manual_confirm_disabled")) {
-  pass("source fail-closed when ALLOW_MANUAL_SUBSCRIPTION_CONFIRM unset");
+if (src.includes("owner_self_confirm_retired") && src.includes("410")) {
+  pass("owner self-confirm retired with 410");
 } else {
-  fail("source missing fail-closed env gate");
+  fail("owner self-confirm not retired");
 }
 
-if (src.includes("txRef") && src.includes("createAdminClient") && src.includes("requireAal2ForPrivilegedRole")) {
-  pass("source requires txRef + admin client + AAL2");
+if (src.includes("createAdminClient") && src.includes("subscription_end_date")) {
+  fail("retired route must not still update subscription_end_date");
 } else {
-  fail("source missing txRef / admin / AAL2 gates");
+  pass("retired route does not extend subscriptions");
+}
+
+const platformConfirm = resolve("app/api/platform/renewals/[id]/confirm/route.ts");
+const platformSrc = readFileSync(platformConfirm, "utf8");
+if (platformSrc.includes("requirePlatformAdmin") && platformSrc.includes("subscription_end_date")) {
+  pass("platform confirm requires requirePlatformAdmin + extends end date");
+} else {
+  fail("platform confirm missing gates");
 }
 
 const base = process.env.N1_BASE_URL ?? process.env.C1_BASE_URL ?? "http://localhost:3000";
@@ -39,9 +46,10 @@ try {
       txRef: "TEST1234",
     }),
   });
-  // Unauthenticated or env-disabled both reject (401 or 403).
-  if (res.status === 401 || res.status === 403) {
-    pass(`live unauthenticated/disabled → ${res.status}`);
+  if (res.status === 410) {
+    pass(`live owner confirm → 410`);
+  } else if (res.status === 401 || res.status === 403) {
+    pass(`live owner confirm rejected → ${res.status}`);
   } else {
     fail("live confirm-payment", `unexpected status ${res.status}`);
   }

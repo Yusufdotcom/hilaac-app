@@ -1,0 +1,11 @@
+{
+  "orderId": "8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143",
+  "statusUrl": "http://localhost:3000/order/baba-s-grill-and-cafe/status?orderId=8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143",
+  "phone": "0612345678",
+  "accessTokenExp": "1786439363",
+  "screenshots": {
+    "error": "C:\\hilaac-app\\tmp\\order-track-evidence\\dark-error-access-recovery.png",
+    "normal": "C:\\hilaac-app\\tmp\\order-track-evidence\\dark-normal-status.png",
+    "sideBySide": "C:\\hilaac-app\\tmp\\order-track-evidence\\dark-side-by-side.png"
+  }
+}

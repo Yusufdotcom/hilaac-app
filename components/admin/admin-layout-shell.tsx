@@ -24,6 +24,7 @@ function AdminShellChrome({
   userName,
   userRole,
   avatarUrl,
+  isPlatformAdmin = false,
   currentSlug,
   branches,
   awaitingOrdersCount,
@@ -36,6 +37,7 @@ function AdminShellChrome({
   userName: string;
   userRole: UserRole;
   avatarUrl?: string | null;
+  isPlatformAdmin?: boolean;
   currentSlug: string;
   branches: OwnerBranch[];
   awaitingOrdersCount: number;
@@ -106,6 +108,7 @@ function AdminShellChrome({
           userName={userName}
           userRole={userRole}
           avatarUrl={avatarUrl}
+          isPlatformAdmin={isPlatformAdmin}
           onOpenSidebar={() => setMobileOpen(true)}
         />
 
@@ -127,6 +130,7 @@ export function AdminLayoutShell({
   userName,
   userRole,
   avatarUrl,
+  isPlatformAdmin = false,
   currentSlug,
   branches = [],
   awaitingOrdersCount = 0,
@@ -140,6 +144,7 @@ export function AdminLayoutShell({
   userName: string;
   userRole: UserRole;
   avatarUrl?: string | null;
+  isPlatformAdmin?: boolean;
   currentSlug: string;
   branches?: OwnerBranch[];
   awaitingOrdersCount?: number;
@@ -156,6 +161,7 @@ export function AdminLayoutShell({
           userName={userName}
           userRole={userRole}
           avatarUrl={avatarUrl}
+          isPlatformAdmin={isPlatformAdmin}
           currentSlug={currentSlug}
           branches={branches}
           awaitingOrdersCount={awaitingOrdersCount}

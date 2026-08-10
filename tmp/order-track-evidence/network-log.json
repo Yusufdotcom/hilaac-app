@@ -1,0 +1,53 @@
+[
+  {
+    "status": 401,
+    "method": "GET",
+    "path": "/api/orders/8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143/track",
+    "bodySummary": {
+      "error": "To view this order on a new device, re-enter the phone number used when you ordered."
+    }
+  },
+  {
+    "status": 401,
+    "method": "GET",
+    "path": "/api/orders/8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143/track",
+    "bodySummary": {
+      "error": "To view this order on a new device, re-enter the phone number used when you ordered."
+    }
+  },
+  {
+    "status": 200,
+    "method": "POST",
+    "path": "/api/orders/8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143/recover-access",
+    "bodySummary": {
+      "accessToken": "<present>"
+    }
+  },
+  {
+    "status": 200,
+    "method": "GET",
+    "path": "/api/orders/8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143/track?accessToken=8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143.16681f63-f393-4645-8641-bd4437d8a744.1786439377.YW0hs-t9LGlGdb-q9BiVJjM9PX0WbCSC67zwDEB4GGg",
+    "bodySummary": {
+      "orderId": "8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143",
+      "status": "preparing"
+    }
+  },
+  {
+    "status": 200,
+    "method": "GET",
+    "path": "/api/orders/8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143/track?accessToken=8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143.16681f63-f393-4645-8641-bd4437d8a744.1786439377.YW0hs-t9LGlGdb-q9BiVJjM9PX0WbCSC67zwDEB4GGg",
+    "bodySummary": {
+      "orderId": "8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143",
+      "status": "preparing"
+    }
+  },
+  {
+    "status": 200,
+    "method": "GET",
+    "path": "/api/orders/8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143/track?accessToken=8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143.16681f63-f393-4645-8641-bd4437d8a744.1786439377.YW0hs-t9LGlGdb-q9BiVJjM9PX0WbCSC67zwDEB4GGg",
+    "bodySummary": {
+      "orderId": "8ee8ccc4-8fba-495c-9d8b-58bb4b6ae143",
+      "status": "preparing"
+    }
+  }
+]

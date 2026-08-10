@@ -14,12 +14,14 @@ export function AdminTopBar({
   userName,
   userRole,
   avatarUrl,
+  isPlatformAdmin = false,
   onOpenSidebar,
 }: {
   slug: string;
   userName: string;
   userRole: UserRole;
   avatarUrl?: string | null;
+  isPlatformAdmin?: boolean;
   onOpenSidebar: () => void;
 }) {
   const pathname = usePathname();
@@ -54,7 +56,12 @@ export function AdminTopBar({
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <AdminThemeToggle />
         <AdminNotifications />
-        <AdminUserMenu userName={userName} userRole={userRole} avatarUrl={avatarUrl} />
+        <AdminUserMenu
+          userName={userName}
+          userRole={userRole}
+          avatarUrl={avatarUrl}
+          isPlatformAdmin={isPlatformAdmin}
+        />
       </div>
     </header>
   );

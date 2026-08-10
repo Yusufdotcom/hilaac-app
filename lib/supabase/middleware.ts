@@ -12,7 +12,9 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const pathname = request.nextUrl.pathname;
-  const isProtected = pathname.startsWith("/admin") || pathname.startsWith("/staff");
+  const isPlatform = pathname.startsWith("/platform");
+  const isProtected =
+    pathname.startsWith("/admin") || pathname.startsWith("/staff") || isPlatform;
   const isMfaRoute = pathname.startsWith("/auth/mfa");
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
@@ -61,7 +63,7 @@ export async function updateSession(request: NextRequest) {
   if (isProtected) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("restaurant_id, role, is_active")
+      .select("restaurant_id, role, is_active, is_platform_admin")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -73,6 +75,17 @@ export async function updateSession(request: NextRequest) {
       url.searchParams.set("error", "deactivated");
       url.searchParams.set("redirectedFrom", pathname);
       return NextResponse.redirect(url);
+    }
+
+    // Platform Super Admin routes — never restaurant-role based.
+    if (isPlatform) {
+      if (profile.is_platform_admin !== true) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        url.searchParams.set("error", "forbidden");
+        return NextResponse.redirect(url);
+      }
+      return supabaseResponse;
     }
 
     // MFA: owner/manager only — never kitchen/waiter/cashier (shared tablets).
