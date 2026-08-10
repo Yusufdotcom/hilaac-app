@@ -17,8 +17,9 @@ export default async function KitchenPage({ params }: { params: { slug: string }
         .from("orders")
         .select("*, table:table_id(*), order_items(*, menu_item:menu_item_id(*))")
         .eq("restaurant_id", restaurant.id)
-        .eq("payment_status", "paid")
         .in("status", ["new", "preparing", "ready"])
+        // pay_after: cook immediately (unpaid OK). pay_before: only after cashier paid.
+        .or("billing_model.eq.pay_after,payment_status.eq.paid")
         .order("created_at", { ascending: false }),
       supabase
         .from("orders")

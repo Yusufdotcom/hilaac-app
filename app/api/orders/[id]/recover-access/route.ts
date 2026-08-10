@@ -81,9 +81,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   let accessToken: string;
   try {
     accessToken = mintOrderAccessToken(order.id, order.restaurant_id);
-  } catch {
-    console.error("[orders] recover_access_mint_failed", { orderId });
-    return NextResponse.json({ error: "Unable to restore order access." }, { status: 503 });
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : "unknown";
+    console.error("[orders] recover_access_mint_failed", { orderId, reason });
+    return NextResponse.json(
+      {
+        error: "Unable to restore order access.",
+        code: "mint_failed",
+        // Safe to expose: only whether secret is configured, not the secret itself.
+        detail: reason.includes("CHARGE_TOKEN_SECRET")
+          ? "CHARGE_TOKEN_SECRET is not configured on the server"
+          : "token_mint_error",
+      },
+      { status: 503 }
+    );
   }
 
   console.info("[orders] recover_access_ok", { orderId });

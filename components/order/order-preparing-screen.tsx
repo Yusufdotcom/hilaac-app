@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Phone } from "lucide-react";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
-import { useOrderAppearanceOptional } from "@/components/order/order-appearance-context";
 import {
   brandColorWithAlpha,
   customerAccentTextStyleFromAccent,
@@ -52,16 +51,8 @@ export function OrderPreparingScreen({
   className?: string;
 }) {
   const brand = useOrderBrandOptional();
-  const appearance = useOrderAppearanceOptional();
   const accent = brand?.accent ?? resolveCustomerAccent(brand?.branding ?? {}) ?? HILAAC_GOLD;
   const accentText = customerAccentTextStyleFromAccent(accent);
-  const isDark = appearance?.theme === "dark";
-  // Explicit colors — do not rely on text-muted-foreground (light slate on dark bg).
-  const titleColor = isDark ? "#F5F0E8" : "#1C1917";
-  const bodyColor = isDark ? "#D6CDBF" : "#57534E";
-  const cardBg = isDark ? "rgba(255,255,255,0.06)" : "hsl(var(--card))";
-  const cardBorder = isDark ? "rgba(255,255,255,0.14)" : "hsl(var(--border))";
-  const inputBg = isDark ? "rgba(0,0,0,0.35)" : "hsl(var(--background))";
   const showAccessRecovery = Boolean(error && onRecoverAccess);
 
   const [phone, setPhone] = useState("");
@@ -86,6 +77,8 @@ export function OrderPreparingScreen({
     }
   }
 
+  const canSubmit = !recovering && phoneDigits(phone).length >= 8;
+
   return (
     <div
       className={cn(
@@ -98,50 +91,45 @@ export function OrderPreparingScreen({
     >
       <div className="shrink-0 space-y-2 text-center">
         <div
-          className="mx-auto flex h-9 w-9 items-center justify-center rounded-2xl"
-          style={{
-            backgroundColor: brandColorWithAlpha(accent, 0.15),
-            color: accent,
-            boxShadow: `0 8px 24px ${brandColorWithAlpha(accent, 0.18)}`,
-          }}
+          className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl text-white"
+          style={
+            error
+              ? {
+                  backgroundColor: accent,
+                  boxShadow: `0 10px 28px ${brandColorWithAlpha(accent, 0.35)}`,
+                }
+              : {
+                  backgroundColor: brandColorWithAlpha(accent, 0.14),
+                  color: accent,
+                  boxShadow: `0 10px 28px ${brandColorWithAlpha(accent, 0.2)}`,
+                }
+          }
         >
           {error ? (
-            <span className="text-base font-bold" style={{ color: titleColor }} aria-hidden="true">
+            <span className="text-lg font-bold leading-none text-white" aria-hidden="true">
               !
             </span>
           ) : (
-            <Loader2 className="h-4 w-4 animate-spin" style={accentText} aria-hidden="true" />
+            <Loader2 className="h-5 w-5 animate-spin" style={accentText} aria-hidden="true" />
           )}
         </div>
 
         {error ? (
           <>
-            <h1
-              className="text-lg font-bold leading-tight tracking-tight"
-              style={{ color: titleColor }}
-            >
+            <h1 className="text-lg font-bold leading-tight tracking-tight text-foreground">
               Order status unavailable
             </h1>
-            <p
-              className="mx-auto max-w-sm text-[13px] leading-snug"
-              style={{ color: bodyColor }}
-            >
+            <p className="mx-auto max-w-sm text-[13px] leading-snug text-muted-foreground">
               {error}
             </p>
           </>
         ) : (
           <>
-            <h1
-              className="text-lg font-bold leading-tight tracking-tight"
-              style={{ color: titleColor }}
-            >
+            <h1 className="text-lg font-bold leading-tight tracking-tight text-foreground">
               {message}
             </h1>
             {submessage && (
-              <p
-                className="mx-auto max-w-sm text-[13px] leading-snug"
-                style={{ color: bodyColor }}
-              >
+              <p className="mx-auto max-w-sm text-[13px] leading-snug text-muted-foreground">
                 {submessage}
               </p>
             )}
@@ -154,46 +142,59 @@ export function OrderPreparingScreen({
           {showAccessRecovery ? (
             <form
               onSubmit={(e) => void handleRecover(e)}
-              className="mx-auto w-full max-w-sm space-y-3 rounded-2xl px-4 py-4 text-left shadow-sm"
-              style={{
-                backgroundColor: cardBg,
-                border: `1px solid ${cardBorder}`,
-              }}
+              className="mx-auto w-full max-w-sm space-y-4 rounded-2xl border border-border/70 bg-card px-5 py-5 text-left shadow-[0_10px_28px_rgba(15,23,42,0.08)]"
             >
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label
                   htmlFor="recover-phone"
-                  className="text-xs"
-                  style={{ color: titleColor }}
+                  className="text-[13px] font-semibold text-foreground"
                 >
-                  Phone number used on this order
+                  Phone number used on this order{" "}
+                  <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="recover-phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="e.g. 0612345678"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="h-11 rounded-xl border-0"
-                  style={{
-                    backgroundColor: inputBg,
-                    color: titleColor,
-                  }}
-                  disabled={recovering}
-                />
+                <div className="relative">
+                  <Phone
+                    className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    id="recover-phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="0612345678"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    disabled={recovering}
+                    className={cn(
+                      "h-14 rounded-2xl border-border bg-muted/50 pl-12 pr-4",
+                      "text-base leading-normal tracking-wide text-foreground",
+                      "placeholder:text-muted-foreground focus-visible:bg-background focus-visible:ring-2"
+                    )}
+                    style={{
+                      fontSize: 16,
+                      ["--tw-ring-color" as string]: brandColorWithAlpha(accent, 0.45),
+                    }}
+                    aria-invalid={Boolean(recoverError)}
+                  />
+                </div>
+                {recoverError && (
+                  <p className="text-xs font-semibold text-red-600">{recoverError}</p>
+                )}
               </div>
-              {recoverError && (
-                <p className="text-xs font-medium" style={{ color: isDark ? "#FCA5A5" : "#DC2626" }}>
-                  {recoverError}
-                </p>
-              )}
+
               <Button
                 type="submit"
-                className="h-11 w-full rounded-xl text-sm font-semibold text-white hover:text-white"
-                style={{ backgroundColor: accent, color: "#ffffff" }}
-                disabled={recovering || phone.trim().length < 8}
+                disabled={!canSubmit}
+                className={cn(
+                  "h-12 w-full rounded-2xl text-sm font-semibold text-white shadow-[0_10px_24px_rgba(158,46,46,0.28)]",
+                  "transition-all duration-200 hover:opacity-95 active:scale-[0.98]",
+                  "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                )}
+                style={{
+                  backgroundColor: accent,
+                  color: "#ffffff",
+                }}
               >
                 {recovering ? (
                   <>
@@ -206,30 +207,20 @@ export function OrderPreparingScreen({
               </Button>
             </form>
           ) : (
-            <p
-              className="mx-auto max-w-xs text-center text-[13px] leading-snug"
-              style={{ color: bodyColor }}
-            >
+            <p className="mx-auto max-w-xs text-center text-[13px] leading-snug text-muted-foreground">
               Hubi internetkaaga oo isku day mar kale.
             </p>
           )}
 
           {onRetry && (
             <div className="flex justify-center">
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                className="rounded-xl"
-                style={{
-                  color: titleColor,
-                  borderColor: cardBorder,
-                  backgroundColor: "transparent",
-                }}
                 onClick={onRetry}
+                className="text-[13px] font-semibold text-foreground/75 underline-offset-4 transition-colors hover:text-foreground hover:underline"
               >
                 {showAccessRecovery ? "Retry with saved session" : "Retry"}
-              </Button>
+              </button>
             </div>
           )}
         </div>
@@ -254,8 +245,7 @@ export function OrderPreparingScreen({
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-xl px-6"
-                style={{ color: titleColor, borderColor: cardBorder }}
+                className="rounded-xl border-border px-6 text-foreground"
                 onClick={onRetry}
               >
                 Retry
@@ -266,6 +256,10 @@ export function OrderPreparingScreen({
       )}
     </div>
   );
+}
+
+function phoneDigits(value: string) {
+  return value.replace(/\D/g, "");
 }
 
 /** Full-viewport overlay used while creating an order before hard navigation. */
