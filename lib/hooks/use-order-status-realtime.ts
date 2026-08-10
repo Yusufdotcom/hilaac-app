@@ -34,9 +34,18 @@ async function fetchTrack(orderId: string) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.order) {
+    const apiError = typeof data.error === "string" ? data.error : null;
+    if (res.status === 401 || res.status === 403) {
+      return {
+        ok: false as const,
+        error:
+          apiError ??
+          "Order status is only available on the device you ordered from.",
+      };
+    }
     return {
       ok: false as const,
-      error: (data.error as string) ?? "Could not load order status.",
+      error: apiError ?? "Could not load order status.",
     };
   }
   return {

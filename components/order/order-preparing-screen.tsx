@@ -14,6 +14,17 @@ import { Button } from "@/components/ui/button";
 
 export const ORDER_SUBMIT_RETRY_MS = 5_000;
 
+function isAccessError(error: string) {
+  const e = error.toLowerCase();
+  return (
+    e.includes("expired") ||
+    e.includes("device you ordered") ||
+    e.includes("not valid") ||
+    e.includes("unable to load this order status") ||
+    e.includes("unauthorized")
+  );
+}
+
 export function OrderPreparingScreen({
   message = "Dalabkaga waa la diyaarinayaa...",
   submessage,
@@ -59,9 +70,11 @@ export function OrderPreparingScreen({
       {error ? (
         <>
           <p className="text-base font-bold text-gray-900">{error}</p>
-          <p className="mt-2 max-w-xs text-sm text-gray-500">
-            Hubi internetkaaga oo isku day mar kale.
-          </p>
+          {!isAccessError(error) && (
+            <p className="mt-2 max-w-xs text-sm text-gray-500">
+              Hubi internetkaaga oo isku day mar kale.
+            </p>
+          )}
           {onRetry && (
             <Button
               type="button"

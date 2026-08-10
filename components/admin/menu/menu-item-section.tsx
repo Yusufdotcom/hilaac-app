@@ -128,7 +128,7 @@ export function MenuItemSection({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={cn(item.is_top_pick && "text-amber-500")}
+                      className={cn(item.is_top_pick && adminBrandTextClass)}
                       onClick={() => toggleTopPick(item)}
                       title="Toggle top pick"
                     >

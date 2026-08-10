@@ -71,10 +71,10 @@ export default function MenuProbePage() {
   }
 
   return (
-    <AdminBrandProvider brandColor="#C45C26">
+    <AdminBrandProvider brandColor="#9E2E2E">
       <div className="min-h-screen bg-[#F8FAFC] p-6 text-[#0F172A]">
         <p className="mb-4 text-xs text-muted-foreground">
-          Menu probe — brand_color #C45C26 (prices should match, not gold/gray)
+          Menu probe — brand_color #9E2E2E (Baba&apos;s live value)
         </p>
         <MenuManager
           restaurantId="r1"

@@ -77,7 +77,7 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
               Current Plan
-              {isPro && <Crown className="h-5 w-5 text-amber-500" />}
+              {isPro && <Crown className={cn("h-5 w-5", adminBrandTextClass)} />}
             </CardTitle>
             <CardDescription>Your subscription status and renewal date.</CardDescription>
           </div>

@@ -51,7 +51,12 @@ export async function authorizeOrderAccess(options: {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      return { ok: false, status: 401, error: "Unauthorized", reason: tokenResult.reason };
+      return {
+        ok: false,
+        status: 401,
+        error: customerAuthError(tokenResult.reason),
+        reason: tokenResult.reason,
+      };
     }
 
     const { data: profile } = await supabase
@@ -74,7 +79,27 @@ export async function authorizeOrderAccess(options: {
       via: "staff",
     };
   } catch {
-    return { ok: false, status: 401, error: "Unauthorized", reason: tokenResult.reason };
+    return {
+      ok: false,
+      status: 401,
+      error: customerAuthError(tokenResult.reason),
+      reason: tokenResult.reason,
+    };
+  }
+}
+
+function customerAuthError(reason: string): string {
+  switch (reason) {
+    case "expired":
+      return "This order status session has expired. Open the status page again from the device you used to place the order.";
+    case "missing_token":
+      return "Order status is only available on the device you ordered from. Reopen the link from that browser, or ask staff for help.";
+    case "invalid_signature":
+    case "malformed_token":
+    case "order_mismatch":
+      return "This order status link is not valid.";
+    default:
+      return "Unable to load this order status.";
   }
 }
 

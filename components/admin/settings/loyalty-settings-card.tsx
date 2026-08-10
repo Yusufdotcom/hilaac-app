@@ -68,7 +68,10 @@ export function LoyaltySettingsCard({
     <Card className="w-full overflow-hidden">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Gift className="h-5 w-5 text-amber-500" aria-hidden="true" />
+          <Gift
+            className="h-5 w-5 text-[color:var(--admin-brand,var(--brand-accent,#0F172A))]"
+            aria-hidden="true"
+          />
           Loyalty Program
         </CardTitle>
         <CardDescription>

@@ -100,7 +100,19 @@ export default function OrderStatusPage({
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.order) {
-      return { order: null as TrackedOrderRow | null, error: data.error ?? ORDER_NOT_FOUND_ERROR };
+      const apiError = typeof data.error === "string" ? data.error : null;
+      if (res.status === 401 || res.status === 403) {
+        return {
+          order: null as TrackedOrderRow | null,
+          error:
+            apiError ??
+            "Order status is only available on the device you ordered from.",
+        };
+      }
+      return {
+        order: null as TrackedOrderRow | null,
+        error: apiError ?? ORDER_NOT_FOUND_ERROR,
+      };
     }
     return { order: data.order as TrackedOrderRow, error: null };
   }, []);

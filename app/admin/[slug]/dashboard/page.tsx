@@ -5,8 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { DashboardRecentOrders } from "@/components/admin/dashboard/dashboard-recent-orders";
+import {
+  adminBrandCalloutClass,
+  adminBrandIconWellClass,
+  adminBrandSolidButtonClass,
+  adminBrandTextClass,
+} from "@/lib/brand/admin-tokens";
 import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
-import { formatCurrency, daysUntil } from "@/lib/utils";
+import { cn, formatCurrency, daysUntil } from "@/lib/utils";
 import { APP_TIMEZONE, getAppDayBounds } from "@/lib/time/app-calendar";
 import type { OrderWithItems } from "@/types/database";
 
@@ -170,16 +176,24 @@ export default async function DashboardPage({ params }: { params: { slug: string
       )}
 
       {awaitingPaymentConfirmation > 0 && (
-        <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          className={cn(
+            "flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between",
+            adminBrandCalloutClass
+          )}
+        >
           <div className="flex items-start gap-3">
-            <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden="true" />
+            <CreditCard
+              className={cn("mt-0.5 h-5 w-5 shrink-0", adminBrandTextClass)}
+              aria-hidden="true"
+            />
             <div>
-              <p className="font-semibold">
+              <p className="font-semibold text-[#0F172A]">
                 {awaitingPaymentConfirmation}{" "}
                 {awaitingPaymentConfirmation === 1 ? "order" : "orders"} awaiting payment
                 confirmation
               </p>
-              <p className="mt-0.5 text-amber-900/80">
+              <p className="mt-0.5 text-[#334155]">
                 Not counted in today&apos;s paid Orders/Revenue. Includes any older backlog still
                 waiting on cashier confirmation.
               </p>
@@ -187,7 +201,10 @@ export default async function DashboardPage({ params }: { params: { slug: string
           </div>
           <Link
             href={`/admin/${params.slug}/orders`}
-            className="shrink-0 rounded-lg bg-amber-700 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-amber-800"
+            className={cn(
+              "shrink-0 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-opacity",
+              adminBrandSolidButtonClass
+            )}
           >
             Review orders
           </Link>
@@ -202,7 +219,12 @@ export default async function DashboardPage({ params }: { params: { slug: string
                 <p className="text-sm text-muted-foreground">{stat.label}</p>
                 <p className="mt-1 text-2xl font-bold">{stat.value}</p>
               </div>
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <div
+                className={cn(
+                  "flex h-11 w-11 items-center justify-center rounded-full",
+                  adminBrandIconWellClass
+                )}
+              >
                 <stat.icon className="h-5 w-5" />
               </div>
             </CardContent>

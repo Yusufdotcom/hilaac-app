@@ -1,0 +1,241 @@
+{
+  "scannedFiles": 44,
+  "brandCandidates": 8,
+  "semanticKeep": 16,
+  "byPage": {
+    "Shell/Nav": [
+      {
+        "file": "components/admin/admin-layout-shell.tsx",
+        "line": 131,
+        "tag": "hilaac-gold-hex",
+        "semantic": false,
+        "snippet": "className=\"flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg text-[color:var(--admin-brand,var(--brand-accent,#D4A373))] transit"
+      }
+    ],
+    "Settings": [
+      {
+        "file": "components/admin/settings/whatsapp-settings-card.tsx",
+        "line": 132,
+        "tag": "text-amber",
+        "semantic": false,
+        "snippet": "<p className=\"rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900\">"
+      },
+      {
+        "file": "components/admin/settings/whatsapp-settings-card.tsx",
+        "line": 132,
+        "tag": "bg-amber",
+        "semantic": false,
+        "snippet": "<p className=\"rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900\">"
+      },
+      {
+        "file": "components/admin/settings/whatsapp-settings-card.tsx",
+        "line": 132,
+        "tag": "border-amber",
+        "semantic": false,
+        "snippet": "<p className=\"rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900\">"
+      }
+    ],
+    "Staff": [
+      {
+        "file": "components/admin/staff-access/staff-access-board.tsx",
+        "line": 209,
+        "tag": "text-amber",
+        "semantic": false,
+        "snippet": "<div className=\"flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950\">"
+      },
+      {
+        "file": "components/admin/staff-access/staff-access-board.tsx",
+        "line": 209,
+        "tag": "bg-amber",
+        "semantic": false,
+        "snippet": "<div className=\"flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950\">"
+      },
+      {
+        "file": "components/admin/staff-access/staff-access-board.tsx",
+        "line": 209,
+        "tag": "border-amber",
+        "semantic": false,
+        "snippet": "<div className=\"flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950\">"
+      },
+      {
+        "file": "components/admin/staff-access/staff-access-board.tsx",
+        "line": 210,
+        "tag": "text-amber",
+        "semantic": false,
+        "snippet": "<Info className=\"mt-0.5 h-5 w-5 shrink-0 text-amber-700\" aria-hidden=\"true\" />"
+      }
+    ]
+  },
+  "brandCandidatesList": [
+    {
+      "file": "components/admin/admin-layout-shell.tsx",
+      "line": 131,
+      "tag": "hilaac-gold-hex",
+      "semantic": false,
+      "snippet": "className=\"flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg text-[color:var(--admin-brand,var(--brand-accent,#D4A373))] transit"
+    },
+    {
+      "file": "components/admin/settings/whatsapp-settings-card.tsx",
+      "line": 132,
+      "tag": "text-amber",
+      "semantic": false,
+      "snippet": "<p className=\"rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900\">"
+    },
+    {
+      "file": "components/admin/settings/whatsapp-settings-card.tsx",
+      "line": 132,
+      "tag": "bg-amber",
+      "semantic": false,
+      "snippet": "<p className=\"rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900\">"
+    },
+    {
+      "file": "components/admin/settings/whatsapp-settings-card.tsx",
+      "line": 132,
+      "tag": "border-amber",
+      "semantic": false,
+      "snippet": "<p className=\"rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900\">"
+    },
+    {
+      "file": "components/admin/staff-access/staff-access-board.tsx",
+      "line": 209,
+      "tag": "text-amber",
+      "semantic": false,
+      "snippet": "<div className=\"flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950\">"
+    },
+    {
+      "file": "components/admin/staff-access/staff-access-board.tsx",
+      "line": 209,
+      "tag": "bg-amber",
+      "semantic": false,
+      "snippet": "<div className=\"flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950\">"
+    },
+    {
+      "file": "components/admin/staff-access/staff-access-board.tsx",
+      "line": 209,
+      "tag": "border-amber",
+      "semantic": false,
+      "snippet": "<div className=\"flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950\">"
+    },
+    {
+      "file": "components/admin/staff-access/staff-access-board.tsx",
+      "line": 210,
+      "tag": "text-amber",
+      "semantic": false,
+      "snippet": "<Info className=\"mt-0.5 h-5 w-5 shrink-0 text-amber-700\" aria-hidden=\"true\" />"
+    }
+  ],
+  "semanticKeepList": [
+    {
+      "file": "components/admin/orders/admin-order-detail-dialog.tsx",
+      "line": 30,
+      "tag": "text-orange",
+      "semantic": true,
+      "snippet": "awaiting_payment: \"bg-orange-100 text-orange-900\","
+    },
+    {
+      "file": "components/admin/orders/admin-order-detail-dialog.tsx",
+      "line": 30,
+      "tag": "bg-orange",
+      "semantic": true,
+      "snippet": "awaiting_payment: \"bg-orange-100 text-orange-900\","
+    },
+    {
+      "file": "components/admin/orders/admin-order-detail-dialog.tsx",
+      "line": 32,
+      "tag": "text-amber",
+      "semantic": true,
+      "snippet": "preparing: \"bg-amber-100 text-amber-900\","
+    },
+    {
+      "file": "components/admin/orders/admin-order-detail-dialog.tsx",
+      "line": 32,
+      "tag": "bg-amber",
+      "semantic": true,
+      "snippet": "preparing: \"bg-amber-100 text-amber-900\","
+    },
+    {
+      "file": "components/admin/orders/admin-order-detail-dialog.tsx",
+      "line": 42,
+      "tag": "text-amber",
+      "semantic": true,
+      "snippet": "pending_cashier_confirmation: \"bg-amber-100 text-amber-900\","
+    },
+    {
+      "file": "components/admin/orders/admin-order-detail-dialog.tsx",
+      "line": 42,
+      "tag": "bg-amber",
+      "semantic": true,
+      "snippet": "pending_cashier_confirmation: \"bg-amber-100 text-amber-900\","
+    },
+    {
+      "file": "components/admin/orders/admin-orders-board.tsx",
+      "line": 13,
+      "tag": "text-orange",
+      "semantic": true,
+      "snippet": "awaiting_payment: \"bg-orange-100 text-orange-900\","
+    },
+    {
+      "file": "components/admin/orders/admin-orders-board.tsx",
+      "line": 13,
+      "tag": "bg-orange",
+      "semantic": true,
+      "snippet": "awaiting_payment: \"bg-orange-100 text-orange-900\","
+    },
+    {
+      "file": "components/admin/orders/admin-orders-board.tsx",
+      "line": 15,
+      "tag": "text-amber",
+      "semantic": true,
+      "snippet": "preparing: \"bg-amber-100 text-amber-900\","
+    },
+    {
+      "file": "components/admin/orders/admin-orders-board.tsx",
+      "line": 15,
+      "tag": "bg-amber",
+      "semantic": true,
+      "snippet": "preparing: \"bg-amber-100 text-amber-900\","
+    },
+    {
+      "file": "components/admin/orders/admin-orders-board.tsx",
+      "line": 25,
+      "tag": "text-amber",
+      "semantic": true,
+      "snippet": "pending_cashier_confirmation: \"bg-amber-100 text-amber-900\","
+    },
+    {
+      "file": "components/admin/orders/admin-orders-board.tsx",
+      "line": 25,
+      "tag": "bg-amber",
+      "semantic": true,
+      "snippet": "pending_cashier_confirmation: \"bg-amber-100 text-amber-900\","
+    },
+    {
+      "file": "components/admin/reports/insights-card.tsx",
+      "line": 29,
+      "tag": "text-amber",
+      "semantic": true,
+      "snippet": "className: \"text-amber-600\","
+    },
+    {
+      "file": "components/admin/reports/insights-card.tsx",
+      "line": 30,
+      "tag": "bg-amber",
+      "semantic": true,
+      "snippet": "bg: \"bg-amber-50 ring-amber-100\","
+    },
+    {
+      "file": "components/admin/reports/report-charts.tsx",
+      "line": 27,
+      "tag": "hilaac-gold-hex",
+      "semantic": true,
+      "snippet": "const GOLD = \"#D4A373\"; // eDahab payment-method slice only — not restaurant brand"
+    },
+    {
+      "file": "components/admin/reports/report-charts.tsx",
+      "line": 31,
+      "tag": "hilaac-gold-hex",
+      "semantic": true,
+      "snippet": "eDahab: \"#D4A373\","
+    }
+  ]
+}

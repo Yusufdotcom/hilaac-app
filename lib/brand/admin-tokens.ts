@@ -22,3 +22,15 @@ export const adminBrandRingClass =
 /** Borders that should match brand (active plan cards, etc.). */
 export const adminBrandBorderClass =
   "border-[color:var(--admin-brand,var(--brand-accent,#0F172A))]";
+
+/** Soft icon well (dashboard stat cards). */
+export const adminBrandIconWellClass =
+  "bg-[color:color-mix(in_srgb,var(--admin-brand,var(--brand-accent,#0F172A))_12%,white)] text-[color:var(--admin-brand,var(--brand-accent,#0F172A))]";
+
+/** Soft callout / banner surface tinted with brand. */
+export const adminBrandCalloutClass =
+  "border-[color:color-mix(in_srgb,var(--admin-brand,var(--brand-accent,#0F172A))_32%,white)] bg-[color:color-mix(in_srgb,var(--admin-brand,var(--brand-accent,#0F172A))_10%,white)] text-[color:var(--admin-brand,var(--brand-accent,#0F172A))]";
+
+/** Solid CTA using brand (banner buttons). */
+export const adminBrandSolidButtonClass =
+  "bg-[color:var(--admin-brand,var(--brand-accent,#0F172A))] text-white hover:opacity-90";
