@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hilaac Admin — Full Prototype</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{ --brand:#9E2E2E; --brand-dark:#7A2222; --brand-tint:#FBEAEA; --bg:#F5F6FA; }
+  html.dark{ --bg:#14171F; }
+  * { font-family:'Inter',system-ui,sans-serif; }
+  body { background:var(--bg); transition:background .25s ease; }
+  .card { background:var(--card-bg,#fff); }
+  html.dark .card { --card-bg:#1C2030; }
+  html.dark .text-slate-900 { color:#F1F2F6 !important; }
+  html.dark .text-slate-500 { color:#8A8FA3 !important; }
+  html.dark .border-slate-100 { border-color:#2A2F42 !important; }
+  html.dark .sidebar, html.dark .topbar { background:#1C2030; border-color:#2A2F42; }
+  html.dark .nav-item-inactive { color:#8A8FA3; }
+  html.dark .search-box { background:#14171F; border-color:#2A2F42; color:#F1F2F6; }
+  .brand-bg { background:var(--brand); }
+  .brand-text { color:var(--brand); }
+  .brand-tint-bg { background:var(--brand-tint); }
+  html.dark .brand-tint-bg { background:rgba(158,46,46,0.18); }
+  .nav-active { background:var(--brand-tint); color:var(--brand); }
+  html.dark .nav-active { background:rgba(158,46,46,0.22); color:#F2B8B8; }
+  .page { display:none; }
+  .page.active { display:block; }
+  .tabbtn { color:#64748B; }
+  .tabbtn.active { color:var(--brand); border-color:var(--brand); }
+  .staffscreen { display:none; }
+  .staffscreen.active { display:flex; }
+</style>
+</head>
+<body class="text-slate-900">
+
+<!-- ============ ADMIN SHELL ============ -->
+<div id="adminShell" class="flex min-h-screen relative">
+  <!-- Mobile backdrop -->
+  <div id="sidebarBackdrop" onclick="closeSidebar()" class="hidden fixed inset-0 bg-black/40 z-30 md:hidden"></div>
+
+  <aside id="sidebar" class="sidebar w-72 sm:w-64 shrink-0 bg-white border-r border-slate-100 flex flex-col py-6 px-4 fixed md:static inset-y-0 left-0 z-40 -translate-x-full md:translate-x-0 transition-transform duration-300 overflow-y-auto">
+    <button onclick="closeSidebar()" class="md:hidden self-end mb-3 h-9 w-9 rounded-lg border border-slate-100 flex items-center justify-center text-slate-400">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <button class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-slate-100 mb-6 text-left hover:border-slate-200 transition">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="h-8 w-8 rounded-lg brand-tint-bg flex items-center justify-center brand-text font-bold text-sm shrink-0">B</span>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold truncate">Baba's Grill &amp; Cafe</p>
+          <p class="text-xs text-slate-500 truncate">Main Location</p>
+        </div>
+      </div>
+      <svg class="h-4 w-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
+    </button>
+
+    <p class="text-[11px] font-semibold tracking-wider text-slate-400 px-3 mb-2">MAIN</p>
+    <nav class="space-y-1 mb-6">
+      <a href="#" onclick="showPage('dashboard');return false" data-nav="dashboard" class="nav-active flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium">
+        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+        Dashboard
+      </a>
+      <a href="#" onclick="showPage('menu');return false" data-nav="menu" class="nav-item-inactive flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50">
+        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        Menu
+      </a>
+      <a href="#" onclick="showPage('tables');return false" data-nav="tables" class="nav-item-inactive flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50">
+        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 6h18M5 14h5m-5 4h5m5-4h4m-4 4h4"/></svg>
+        Tables
+      </a>
+      <a href="#" onclick="showPage('orders');return false" data-nav="orders" class="nav-item-inactive flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50">
+        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Orders
+        <span class="ml-auto text-[11px] font-semibold brand-bg text-white rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center">3</span>
+      </a>
+      <a href="#" onclick="showPage('reports');return false" data-nav="reports" class="nav-item-inactive flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50">
+        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14"/></svg>
+        Reports
+      </a>
+    </nav>
+
+    <p class="text-[11px] font-semibold tracking-wider text-slate-400 px-3 mb-2">MANAGE</p>
+    <nav class="space-y-1">
+      <a href="#" onclick="showPage('staff');return false" data-nav="staff" class="nav-item-inactive flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50">
+        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4"/></svg>
+        Staff
+      </a>
+      <a href="#" onclick="showPage('settings');return false" data-nav="settings" class="nav-item-inactive flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50">
+        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+        Settings
+      </a>
+      <a href="#" onclick="showPage('billing');return false" data-nav="billing" class="nav-item-inactive flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50">
+        <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        Billing
+      </a>
+    </nav>
+
+    <!-- Plan card sits immediately under Billing — no scrolling needed -->
+    <div class="rounded-xl brand-bg p-3.5 text-white mt-3">
+      <div class="flex items-center justify-between mb-1">
+        <p class="text-xs font-semibold">Pro plan</p>
+        <span class="text-[10px] bg-white/20 rounded-full px-2 py-0.5">1 day left</span>
+      </div>
+      <p class="text-[11px] text-white/75 mb-2.5 leading-snug">Renews Aug 10. Keep API payments &amp; AI tools active.</p>
+      <button onclick="showPage('billing')" class="w-full bg-white text-xs font-semibold rounded-lg py-1.5" style="color:var(--brand)">Renew now</button>
+    </div>
+
+    <div class="flex-1"></div>
+  </aside>
+
+  <div class="flex-1 min-w-0 flex flex-col">
+    <header class="topbar sticky top-0 z-10 bg-white border-b border-slate-100 px-4 sm:px-8 py-4 flex items-center justify-between gap-3 sm:gap-6">
+      <div class="flex items-center gap-3 min-w-0">
+        <button onclick="openSidebar()" class="md:hidden h-10 w-10 rounded-xl border border-slate-100 flex items-center justify-center shrink-0">
+          <svg class="h-[18px] w-[18px] text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="min-w-0">
+          <p class="text-xs text-slate-500 mb-0.5 hidden sm:block" id="crumb">Pages / Dashboard</p>
+          <h1 class="text-lg sm:text-xl font-bold truncate" id="pageTitle">Dashboard</h1>
+        </div>
+      </div>
+      <div class="flex-1 max-w-md hidden lg:block">
+        <div class="search-box flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-2.5">
+          <svg class="h-4 w-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" placeholder="Search orders, menu items, staff…" class="bg-transparent text-sm outline-none w-full placeholder:text-slate-400" />
+        </div>
+      </div>
+      <button class="lg:hidden h-10 w-10 rounded-xl border border-slate-100 flex items-center justify-center shrink-0">
+        <svg class="h-[18px] w-[18px] text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+      </button>
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <button id="themeToggle" class="h-10 w-10 rounded-xl border border-slate-100 flex items-center justify-center hover:bg-slate-50 transition">
+          <svg id="themeIconLight" class="h-[18px] w-[18px] text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg id="themeIconDark" class="h-[18px] w-[18px] text-slate-600 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+        <button class="h-10 w-10 rounded-xl border border-slate-100 flex items-center justify-center hover:bg-slate-50 transition relative">
+          <svg class="h-[18px] w-[18px] text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="absolute -top-1 -right-1 h-4 w-4 rounded-full brand-bg text-white text-[10px] font-bold flex items-center justify-center">3</span>
+        </button>
+        <button class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-100">
+          <span class="h-9 w-9 rounded-full brand-bg text-white text-sm font-bold flex items-center justify-center">M</span>
+          <div class="text-left hidden lg:block">
+            <p class="text-sm font-semibold leading-tight">Mustaf</p>
+            <p class="text-xs text-slate-500 leading-tight">Owner</p>
+          </div>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 sm:p-6 lg:p-8">
+
+      <!-- ============ DASHBOARD ============ -->
+      <section id="page-dashboard" class="page active space-y-6">
+        <div class="brand-tint-bg border rounded-2xl px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4" style="border-color:rgba(158,46,46,0.25)">
+          <div class="flex items-center gap-3">
+            <span class="h-9 w-9 rounded-xl brand-bg text-white flex items-center justify-center shrink-0">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><path stroke-linecap="round" d="M3 10h18"/></svg>
+            </span>
+            <div>
+              <p class="text-sm font-semibold brand-text">27 orders awaiting payment confirmation</p>
+              <p class="text-xs text-slate-500">Not counted in today's paid Orders/Revenue. Includes older backlog.</p>
+            </div>
+          </div>
+          <button onclick="showPage('orders')" class="brand-bg text-white text-sm font-semibold px-4 py-2 rounded-xl shrink-0 w-full sm:w-auto">Review orders</button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div class="card rounded-2xl border border-slate-100 p-5">
+            <div class="flex items-start justify-between">
+              <div><p class="text-xs text-slate-500 mb-1.5">Orders Today</p><p class="text-2xl font-bold">18</p></div>
+              <span class="h-10 w-10 rounded-xl brand-tint-bg brand-text flex items-center justify-center shrink-0">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              </span>
+            </div>
+            <p class="text-xs font-semibold text-emerald-600 mt-3">↑ 12% <span class="text-slate-400 font-normal">vs yesterday</span></p>
+          </div>
+          <div class="card rounded-2xl border border-slate-100 p-5">
+            <div class="flex items-start justify-between">
+              <div><p class="text-xs text-slate-500 mb-1.5">Revenue Today</p><p class="text-2xl font-bold">$54.00</p></div>
+              <span class="h-10 w-10 rounded-xl brand-tint-bg brand-text flex items-center justify-center shrink-0">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2"/><circle cx="12" cy="12" r="9"/></svg>
+              </span>
+            </div>
+            <p class="text-xs font-semibold text-emerald-600 mt-3">↑ 8% <span class="text-slate-400 font-normal">vs yesterday</span></p>
+          </div>
+          <div class="card rounded-2xl border border-slate-100 p-5">
+            <div class="flex items-start justify-between">
+              <div><p class="text-xs text-slate-500 mb-1.5">Active Tables</p><p class="text-2xl font-bold">2 <span class="text-sm font-normal text-slate-400">/ 2</span></p></div>
+              <span class="h-10 w-10 rounded-xl brand-tint-bg brand-text flex items-center justify-center shrink-0">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="8" rx="1"/><path stroke-linecap="round" d="M3 10V8a2 2 0 012-2h14a2 2 0 012 2v2M7 18v2m10-2v2"/></svg>
+              </span>
+            </div>
+            <p class="text-xs font-semibold text-slate-400 mt-3">— no change</p>
+          </div>
+          <div class="card rounded-2xl border border-slate-100 p-5">
+            <div class="flex items-start justify-between">
+              <div><p class="text-xs text-slate-500 mb-1.5">Open Orders</p><p class="text-2xl font-bold">1</p></div>
+              <span class="h-10 w-10 rounded-xl brand-tint-bg brand-text flex items-center justify-center shrink-0">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 3"/></svg>
+              </span>
+            </div>
+            <p class="text-xs font-semibold text-rose-500 mt-3">↓ 3% <span class="text-slate-400 font-normal">vs yesterday</span></p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div class="lg:col-span-2 rounded-2xl p-6 text-white" style="background:linear-gradient(160deg, var(--brand) 0%, var(--brand-dark) 100%)">
+            <p class="text-sm text-white/70 mb-1">Peak hours today</p>
+            <p class="text-lg font-semibold mb-4">7–9pm is your busiest window</p>
+            <div class="h-40"><canvas id="barChart"></canvas></div>
+            <div class="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-white/15">
+              <div><p class="text-lg font-bold">44</p><p class="text-[11px] text-white/70">Items sold</p></div>
+              <div><p class="text-lg font-bold">$3.57</p><p class="text-[11px] text-white/70">Avg order</p></div>
+              <div><p class="text-lg font-bold">1</p><p class="text-[11px] text-white/70">Loyalty redeemed</p></div>
+            </div>
+          </div>
+          <div class="lg:col-span-3 card rounded-2xl border border-slate-100 p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div><p class="text-sm font-semibold">Revenue overview</p><p class="text-xs text-slate-500">This week vs last week</p></div>
+              <div class="flex items-center gap-4 text-xs">
+                <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full brand-bg"></span>This week</span>
+                <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-slate-300"></span>Last week</span>
+              </div>
+            </div>
+            <div class="h-52"><canvas id="lineChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div class="lg:col-span-3 card rounded-2xl border border-slate-100 p-6">
+            <div class="flex items-center justify-between mb-4">
+              <p class="text-sm font-semibold">Recent orders</p>
+              <a href="#" onclick="showPage('orders');return false" class="text-xs font-semibold brand-text">View all</a>
+            </div>
+            <table class="w-full text-sm">
+              <thead><tr class="text-left text-xs text-slate-400 border-b border-slate-100">
+                <th class="pb-3 font-medium">Order</th><th class="pb-3 font-medium">Table</th><th class="pb-3 font-medium">Total</th><th class="pb-3 font-medium">Status</th>
+              </tr></thead>
+              <tbody class="divide-y divide-slate-50">
+                <tr><td class="py-3 font-medium">#269</td><td class="py-3 text-slate-500">1</td><td class="py-3">$5.50</td><td class="py-3"><span class="text-[11px] font-semibold bg-amber-50 text-amber-600 px-2 py-1 rounded-full">Pending</span></td></tr>
+                <tr><td class="py-3 font-medium">#268</td><td class="py-3 text-slate-500">2</td><td class="py-3">$3.00</td><td class="py-3"><span class="text-[11px] font-semibold bg-amber-50 text-amber-600 px-2 py-1 rounded-full">Pending</span></td></tr>
+                <tr><td class="py-3 font-medium">#260</td><td class="py-3 text-slate-500">2</td><td class="py-3">$5.50</td><td class="py-3"><span class="text-[11px] font-semibold bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">Delivered</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="lg:col-span-2 card rounded-2xl border border-slate-100 p-6">
+            <p class="text-sm font-semibold mb-4">Activity</p>
+            <div class="space-y-4">
+              <div class="flex gap-3"><span class="h-2 w-2 rounded-full brand-bg mt-1.5 shrink-0"></span><div><p class="text-sm">Insight: <span class="font-medium">Delish Burg</span> trending up 22%</p><p class="text-xs text-slate-400">12 minutes ago</p></div></div>
+              <div class="flex gap-3"><span class="h-2 w-2 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span><div><p class="text-sm">Order #260 marked delivered by Hasso</p><p class="text-xs text-slate-400">1 hour ago</p></div></div>
+              <div class="flex gap-3"><span class="h-2 w-2 rounded-full bg-amber-400 mt-1.5 shrink-0"></span><div><p class="text-sm">New order #269 awaiting confirmation</p><p class="text-xs text-slate-400">2 hours ago</p></div></div>
+              <div class="flex gap-3"><span class="h-2 w-2 rounded-full bg-slate-300 mt-1.5 shrink-0"></span><div><p class="text-sm">Weekly report generated</p><p class="text-xs text-slate-400">Yesterday</p></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ MENU ============ -->
+      <section id="page-menu" class="page space-y-6">
+        <div class="flex gap-2 border-b border-slate-100">
+          <button class="tabbtn active px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px">Categories</button>
+          <button class="tabbtn px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent">Add-ons</button>
+          <button class="tabbtn px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent">Menu Items</button>
+        </div>
+        <p class="text-sm text-slate-500 -mt-3">Set up categories and add-ons first, then build menu items.</p>
+        <div class="card rounded-2xl border border-slate-100 p-6">
+          <div class="flex gap-3 mb-5">
+            <input placeholder="e.g. Appetizers" class="flex-1 border border-slate-100 rounded-xl px-4 py-2.5 text-sm bg-slate-50" />
+            <button class="brand-bg text-white text-sm font-semibold px-5 rounded-xl">+ Add</button>
+          </div>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between border border-slate-100 rounded-xl px-4 py-3.5">
+              <div><p class="font-semibold text-sm">Af Bilaaw</p><p class="text-xs text-slate-500">1 add-on · default instructions hint</p></div>
+              <div class="flex gap-3 text-slate-400"><span>✎</span><span class="text-rose-400">🗑</span></div>
+            </div>
+            <div class="flex items-center justify-between border border-slate-100 rounded-xl px-4 py-3.5">
+              <div><p class="font-semibold text-sm">Cunno</p><p class="text-xs text-slate-500">1 add-on · "e.g. No onions"</p></div>
+              <div class="flex gap-3 text-slate-400"><span>✎</span><span class="text-rose-400">🗑</span></div>
+            </div>
+            <div class="flex items-center justify-between border border-slate-100 rounded-xl px-4 py-3.5">
+              <div><p class="font-semibold text-sm">Cabitaan</p><p class="text-xs text-slate-500">0 add-ons · "e.g. No sugar"</p></div>
+              <div class="flex gap-3 text-slate-400"><span>✎</span><span class="text-rose-400">🗑</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card rounded-2xl border border-slate-100 p-6">
+          <p class="text-sm font-semibold mb-4">Menu items preview</p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="border border-slate-100 rounded-xl overflow-hidden">
+              <div class="h-24 bg-gradient-to-br from-amber-100 to-amber-50"></div>
+              <div class="p-3"><p class="text-sm font-semibold">Delish Burg</p><p class="text-sm font-bold brand-text">$3.00</p></div>
+            </div>
+            <div class="border border-slate-100 rounded-xl overflow-hidden">
+              <div class="h-24 bg-gradient-to-br from-rose-100 to-rose-50"></div>
+              <div class="p-3"><p class="text-sm font-semibold">Strawberry Mojito</p><p class="text-sm font-bold brand-text">$2.00</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TABLES ============ -->
+      <section id="page-tables" class="page">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="card rounded-2xl border border-slate-100 p-6">
+            <p class="text-sm font-semibold mb-1">Ordering QR Code</p>
+            <p class="text-xs text-slate-500 mb-4">One QR code for your whole restaurant. Print and place it on every table.</p>
+            <div class="aspect-square max-w-[220px] bg-slate-100 rounded-xl flex items-center justify-center text-slate-300 text-xs">QR CODE</div>
+          </div>
+          <div class="card rounded-2xl border border-slate-100 p-6">
+            <p class="text-sm font-semibold mb-1">Table Numbers</p>
+            <p class="text-xs text-slate-500 mb-4">Customers enter this number after choosing "Fadhi" (Dine-in).</p>
+            <div class="flex gap-3 mb-4">
+              <input placeholder="e.g. 12" class="flex-1 border border-slate-100 rounded-xl px-4 py-2.5 text-sm bg-slate-50" />
+              <button class="brand-bg text-white text-sm font-semibold px-5 rounded-xl">+ Add Table</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex items-center justify-between border border-slate-100 rounded-xl px-4 py-3"><span class="text-sm font-semibold">Table 1</span><span class="h-5 w-9 rounded-full brand-bg relative"><span class="h-4 w-4 bg-white rounded-full absolute right-0.5 top-0.5"></span></span></div>
+              <div class="flex items-center justify-between border border-slate-100 rounded-xl px-4 py-3"><span class="text-sm font-semibold">Table 2</span><span class="h-5 w-9 rounded-full brand-bg relative"><span class="h-4 w-4 bg-white rounded-full absolute right-0.5 top-0.5"></span></span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ORDERS ============ -->
+      <section id="page-orders" class="page">
+        <div class="card rounded-2xl border border-slate-100 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <p class="text-sm text-slate-500">Tap a row for details and actions. Updates live.</p>
+            <span class="text-xs font-semibold text-emerald-600 flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Live</span>
+          </div>
+          <table class="w-full text-sm">
+            <thead><tr class="text-left text-xs text-slate-400 border-b border-slate-100">
+              <th class="px-6 py-3 font-medium">Order</th><th class="py-3 font-medium">Status</th><th class="py-3 font-medium">Total</th><th class="py-3 font-medium">Placed</th><th class="px-6 py-3"></th>
+            </tr></thead>
+            <tbody class="divide-y divide-slate-50">
+              <tr class="hover:bg-slate-50"><td class="px-6 py-4 font-semibold">#269</td><td class="py-4"><span class="text-[11px] font-semibold bg-amber-50 text-amber-600 px-2 py-1 rounded-full">New · Pending Cash…</span></td><td class="py-4">$5.50</td><td class="py-4 text-slate-500">Aug 9, 6:25 PM</td><td class="px-6 py-4 text-slate-300">›</td></tr>
+              <tr class="hover:bg-slate-50"><td class="px-6 py-4 font-semibold">#268</td><td class="py-4"><span class="text-[11px] font-semibold bg-amber-50 text-amber-600 px-2 py-1 rounded-full">New · Pending Cash…</span></td><td class="py-4">$3.00</td><td class="py-4 text-slate-500">Aug 9, 6:07 PM</td><td class="px-6 py-4 text-slate-300">›</td></tr>
+              <tr class="hover:bg-slate-50"><td class="px-6 py-4 font-semibold">#260</td><td class="py-4"><span class="text-[11px] font-semibold bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">Delivered</span></td><td class="py-4">$5.50</td><td class="py-4 text-slate-500">Aug 4, 3:34 PM</td><td class="px-6 py-4 text-slate-300">›</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ REPORTS ============ -->
+      <section id="page-reports" class="page space-y-6">
+        <div class="flex items-center justify-between">
+          <div><p class="text-sm text-slate-500">Aug 9, 2026</p></div>
+          <div class="flex items-center gap-3">
+            <select class="border border-slate-100 rounded-xl px-3 py-2 text-sm bg-white"><option>Daily</option><option>Weekly</option><option>Monthly</option></select>
+            <button class="border border-slate-100 rounded-xl px-4 py-2 text-sm font-semibold">Download PDF</button>
+            <button class="border border-slate-100 rounded-xl px-4 py-2 text-sm font-semibold">Download Excel</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div class="card rounded-2xl border border-slate-100 p-5"><p class="text-xs text-slate-500 mb-1.5">Total Orders</p><p class="text-2xl font-bold">37</p><p class="text-xs font-semibold text-emerald-600 mt-2">↑ 100%</p></div>
+          <div class="card rounded-2xl border border-slate-100 p-5"><p class="text-xs text-slate-500 mb-1.5">Total Revenue</p><p class="text-2xl font-bold">$132.00</p><p class="text-xs font-semibold text-emerald-600 mt-2">↑ 100%</p></div>
+          <div class="card rounded-2xl border border-slate-100 p-5"><p class="text-xs text-slate-500 mb-1.5">Avg Order Value</p><p class="text-2xl font-bold">$3.57</p><p class="text-xs font-semibold text-emerald-600 mt-2">↑ 100%</p></div>
+          <div class="card rounded-2xl border border-slate-100 p-5"><p class="text-xs text-slate-500 mb-1.5">Top Selling Item</p><p class="text-lg font-bold">Delish Burg</p><p class="text-xs text-slate-400 mt-2">44 sold</p></div>
+        </div>
+        <div class="card rounded-2xl border border-slate-100 p-6">
+          <div class="flex items-center gap-2 mb-4"><span class="text-amber-500">💡</span><p class="text-sm font-semibold">Insights</p><p class="text-xs text-slate-400">Actionable tips from this period</p></div>
+          <div class="border border-slate-100 rounded-xl p-4 flex items-center gap-3">
+            <span class="h-9 w-9 rounded-lg brand-tint-bg brand-text flex items-center justify-center shrink-0">↑</span>
+            <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Revenue trend</p><p class="text-sm">Revenue is up 22% compared to last week.</p></div>
+          </div>
+        </div>
+        <div class="card rounded-2xl border border-slate-100 p-6">
+          <p class="text-sm font-semibold mb-4">Revenue trend</p>
+          <div class="h-48"><canvas id="reportsChart"></canvas></div>
+        </div>
+      </section>
+
+      <!-- ============ STAFF ============ -->
+      <section id="page-staff" class="page space-y-6">
+        <div class="flex gap-2 border-b border-slate-100">
+          <button class="tabbtn active px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px">Accounts</button>
+          <button class="tabbtn px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent">Dashboard Access</button>
+          <button class="tabbtn px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent">Waiter Names</button>
+        </div>
+        <div class="card rounded-2xl border border-slate-100 p-6">
+          <p class="text-sm font-semibold mb-1">Staff accounts</p>
+          <p class="text-xs text-slate-500 mb-4">Deactivate removes access immediately. Owner accounts cannot be deactivated here.</p>
+          <div class="flex items-center justify-between border border-slate-100 rounded-xl px-4 py-3.5">
+            <div class="flex items-center gap-3"><span class="font-semibold text-sm">Mustaf</span><span class="text-[11px] bg-slate-100 rounded-full px-2 py-0.5">Owner</span><span class="text-[11px] bg-emerald-50 text-emerald-600 rounded-full px-2 py-0.5 font-semibold">Active</span></div>
+            <span class="text-xs text-slate-400">Owner protected</span>
+          </div>
+        </div>
+        <div class="card rounded-2xl border border-slate-100 p-6">
+          <div class="flex items-center gap-2 mb-1"><span class="text-amber-500">ⓘ</span><p class="text-sm text-slate-600">Each dashboard has its own link — share the QR code or link with staff devices. Never enter your own owner login on a shared tablet.</p></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="rounded-2xl p-5 text-white" style="background:#0F172A">
+            <span class="h-11 w-11 rounded-xl brand-bg flex items-center justify-center mb-4">🍳</span>
+            <p class="font-bold mb-1">Kitchen Dashboard</p>
+            <p class="text-xs text-white/60 mb-4">For the chef to see incoming orders and mark them 'Ready'.</p>
+            <button onclick="openStaff('kitchen')" class="w-full brand-bg text-sm font-semibold rounded-lg py-2">Open dashboard →</button>
+          </div>
+          <div class="rounded-2xl p-5 text-white" style="background:#0F172A">
+            <span class="h-11 w-11 rounded-xl brand-bg flex items-center justify-center mb-4">🧑</span>
+            <p class="font-bold mb-1">Waiter Dashboard</p>
+            <p class="text-xs text-white/60 mb-4">For waiters to see 'Ready' orders and mark them 'Delivered'.</p>
+            <button onclick="openStaff('waiter')" class="w-full brand-bg text-sm font-semibold rounded-lg py-2">Open dashboard →</button>
+          </div>
+          <div class="rounded-2xl p-5 text-white" style="background:#0F172A">
+            <span class="h-11 w-11 rounded-xl brand-bg flex items-center justify-center mb-4">💳</span>
+            <p class="font-bold mb-1">Cashier Dashboard</p>
+            <p class="text-xs text-white/60 mb-4">For the cashier to see all orders and confirm payments.</p>
+            <button onclick="openStaff('cashier')" class="w-full brand-bg text-sm font-semibold rounded-lg py-2">Open dashboard →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SETTINGS ============ -->
+      <section id="page-settings" class="page space-y-6">
+        <div class="card rounded-2xl border border-slate-100 p-6">
+          <p class="text-sm font-semibold mb-1">🎨 Brand Settings</p>
+          <p class="text-xs text-slate-500 mb-4">Pick any color for your admin and staff dashboard sidebars.</p>
+          <div class="flex items-center gap-4">
+            <div class="h-10 w-16 rounded-lg brand-bg border border-slate-200"></div>
+            <div><p class="text-xs text-slate-500">Current value</p><p class="text-sm font-semibold">#9E2E2E</p></div>
+          </div>
+        </div>
+        <div class="card rounded-2xl border border-slate-100 p-6">
+          <p class="text-sm font-semibold mb-4">Payment Rules per Order Type</p>
+          <p class="text-xs text-slate-500 mb-2">🍽️ Dine-in: Pay before cooking or Pay after meal?</p>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="border border-slate-100 rounded-xl p-4"><p class="text-sm font-semibold">Pay before cooking</p><p class="text-xs text-slate-500">EVC / eDahab</p></div>
+            <div class="border-2 rounded-xl p-4 brand-tint-bg" style="border-color:var(--brand)"><p class="text-sm font-semibold brand-text">Pay after meal</p><p class="text-xs text-slate-500">Bill brought to table later</p></div>
+          </div>
+          <button class="brand-bg text-white text-sm font-semibold px-5 py-2.5 rounded-xl">Save Payment Settings</button>
+        </div>
+        <div class="card rounded-2xl border border-slate-100 p-6">
+          <p class="text-sm font-semibold mb-1">🎁 Loyalty Program</p>
+          <p class="text-xs text-slate-500 mb-4">Punch-card rewards for every plan.</p>
+          <div class="grid grid-cols-3 gap-4">
+            <div class="border border-slate-100 rounded-xl p-4 text-center"><p class="text-xl font-bold">1</p><p class="text-xs text-slate-500">Customers with progress</p></div>
+            <div class="border border-slate-100 rounded-xl p-4 text-center"><p class="text-xl font-bold">0</p><p class="text-xs text-slate-500">Rewards waiting</p></div>
+            <div class="border border-slate-100 rounded-xl p-4 text-center"><p class="text-xl font-bold">0</p><p class="text-xs text-slate-500">Total redeemed</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ BILLING ============ -->
+      <section id="page-billing" class="page space-y-6">
+        <div class="card rounded-2xl border border-slate-100 p-6 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-semibold mb-1">👑 Current Plan</p>
+            <p class="text-xs text-slate-500">Renews / expires Aug 10, 2026 · 1 day remaining</p>
+          </div>
+          <span class="brand-bg text-white text-xs font-bold px-3 py-1.5 rounded-full">Pro</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="card rounded-2xl border border-slate-100 p-6">
+            <p class="font-semibold mb-1">Starter</p>
+            <p class="text-3xl font-bold mb-1">$29<span class="text-sm font-normal text-slate-400">/mo</span></p>
+            <p class="text-xs text-slate-500">USSD payments, QR ordering, kitchen dashboard.</p>
+          </div>
+          <div class="card rounded-2xl p-6 border-2" style="border-color:var(--brand)">
+            <p class="font-semibold mb-1 brand-text">Pro</p>
+            <p class="text-3xl font-bold mb-1">$79<span class="text-sm font-normal text-slate-400">/mo</span></p>
+            <p class="text-xs text-slate-500">Everything in Starter, plus API payments and AI tools.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============ STAFF DASHBOARD PREVIEWS ============ -->
+<div id="staff-kitchen" class="staffscreen fixed inset-0 bg-white z-50 flex-col">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-100">
+    <div class="flex items-center gap-3">
+      <button onclick="closeStaff()" class="text-slate-400 text-xl">☰</button>
+      <div><p class="text-xs text-slate-400">Baba's Grill and Cafe</p><p class="font-bold">Kitchen Dashboard</p></div>
+    </div>
+    <div class="flex items-center gap-2 text-[11px] sm:text-xs font-semibold overflow-x-auto">
+      <span class="bg-slate-100 rounded-full px-3 py-1 whitespace-nowrap">New: 1</span>
+      <span class="bg-amber-50 text-amber-600 rounded-full px-3 py-1 whitespace-nowrap">Preparing: 0</span>
+      <span class="bg-emerald-50 text-emerald-600 rounded-full px-3 py-1 whitespace-nowrap">Ready: 0</span>
+    </div>
+  </div>
+  <div class="p-6">
+    <button onclick="closeStaff()" class="text-sm brand-text font-semibold mb-4">← Back to Admin</button>
+    <div class="max-w-sm border-l-4 rounded-xl border border-slate-100 overflow-hidden" style="border-left-color:var(--brand)">
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-2"><p class="font-bold">Order #260</p><span class="text-[11px] bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded-full">New</span></div>
+        <p class="text-xs text-slate-400 mb-3">Table 2 · Aug 4, 3:34 PM</p>
+        <p class="text-sm mb-1">1× Delish Burg <span class="text-slate-400">+ Extra Cheese</span></p>
+        <p class="text-sm">1× Strawberry Mojito</p>
+      </div>
+      <div class="grid grid-cols-2 border-t border-slate-100">
+        <button class="py-3 text-sm font-semibold bg-amber-400 text-white">Preparing</button>
+        <button class="py-3 text-sm font-semibold bg-emerald-600 text-white">Ready</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="staff-waiter" class="staffscreen fixed inset-0 bg-white z-50 flex-col">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+    <div class="flex items-center gap-3">
+      <button onclick="closeStaff()" class="text-slate-400 text-xl">☰</button>
+      <div><p class="text-xs text-slate-400">Baba's Grill and Cafe</p><p class="font-bold">Waiter Dashboard</p></div>
+    </div>
+    <select class="border border-slate-100 rounded-lg px-3 py-1.5 text-sm"><option>Who is delivering? — Hasso</option></select>
+  </div>
+  <div class="p-6">
+    <button onclick="closeStaff()" class="text-sm brand-text font-semibold mb-4">← Back to Admin</button>
+    <p class="text-sm text-slate-400">No orders ready for delivery right now.</p>
+  </div>
+</div>
+
+<div id="staff-cashier" class="staffscreen fixed inset-0 bg-white z-50 flex-col">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+    <div class="flex items-center gap-3">
+      <button onclick="closeStaff()" class="text-slate-400 text-xl">☰</button>
+      <div><p class="text-xs text-slate-400">Baba's Grill and Cafe</p><p class="font-bold">Cashier Dashboard</p></div>
+    </div>
+  </div>
+  <div class="p-6">
+    <button onclick="closeStaff()" class="text-sm brand-text font-semibold mb-4">← Back to Admin</button>
+    <div class="max-w-md border border-slate-100 rounded-xl p-4">
+      <div class="flex items-center justify-between mb-3"><p class="font-bold">Order #269 · $5.50</p><span class="text-[11px] bg-amber-50 text-amber-600 font-semibold px-2 py-0.5 rounded-full">Pending</span></div>
+      <button class="w-full bg-emerald-600 text-white text-sm font-semibold rounded-lg py-2.5">Confirm payment</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const root = document.documentElement;
+  const btn = document.getElementById('themeToggle');
+  document.getElementById('themeToggle')?.addEventListener('click', () => {
+    root.classList.toggle('dark');
+    document.getElementById('themeIconLight').classList.toggle('hidden');
+    document.getElementById('themeIconDark').classList.toggle('hidden');
+  });
+
+  const titles = {
+    dashboard: 'Dashboard', menu: 'Menu', tables: 'Tables', orders: 'Orders',
+    reports: 'Reports', staff: 'Staff', settings: 'Settings', billing: 'Billing'
+  };
+
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    document.querySelectorAll('[data-nav]').forEach(n => {
+      n.classList.remove('nav-active');
+      n.classList.add('nav-item-inactive');
+    });
+    const activeNav = document.querySelector('[data-nav="' + id + '"]');
+    activeNav.classList.add('nav-active');
+    activeNav.classList.remove('nav-item-inactive');
+    document.getElementById('pageTitle').textContent = titles[id];
+    document.getElementById('crumb').textContent = 'Pages / ' + titles[id];
+    closeSidebar(); // auto-close drawer on mobile after picking a page
+    window.scrollTo(0, 0);
+  }
+
+  function openSidebar() {
+    document.getElementById('sidebar').classList.remove('-translate-x-full');
+    document.getElementById('sidebarBackdrop').classList.remove('hidden');
+  }
+  function closeSidebar() {
+    if (window.innerWidth < 768) {
+      document.getElementById('sidebar').classList.add('-translate-x-full');
+    }
+    document.getElementById('sidebarBackdrop').classList.add('hidden');
+  }
+
+  function openStaff(which) {
+    document.getElementById('staff-' + which).classList.add('active');
+  }
+  function closeStaff() {
+    document.querySelectorAll('.staffscreen').forEach(s => s.classList.remove('active'));
+  }
+
+  // tab buttons (visual only in prototype)
+  document.querySelectorAll('.tabbtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.parentElement.querySelectorAll('.tabbtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  const brand = '#9E2E2E';
+  new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: { labels: ['12p','2p','4p','6p','8p','10p'], datasets: [{ data: [3,5,4,9,14,6], backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 6, maxBarThickness: 22 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'rgba(255,255,255,0.6)',font:{size:10}},grid:{display:false}},y:{display:false}} }
+  });
+  new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: { labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], datasets:[
+      {data:[12,19,14,27,22,34,30], borderColor:brand, backgroundColor:'rgba(158,46,46,0.08)', fill:true, tension:0.4, pointRadius:0, borderWidth:3},
+      {data:[8,14,12,18,16,20,19], borderColor:'#CBD2E0', borderDash:[4,4], fill:false, tension:0.4, pointRadius:0, borderWidth:2}
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#94A3B8',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#94A3B8',font:{size:11}},grid:{color:'#F1F2F6'}}} }
+  });
+  new Chart(document.getElementById('reportsChart'), {
+    type: 'line',
+    data: { labels:['Jul 12','Jul 15','Jul 18','Jul 21','Jul 24','Jul 25'], datasets:[
+      {data:[10,45,20,35,15,52], borderColor:brand, backgroundColor:'rgba(158,46,46,0.08)', fill:true, tension:0.4, pointRadius:3, borderWidth:3}
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#94A3B8',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#94A3B8',font:{size:11}},grid:{color:'#F1F2F6'}}} }
+  });
+</script>
+</body>
+</html>

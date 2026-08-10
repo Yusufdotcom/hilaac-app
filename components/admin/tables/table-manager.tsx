@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 import { Plus, Trash2, Download, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { AdminPageIntro } from "@/components/admin/admin-page-intro";
 import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,14 +74,13 @@ export function TableManager({
   }
 
   return (
-    <div className="w-full space-y-6">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-bold">Tables</h1>
-        <p className="text-muted-foreground">Manage table numbers and your restaurant&apos;s ordering QR code.</p>
-      </div>
+    <div className="w-full space-y-4 sm:space-y-5">
+      <AdminPageIntro>
+        Manage table numbers and your restaurant&apos;s ordering QR code.
+      </AdminPageIntro>
 
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
-        <Card className="w-full overflow-hidden lg:col-span-1">
+        <Card className="admin-glass-hover w-full overflow-hidden lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-lg">Ordering QR Code</CardTitle>
             <CardDescription>One QR code for your whole restaurant. Print and place it on every table.</CardDescription>
@@ -101,7 +101,7 @@ export function TableManager({
           </CardContent>
         </Card>
 
-        <Card className="w-full overflow-hidden lg:col-span-2">
+        <Card className="admin-glass-hover w-full overflow-hidden lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg">Table Numbers</CardTitle>
             <CardDescription>Customers enter this number after choosing &quot;Fadhi&quot; (Dine-in).</CardDescription>

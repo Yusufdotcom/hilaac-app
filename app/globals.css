@@ -233,3 +233,131 @@
   background-color: hsl(24 18% 10%);
   color: hsl(36 30% 94%);
 }
+
+/* ── Admin shell (Phase 1 redesign) ── */
+.admin-shell {
+  --admin-bg: #f5f6fa;
+  --admin-card: #ffffff;
+  --admin-border: #eef0f5;
+  --admin-muted: #64748b;
+  --admin-text: #0f172a;
+  --admin-glass-bg: rgba(255, 255, 255, 0.65);
+  --admin-glass-border: rgba(255, 255, 255, 0.4);
+  --admin-glass-dark-bg: rgba(28, 32, 48, 0.65);
+  --admin-sidebar-width: 16rem;
+  background-color: var(--admin-bg);
+  color: var(--admin-text);
+}
+
+.admin-shell[data-admin-theme="dark"] {
+  --admin-bg: #14171f;
+  --admin-card: #1c2030;
+  --admin-border: #2a2f42;
+  --admin-muted: #8a8fa3;
+  --admin-text: #f1f2f6;
+  --admin-glass-bg: rgba(28, 32, 48, 0.65);
+  --admin-glass-border: rgba(255, 255, 255, 0.12);
+}
+
+.admin-shell-main {
+  position: relative;
+  isolation: isolate;
+  background-color: transparent;
+}
+
+/* Brand mesh so glass has something to refract */
+.admin-shell-main::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(
+      900px 480px at 12% -10%,
+      color-mix(in srgb, var(--admin-brand, #9e2e2e) 18%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      700px 420px at 92% 8%,
+      color-mix(in srgb, var(--admin-brand, #9e2e2e) 12%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      640px 360px at 50% 100%,
+      color-mix(in srgb, var(--admin-brand, #9e2e2e) 10%, transparent),
+      transparent 60%
+    ),
+    var(--admin-bg);
+}
+
+.admin-shell-main > * {
+  position: relative;
+  z-index: 1;
+}
+
+.admin-glass,
+.admin-glass-panel {
+  background: var(--admin-glass-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--admin-glass-border);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 8px 28px rgba(15, 23, 42, 0.08),
+    0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.admin-shell[data-admin-theme="dark"] .admin-glass,
+.admin-shell[data-admin-theme="dark"] .admin-glass-panel {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 12px 32px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.admin-glass-hover {
+  transition:
+    transform 250ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1),
+    filter 250ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-glass-hover:hover {
+  transform: scale(1.015);
+  filter: brightness(1.03);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.45) inset,
+    0 14px 36px rgba(15, 23, 42, 0.12),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-glass-hover,
+  .admin-glass-hover:hover {
+    transition: none;
+    transform: none;
+    filter: none;
+  }
+}
+
+.admin-nav-active {
+  background: color-mix(in srgb, var(--admin-brand, #9e2e2e) 12%, white);
+  color: var(--admin-brand, #9e2e2e);
+}
+
+.admin-shell[data-admin-theme="dark"] .admin-nav-active {
+  background: color-mix(in srgb, var(--admin-brand, #9e2e2e) 22%, transparent);
+  color: #f2b8b8;
+}
+
+.admin-brand-tint {
+  background: color-mix(in srgb, var(--admin-brand, #9e2e2e) 12%, white);
+  color: var(--admin-brand, #9e2e2e);
+}
+
+.admin-shell[data-admin-theme="dark"] .admin-brand-tint {
+  background: color-mix(in srgb, var(--admin-brand, #9e2e2e) 22%, transparent);
+  color: #f2b8b8;
+}

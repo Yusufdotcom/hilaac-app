@@ -142,7 +142,7 @@ export function AdminOrderDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg sm:max-w-xl">
+      <DialogContent className="admin-glass-panel max-w-lg border-0 sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{formatOrderLabel(order, { prefix: true })}</DialogTitle>
           <DialogDescription>

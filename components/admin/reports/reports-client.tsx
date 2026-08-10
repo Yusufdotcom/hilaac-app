@@ -205,10 +205,12 @@ export function ReportsClient({
 
   return (
     <div className="-mx-4 min-h-full bg-slate-50 px-4 pb-8 pt-0 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-      <div className="sticky top-0 z-30 -mx-4 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+      <div className="admin-glass sticky top-[4.5rem] z-20 -mx-4 border-b border-[var(--admin-border,#E2E8F0)] px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <header className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Insights</h1>
+            <p className="text-sm text-[var(--admin-muted,#64748B)]">
+              Period controls &amp; exports
+            </p>
             <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
               <button
                 type="button"

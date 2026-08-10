@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CreditCard, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -176,27 +176,16 @@ export function CashierBoard({
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F172A] text-[#D4A373]">
-            <CreditCard className="h-6 w-6" aria-hidden="true" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#0F172A]">Cashier Dashboard</h1>
-            <p className="text-sm text-[#64748B]">{restaurantName}</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary" className="px-3 py-1 text-sm">
-            Pending: {summary.total}
-          </Badge>
-          <Badge className="border-0 bg-amber-100 px-3 py-1 text-sm text-amber-900">
-            Customer confirmed: {summary.awaitingCashier}
-          </Badge>
-          <Badge className="border-0 bg-slate-100 px-3 py-1 text-sm text-slate-700">
-            Pay at end: {summary.payAtEnd}
-          </Badge>
-        </div>
+      <header className="flex flex-wrap items-center gap-2">
+        <Badge variant="secondary" className="px-3 py-1 text-sm">
+          Pending: {summary.total}
+        </Badge>
+        <Badge className="border-0 bg-amber-100 px-3 py-1 text-sm text-amber-900">
+          Customer confirmed: {summary.awaitingCashier}
+        </Badge>
+        <Badge className="border-0 bg-slate-100 px-3 py-1 text-sm text-slate-700">
+          Pay at end: {summary.payAtEnd}
+        </Badge>
       </header>
 
       <LoyaltyLookupPanel slug={slug} />

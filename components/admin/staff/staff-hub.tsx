@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminPageIntro } from "@/components/admin/admin-page-intro";
 import { StaffAccountsManager } from "@/components/admin/staff/staff-accounts-manager";
 import { WaiterManager } from "@/components/admin/staff/waiter-manager";
 import { StaffAccessBoard } from "@/components/admin/staff-access/staff-access-board";
@@ -52,12 +53,9 @@ export function StaffHub({
 
   return (
     <div className="w-full min-w-0 space-y-4 sm:space-y-5">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight">Staff</h1>
-        <p className="text-sm text-muted-foreground sm:text-base">
-          Manage login accounts, floor dashboard links, and waiter display names in one place.
-        </p>
-      </div>
+      <AdminPageIntro>
+        Manage login accounts, floor dashboard links, and waiter display names in one place.
+      </AdminPageIntro>
 
       <Tabs value={tab} onValueChange={onTabChange} className="w-full min-w-0 space-y-4">
         <TabsList className="h-auto w-full flex-wrap justify-start gap-1 sm:w-auto">

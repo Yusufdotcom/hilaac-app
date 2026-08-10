@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { AddOn, Category, CategoryAddOn, MenuItem, MenuItemAddOn } from "@/types/database";
+import { AdminPageIntro } from "@/components/admin/admin-page-intro";
 import { CategorySection } from "@/components/admin/menu/category-section";
 import { MenuItemSection } from "@/components/admin/menu/menu-item-section";
 import { AddOnSection } from "@/components/admin/menu/add-on-section";
@@ -28,12 +29,9 @@ export function MenuManager({
 
   return (
     <div className="w-full min-w-0 space-y-4 sm:space-y-5">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight">Menu</h1>
-        <p className="text-sm text-muted-foreground sm:text-base">
-          Set up categories and add-ons first, then build menu items.
-        </p>
-      </div>
+      <AdminPageIntro>
+        Set up categories and add-ons first, then build menu items.
+      </AdminPageIntro>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full min-w-0 space-y-4">
         <TabsList className="h-auto w-full flex-wrap justify-start gap-1 sm:w-auto">

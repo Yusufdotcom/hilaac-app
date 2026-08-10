@@ -4,6 +4,7 @@ import { AdminLayoutShell } from "@/components/admin/admin-layout-shell";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { getAdminSlugRedirect } from "@/lib/admin/resolve-user-restaurant";
 import { getOwnerBranches } from "@/lib/admin/owner-branches";
+import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,6 @@ export default async function AdminLayout({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // If URL contains a demo slug or a stale/wrong slug, send to the user's real restaurant.
   const slugRedirect = await getAdminSlugRedirect(supabase, user.id, params.slug);
   if (slugRedirect) redirect(slugRedirect);
 
@@ -34,16 +34,35 @@ export default async function AdminLayout({
     user.email?.split("@")[0] ||
     "User";
 
+  const [{ count: awaitingEnum }, { count: awaitingLegacy }] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .eq("restaurant_id", restaurant.id)
+      .eq("payment_status", PENDING_CASHIER_CONFIRMATION),
+    supabase
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .eq("restaurant_id", restaurant.id)
+      .eq("payment_status", "pending")
+      .not("customer_confirmed_at", "is", null),
+  ]);
+
+  const awaitingOrdersCount = (awaitingEnum ?? 0) + (awaitingLegacy ?? 0);
+
   return (
     <AdminLayoutShell
       restaurantName={restaurant.name}
       logoUrl={restaurant.logo_url}
       subscriptionTier={restaurant.subscription_tier}
+      subscriptionEndDate={restaurant.subscription_end_date}
       brandColor={restaurant.brand_color}
       userName={userName}
       userRole={profile.role}
+      avatarUrl={profile.avatar_url ?? null}
       currentSlug={params.slug}
       branches={branches}
+      awaitingOrdersCount={awaitingOrdersCount}
     >
       {children}
     </AdminLayoutShell>

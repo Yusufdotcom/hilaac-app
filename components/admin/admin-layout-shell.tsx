@@ -2,41 +2,46 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
 import { AdminBrandProvider } from "@/components/admin/admin-brand-context";
+import {
+  AdminAppearanceProvider,
+  useAdminAppearance,
+} from "@/components/admin/admin-appearance-context";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
-import { AdminUserMenu } from "@/components/admin/admin-user-menu";
+import { AdminTopBar } from "@/components/admin/admin-top-bar";
 import { StaffIdleGuardian } from "@/components/auth/staff-idle-guardian";
-import { HilaacLogo } from "@/components/brand/hilaac-logo";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
-import { useSnapSidebar } from "@/lib/hooks/use-snap-sidebar";
 import { cn } from "@/lib/utils";
 import type { OwnerBranch } from "@/lib/admin/owner-branches";
 import type { UserRole } from "@/types/database";
 
-export function AdminLayoutShell({
+function AdminShellChrome({
   children,
   restaurantName,
-  logoUrl,
   subscriptionTier,
+  subscriptionEndDate,
   brandColor,
   userName,
   userRole,
+  avatarUrl,
   currentSlug,
-  branches = [],
+  branches,
+  awaitingOrdersCount,
 }: {
   children: React.ReactNode;
   restaurantName: string;
-  logoUrl: string | null;
   subscriptionTier: string;
+  subscriptionEndDate?: string | null;
   brandColor?: string | null;
   userName: string;
   userRole: UserRole;
+  avatarUrl?: string | null;
   currentSlug: string;
-  branches?: OwnerBranch[];
+  branches: OwnerBranch[];
+  awaitingOrdersCount: number;
 }) {
   const pathname = usePathname();
-  const { isExpanded, isCollapsed, isDragging, currentWidth, toggle, onPointerDown } = useSnapSidebar();
+  const { theme } = useAdminAppearance();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -61,103 +66,103 @@ export function AdminLayoutShell({
     return () => window.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
 
-  const offsetTransition = isDragging ? "none" : "300ms ease-out";
-  const sidebarCssVars = {
-    ["--admin-sidebar-width" as string]: `${currentWidth}px`,
-  };
+  return (
+    <div
+      className="admin-shell flex min-h-screen w-full max-w-[100vw] overflow-x-clip"
+      data-admin-theme={theme}
+    >
+      {mobileOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 touch-manipulation bg-black/40 md:hidden"
+          aria-label="Close menu"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
 
+      {/* Desktop width reserve — sidebar is fixed; do not stretch with page height. */}
+      <div className="hidden h-0 w-64 shrink-0 self-start md:block" aria-hidden="true" />
+
+      <AdminSidebar
+        restaurantName={restaurantName}
+        subscriptionTier={subscriptionTier}
+        subscriptionEndDate={subscriptionEndDate}
+        brandColor={brandColor}
+        currentSlug={currentSlug}
+        branches={branches}
+        awaitingOrdersCount={awaitingOrdersCount}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
+
+      <div
+        className={cn(
+          "flex min-h-screen min-w-0 flex-1 flex-col overflow-x-clip",
+          mobileOpen && "overflow-hidden md:overflow-x-clip"
+        )}
+      >
+        <AdminTopBar
+          slug={currentSlug}
+          userName={userName}
+          userRole={userRole}
+          avatarUrl={avatarUrl}
+          onOpenSidebar={() => setMobileOpen(true)}
+        />
+
+        <main className="admin-shell-main relative z-0 flex min-w-0 w-full flex-1 flex-col overflow-x-clip">
+          <div className="mx-auto w-full min-w-0 max-w-7xl p-4 sm:p-6 lg:p-8">{children}</div>
+          <PoweredByHilaac className="pb-4 pt-2 sm:pb-6" />
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export function AdminLayoutShell({
+  children,
+  restaurantName,
+  subscriptionTier,
+  subscriptionEndDate,
+  brandColor,
+  userName,
+  userRole,
+  avatarUrl,
+  currentSlug,
+  branches = [],
+  awaitingOrdersCount = 0,
+}: {
+  children: React.ReactNode;
+  restaurantName: string;
+  logoUrl?: string | null;
+  subscriptionTier: string;
+  subscriptionEndDate?: string | null;
+  brandColor?: string | null;
+  userName: string;
+  userRole: UserRole;
+  avatarUrl?: string | null;
+  currentSlug: string;
+  branches?: OwnerBranch[];
+  awaitingOrdersCount?: number;
+}) {
   return (
     <AdminBrandProvider brandColor={brandColor}>
-      <StaffIdleGuardian role={userRole} />
-      {/*
-        overflow-x-clip (not hidden): overflow-x:hidden forces overflow-y to compute to auto,
-        creating nested scrollports. Spacer must be self-start + zero height so align-items:stretch
-        does not inflate an empty full-page column beside content (measured ~4kpx tall, textLen=0).
-      */}
-      <div
-        className="flex min-h-screen w-full max-w-[100vw] overflow-x-clip bg-[#F8FAFC]"
-        style={sidebarCssVars}
-      >
-        {mobileOpen && (
-          <button
-            type="button"
-            className="fixed inset-0 z-40 touch-manipulation bg-black/40 md:hidden"
-            aria-label="Close menu"
-            onClick={() => setMobileOpen(false)}
-          />
-        )}
-
-        {/* Desktop width reserve only — fixed sidebar paints on top; do not stretch with page height. */}
-        <div
-          className="hidden h-0 w-[var(--admin-sidebar-width)] shrink-0 self-start md:block"
-          style={{
-            transition: `width ${offsetTransition}`,
-          }}
-          aria-hidden="true"
-        />
-
-        <AdminSidebar
+      <AdminAppearanceProvider>
+        <StaffIdleGuardian role={userRole} />
+        <AdminShellChrome
           restaurantName={restaurantName}
-          logoUrl={logoUrl}
           subscriptionTier={subscriptionTier}
+          subscriptionEndDate={subscriptionEndDate}
           brandColor={brandColor}
-          isExpanded={isExpanded}
-          isCollapsed={isCollapsed}
-          currentWidth={currentWidth}
-          isDragging={isDragging}
-          onToggle={toggle}
-          onDragHandlePointerDown={onPointerDown}
+          userName={userName}
+          userRole={userRole}
+          avatarUrl={avatarUrl}
           currentSlug={currentSlug}
           branches={branches}
-          mobileOpen={mobileOpen}
-          onMobileClose={() => setMobileOpen(false)}
-        />
-
-        <div
-          className={cn(
-            "flex min-h-screen min-w-0 flex-1 flex-col overflow-x-clip",
-            mobileOpen && "overflow-hidden md:overflow-x-clip"
-          )}
+          awaitingOrdersCount={awaitingOrdersCount}
         >
-          <header
-            className={cn(
-              "sticky top-0 z-30 flex h-14 w-full min-w-0 items-center gap-2 border-b px-3 md:gap-3 md:px-6",
-              "border-[#334155]/60 bg-hilaac-navy md:border-[#E2E8F0] md:bg-white"
-            )}
-          >
-            <button
-              type="button"
-              onClick={() => setMobileOpen(true)}
-              className="flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg text-[color:var(--admin-brand,var(--brand-accent,#D4A373))] transition-colors hover:bg-white/10 md:hidden"
-              aria-label="Open menu"
-              aria-expanded={mobileOpen}
-              aria-controls="admin-sidebar"
-            >
-              <Menu className="h-6 w-6" strokeWidth={2.25} aria-hidden="true" />
-            </button>
-
-            <HilaacLogo
-              href="/"
-              variant="light"
-              showWordmark
-              src="/logo-icon.png"
-              wordmarkClassName="text-white text-base sm:text-lg md:text-inherit"
-              className="min-w-0"
-            />
-
-            <div className="ml-auto min-w-0 shrink-0">
-              <AdminUserMenu userName={userName} />
-            </div>
-          </header>
-
-          <main className="app-light-surface relative z-0 flex min-w-0 w-full flex-1 flex-col overflow-x-clip text-[#0F172A]">
-            <div className="mx-auto w-full min-w-0 max-w-7xl p-4 sm:p-6">
-              {children}
-            </div>
-            <PoweredByHilaac className="pb-4 pt-2 sm:pb-6" />
-          </main>
-        </div>
-      </div>
+          {children}
+        </AdminShellChrome>
+      </AdminAppearanceProvider>
     </AdminBrandProvider>
   );
 }

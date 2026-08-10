@@ -5,14 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { DashboardRecentOrders } from "@/components/admin/dashboard/dashboard-recent-orders";
-import {
-  adminBrandCalloutClass,
-  adminBrandIconWellClass,
-  adminBrandSolidButtonClass,
-  adminBrandTextClass,
-} from "@/lib/brand/admin-tokens";
+import { DashboardStatCard } from "@/components/admin/dashboard/dashboard-stat-card";
 import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
-import { cn, formatCurrency, daysUntil } from "@/lib/utils";
+import { formatCurrency, daysUntil } from "@/lib/utils";
 import { APP_TIMEZONE, getAppDayBounds } from "@/lib/time/app-calendar";
 import type { OrderWithItems } from "@/types/database";
 
@@ -21,14 +16,22 @@ type DashboardFetchError = {
   message: string;
 };
 
+function pctChange(current: number, previous: number): number | null {
+  if (previous === 0 && current === 0) return null;
+  if (previous === 0) return 100;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
 export default async function DashboardPage({ params }: { params: { slug: string } }) {
   const { restaurant } = await getRestaurantContext(params.slug);
   const supabase = createClient();
 
-  // Same canonical day as Reports Daily / Dashboard SQL (Africa/Nairobi).
   const { start: dayStart, end: dayEnd } = getAppDayBounds(0);
+  const { start: yStart, end: yEnd } = getAppDayBounds(-1);
   const dayStartIso = dayStart.toISOString();
   const dayEndIso = dayEnd.toISOString();
+  const yStartIso = yStart.toISOString();
+  const yEndIso = yEnd.toISOString();
 
   console.info("[dashboard] today bounds", {
     timezone: APP_TIMEZONE,
@@ -44,9 +47,12 @@ export default async function DashboardPage({ params }: { params: { slug: string
     revenueTodayResult,
     todaysOrdersResult,
     activeTablesResult,
+    totalTablesResult,
     openOrdersResult,
     awaitingCashierEnumResult,
     awaitingCashierLegacyResult,
+    ordersYesterdayResult,
+    revenueYesterdayResult,
   ] = await Promise.all([
     supabase.rpc("get_dashboard_orders_today", {
       p_restaurant_id: restaurant.id,
@@ -54,7 +60,6 @@ export default async function DashboardPage({ params }: { params: { slug: string
     supabase.rpc("get_dashboard_revenue_today", {
       p_restaurant_id: restaurant.id,
     }),
-    // Same [start, end) + paid filter as Orders Today / Revenue Today KPIs.
     supabase
       .from("orders")
       .select("*, table:table_id(*), order_items(*, menu_item:menu_item_id(*))")
@@ -69,6 +74,10 @@ export default async function DashboardPage({ params }: { params: { slug: string
       .eq("restaurant_id", restaurant.id)
       .eq("is_active", true),
     supabase
+      .from("tables")
+      .select("*", { count: "exact", head: true })
+      .eq("restaurant_id", restaurant.id),
+    supabase
       .from("orders")
       .select("*", { count: "exact", head: true })
       .eq("restaurant_id", restaurant.id)
@@ -76,7 +85,6 @@ export default async function DashboardPage({ params }: { params: { slug: string
       .lt("created_at", dayEndIso)
       .neq("status", "completed")
       .neq("status", "delivered"),
-    // All-time backlog (not today-only) — surfaces stale unconfirmed orders too.
     supabase
       .from("orders")
       .select("*", { count: "exact", head: true })
@@ -88,6 +96,20 @@ export default async function DashboardPage({ params }: { params: { slug: string
       .eq("restaurant_id", restaurant.id)
       .eq("payment_status", "pending")
       .not("customer_confirmed_at", "is", null),
+    supabase
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .eq("restaurant_id", restaurant.id)
+      .eq("payment_status", "paid")
+      .gte("created_at", yStartIso)
+      .lt("created_at", yEndIso),
+    supabase
+      .from("orders")
+      .select("total")
+      .eq("restaurant_id", restaurant.id)
+      .eq("payment_status", "paid")
+      .gte("created_at", yStartIso)
+      .lt("created_at", yEndIso),
   ]);
 
   if (ordersTodayResult.error) {
@@ -122,42 +144,28 @@ export default async function DashboardPage({ params }: { params: { slug: string
   const revenueToday = Number(revenueTodayResult.data ?? 0);
   const todaysOrders = (todaysOrdersResult.data as OrderWithItems[]) ?? [];
   const activeTables = activeTablesResult.count ?? 0;
+  const totalTables = totalTablesResult.count ?? 0;
   const openOrders = openOrdersResult.count ?? 0;
   const awaitingPaymentConfirmation =
     (awaitingCashierEnumResult.count ?? 0) + (awaitingCashierLegacyResult.count ?? 0);
   const trialDaysLeft = daysUntil(restaurant.subscription_end_date);
 
-  if (todaysOrders.length !== ordersToday && !ordersTodayResult.error && !todaysOrdersResult.error) {
-    console.error("[dashboard] Orders Today KPI vs list mismatch", {
-      timezone: APP_TIMEZONE,
-      dayStart: dayStartIso,
-      dayEnd: dayEndIso,
-      kpiCount: ordersToday,
-      listCount: todaysOrders.length,
-      restaurantId: restaurant.id,
-    });
-  }
+  const ordersYesterday = ordersYesterdayResult.count ?? 0;
+  const revenueYesterday = (revenueYesterdayResult.data ?? []).reduce(
+    (sum, row) => sum + Number(row.total ?? 0),
+    0
+  );
 
-  const stats = [
-    { label: "Orders Today", value: ordersToday, icon: ShoppingBag },
-    { label: "Revenue Today", value: formatCurrency(revenueToday), icon: DollarSign },
-    { label: "Active Tables", value: activeTables, icon: Table2 },
-    { label: "Open Orders", value: openOrders, icon: Clock },
-  ];
+  const ordersDelta = pctChange(ordersToday, ordersYesterday);
+  const revenueDelta = pctChange(revenueToday, revenueYesterday);
 
   return (
-    <div className="w-full min-w-0 max-w-full space-y-6 overflow-x-hidden">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, here&apos;s what&apos;s happening today.</p>
-        </div>
-        {restaurant.subscription_tier === "trial" && (
-          <Badge variant={trialDaysLeft <= 2 ? "destructive" : "secondary"} className="text-sm">
-            {trialDaysLeft > 0 ? `${trialDaysLeft} day(s) left in trial` : "Trial expired"}
-          </Badge>
-        )}
-      </div>
+    <div className="w-full min-w-0 max-w-full space-y-6">
+      {restaurant.subscription_tier === "trial" && (
+        <Badge variant={trialDaysLeft <= 2 ? "destructive" : "secondary"} className="text-sm">
+          {trialDaysLeft > 0 ? `${trialDaysLeft} day(s) left in trial` : "Trial expired"}
+        </Badge>
+      )}
 
       {fetchErrors.length > 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -177,59 +185,71 @@ export default async function DashboardPage({ params }: { params: { slug: string
 
       {awaitingPaymentConfirmation > 0 && (
         <div
-          className={cn(
-            "flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between",
-            adminBrandCalloutClass
-          )}
+          className="admin-brand-tint flex flex-col gap-3 rounded-2xl border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+          style={{
+            borderColor: "color-mix(in srgb, var(--admin-brand, #9E2E2E) 25%, transparent)",
+          }}
         >
-          <div className="flex items-start gap-3">
-            <CreditCard
-              className={cn("mt-0.5 h-5 w-5 shrink-0", adminBrandTextClass)}
-              aria-hidden="true"
-            />
+          <div className="flex items-center gap-3">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
+              style={{ backgroundColor: "var(--admin-brand, #9E2E2E)" }}
+            >
+              <CreditCard className="h-4 w-4" aria-hidden="true" />
+            </span>
             <div>
-              <p className="font-semibold text-[#0F172A]">
+              <p className="text-sm font-semibold" style={{ color: "var(--admin-brand, #9E2E2E)" }}>
                 {awaitingPaymentConfirmation}{" "}
                 {awaitingPaymentConfirmation === 1 ? "order" : "orders"} awaiting payment
                 confirmation
               </p>
-              <p className="mt-0.5 text-[#334155]">
-                Not counted in today&apos;s paid Orders/Revenue. Includes any older backlog still
-                waiting on cashier confirmation.
+              <p className="text-xs text-[var(--admin-muted,#64748B)]">
+                Not counted in today&apos;s paid Orders/Revenue. Includes older backlog.
               </p>
             </div>
           </div>
           <Link
             href={`/admin/${params.slug}/orders`}
-            className={cn(
-              "shrink-0 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-opacity",
-              adminBrandSolidButtonClass
-            )}
+            className="w-full shrink-0 rounded-xl px-4 py-2 text-center text-sm font-semibold text-white sm:w-auto"
+            style={{ backgroundColor: "var(--admin-brand, #9E2E2E)" }}
           >
             Review orders
           </Link>
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label} className="w-full overflow-hidden">
-            <CardContent className="flex items-center justify-between p-4 sm:p-5">
-              <div>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className="mt-1 text-2xl font-bold">{stat.value}</p>
-              </div>
-              <div
-                className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-full",
-                  adminBrandIconWellClass
-                )}
-              >
-                <stat.icon className="h-5 w-5" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <DashboardStatCard
+          label="Orders Today"
+          value={ordersToday}
+          icon={ShoppingBag}
+          delta={ordersDelta}
+        />
+        <DashboardStatCard
+          label="Revenue Today"
+          value={formatCurrency(revenueToday)}
+          icon={DollarSign}
+          delta={revenueDelta}
+        />
+        <DashboardStatCard
+          label="Active Tables"
+          value={
+            <>
+              {activeTables}{" "}
+              <span className="text-sm font-normal text-[var(--admin-muted)]">
+                / {totalTables}
+              </span>
+            </>
+          }
+          icon={Table2}
+          delta={null}
+        />
+        <DashboardStatCard
+          label="Open Orders"
+          value={openOrders}
+          icon={Clock}
+          delta={null}
+        />
       </div>
 
       {fetchErrors.some((e) => e.label === "Today's orders list") ? (

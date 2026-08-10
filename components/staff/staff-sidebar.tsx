@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, ChefHat, CreditCard, LogOut, Menu, UserRound, X } from "lucide-react";
+import { ArrowLeft, ChefHat, CreditCard, LogOut, UserRound, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { SidebarBrandHeader } from "@/components/dashboard/sidebar-brand-header";
@@ -50,6 +49,8 @@ export function StaffSidebar({
   logoUrl,
   subscriptionTier,
   brandColor,
+  open,
+  onOpenChange,
 }: {
   slug: string;
   role: UserRole;
@@ -57,10 +58,11 @@ export function StaffSidebar({
   logoUrl: string | null;
   subscriptionTier: string;
   brandColor?: string | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const pathname = usePathname();
   const supabase = createClient();
-  const [open, setOpen] = useState(false);
 
   const navItems = STAFF_NAV.filter((item) => item.roles.includes(role));
   const showBackToAdmin = canReturnToAdmin(role);
@@ -74,23 +76,18 @@ export function StaffSidebar({
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
+  function close() {
+    onOpenChange(false);
+  }
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="fixed left-3 top-3 z-40 flex h-11 w-11 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] shadow-md transition-colors hover:bg-[#F8FAFC]"
-        aria-label="Open menu"
-      >
-        <Menu className="h-5 w-5" aria-hidden="true" />
-      </button>
-
       {open && (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-black/50"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
           aria-label="Close menu"
-          onClick={() => setOpen(false)}
+          onClick={close}
         />
       )}
 
@@ -113,7 +110,7 @@ export function StaffSidebar({
           </div>
           <button
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={close}
             className="mt-4 mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/10"
             style={{ color: SIDEBAR_TEXT_COLOR }}
             aria-label="Close menu"
@@ -122,7 +119,7 @@ export function StaffSidebar({
           </button>
         </div>
 
-        <nav className="flex flex-1 flex-col justify-center gap-1 overflow-y-auto px-3 py-4">
+        <nav className="flex flex-1 flex-col justify-start gap-1 overflow-y-auto px-3 py-4">
           {navItems.length === 0 ? (
             <p className="px-4 text-sm" style={{ color: SIDEBAR_TEXT_COLOR }}>
               No stations available for your role.
@@ -135,9 +132,9 @@ export function StaffSidebar({
                 <Link
                   key={linkHref}
                   href={linkHref}
-                  onClick={() => setOpen(false)}
+                  onClick={close}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/10",
+                    "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/10",
                     active && "font-semibold"
                   )}
                   style={active ? activeNavItemStyle(brandColor) : { color: SIDEBAR_TEXT_COLOR }}
@@ -154,8 +151,8 @@ export function StaffSidebar({
           {showBackToAdmin && (
             <Link
               href={`/admin/${slug}/dashboard`}
-              onClick={() => setOpen(false)}
-              className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/10"
+              onClick={close}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/10"
               style={{ color: SIDEBAR_TEXT_COLOR }}
             >
               <ArrowLeft className="h-5 w-5 shrink-0" aria-hidden="true" />
@@ -165,7 +162,7 @@ export function StaffSidebar({
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/10"
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/10"
             style={{ color: SIDEBAR_TEXT_COLOR }}
           >
             <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />

@@ -7,7 +7,6 @@ import {
   PackageCheck,
   ShoppingBag,
   UtensilsCrossed,
-  UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -207,27 +206,15 @@ export function WaiterBoard({
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F172A] text-[#D4A373]">
-            <UserRound className="h-6 w-6" aria-hidden="true" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#0F172A]">Waiter Dashboard</h1>
-            <p className="text-sm text-[#64748B]">{restaurantName}</p>
-          </div>
+      <header className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+          <PackageCheck className="h-5 w-5" aria-hidden="true" />
         </div>
-
-        <div className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 shadow-sm">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-            <PackageCheck className="h-5 w-5" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-[#64748B]">My deliveries</p>
-            <p className="text-lg font-bold text-[#0F172A]">
-              Deliveries today: {deliveriesToday}
-            </p>
-          </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-[#64748B]">My deliveries</p>
+          <p className="text-lg font-bold text-[#0F172A]">
+            Deliveries today: {deliveriesToday}
+          </p>
         </div>
       </header>
 

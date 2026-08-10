@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { getOwnerBranches } from "@/lib/admin/owner-branches";
+import { AdminPageIntro } from "@/components/admin/admin-page-intro";
 import { SettingsForm } from "@/components/admin/settings/settings-form";
 import { ManageBranches } from "@/components/admin/settings/manage-branches";
 import { LoyaltySettingsCard } from "@/components/admin/settings/loyalty-settings-card";
@@ -90,12 +91,9 @@ export default async function SettingsPage({ params }: { params: { slug: string 
 
   return (
     <div className="w-full min-w-0 space-y-4 sm:space-y-5">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your restaurant profile, order types, and payment configuration.
-        </p>
-      </div>
+      <AdminPageIntro>
+        Manage your restaurant profile, order types, and payment configuration.
+      </AdminPageIntro>
       {profile.role === "owner" && (
         <ManageBranches
           branches={branches}

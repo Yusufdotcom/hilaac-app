@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { AdminPageIntro } from "@/components/admin/admin-page-intro";
 import { AdminOrderDetailDialog } from "@/components/admin/orders/admin-order-detail-dialog";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import { cn, formatCurrency, formatDate, formatOrderLabel } from "@/lib/utils";
@@ -73,17 +74,15 @@ export function AdminOrdersBoard({
 
   return (
     <div className="w-full min-w-0 space-y-4 sm:space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">Orders</h1>
-          <p className="text-sm text-muted-foreground sm:text-base">
-            Tap a row for details and actions. Updates live — no refresh needed.
-          </p>
-        </div>
-        <Badge className="border-0 bg-emerald-50 px-3 py-1 text-emerald-800">Live</Badge>
-      </div>
+      <AdminPageIntro
+        actions={
+          <Badge className="border-0 bg-emerald-50 px-3 py-1 text-emerald-800">Live</Badge>
+        }
+      >
+        Tap a row for details and actions. Updates live — no refresh needed.
+      </AdminPageIntro>
 
-      <Card className="w-full min-w-0 overflow-hidden border-[#E2E8F0]">
+      <Card className="admin-glass-hover w-full min-w-0 overflow-hidden border-[var(--admin-border,#E2E8F0)]">
         <CardContent className="p-0">
           {/* Mobile / tablet cards */}
           <ul className="divide-y md:hidden">

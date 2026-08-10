@@ -256,30 +256,19 @@ export function KitchenBoard({
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0F172A] text-[#D4A373]">
-            <ChefHat className="h-6 w-6" aria-hidden="true" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#0F172A]">Kitchen Dashboard</h1>
-            <p className="text-sm text-[#64748B]">{restaurantName}</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary" className="px-3 py-1 text-sm">
-            New: {counts.new}
-          </Badge>
-          <Badge className="border-0 bg-amber-100 px-3 py-1 text-sm text-amber-900">
-            Preparing: {counts.preparing}
-          </Badge>
-          <Badge className="border-0 bg-emerald-100 px-3 py-1 text-sm text-emerald-900">
-            Ready: {counts.ready}
-          </Badge>
-          <Badge className="border-0 bg-blue-100 px-3 py-1 text-sm text-blue-900">
-            Delivered: {deliveredCount}
-          </Badge>
-        </div>
+      <header className="flex flex-wrap items-center gap-2">
+        <Badge variant="secondary" className="px-3 py-1 text-sm">
+          New: {counts.new}
+        </Badge>
+        <Badge className="border-0 bg-amber-100 px-3 py-1 text-sm text-amber-900">
+          Preparing: {counts.preparing}
+        </Badge>
+        <Badge className="border-0 bg-emerald-100 px-3 py-1 text-sm text-emerald-900">
+          Ready: {counts.ready}
+        </Badge>
+        <Badge className="border-0 bg-blue-100 px-3 py-1 text-sm text-blue-900">
+          Delivered: {deliveredCount}
+        </Badge>
       </header>
 
       {activeOrders.length === 0 ? (
