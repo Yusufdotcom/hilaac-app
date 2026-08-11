@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency, formatOrderLabel } from "@/lib/utils";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
+import { AcceptOrdersQueue } from "@/components/staff/accept-orders-queue";
 import { LoyaltyLookupPanel } from "@/components/staff/cashier/loyalty-lookup-panel";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
+import { filterAwaitingAcceptance } from "@/lib/order/acceptance";
 import type { OrderStatus, OrderWithItems, PaymentStatus } from "@/types/database";
 import { PENDING_CASHIER_CONFIRMATION, isAwaitingCashierConfirmation } from "@/lib/payments/constants";
 
@@ -128,12 +130,15 @@ export function CashierBoard({
   slug: string;
   initialOrders: OrderWithItems[];
 }) {
-  const { orders, updateOrderFields } = useRealtimeOrders(
+  const { orders, updateOrderFields, patchOrderLocal } = useRealtimeOrders(
     restaurantId,
     initialOrders,
-    { activeOnly: false }
+    { activeOnly: false, channelName: `cashier-orders-${restaurantId}` }
   );
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
+  const [acceptBusyId, setAcceptBusyId] = useState<string | null>(null);
+
+  const awaitingAcceptance = useMemo(() => filterAwaitingAcceptance(orders), [orders]);
 
   const pendingOrders = useMemo(
     () =>
@@ -158,7 +163,7 @@ export function CashierBoard({
       const fields: { payment_status: PaymentStatus; status?: OrderStatus } = {
         payment_status: "paid",
       };
-      // Pay-before orders wait here until cashier verifies, then kitchen sees them live.
+      // Pay-before: unlock order status after payment; kitchen still requires Accept separately.
       if (order.status === "awaiting_payment") {
         fields.status = "new";
       }
@@ -168,17 +173,52 @@ export function CashierBoard({
         toast.error(error.message);
         return;
       }
-      toast.success("Payment confirmed — kitchen notified in real time");
+      toast.success("Payment confirmed");
     } finally {
       setBusyOrderId(null);
     }
   }
 
+  async function handleAcceptOrder(order: OrderWithItems) {
+    setAcceptBusyId(order.id);
+    try {
+      const res = await fetch(`/api/staff/orders/${order.id}/accept`, { method: "POST" });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        alreadyAccepted?: boolean;
+        order?: { accepted_at?: string | null; accepted_by?: string | null };
+      };
+      if (!res.ok) {
+        toast.error(data.error || "Could not accept order");
+        return;
+      }
+      if (data.order?.accepted_at) {
+        patchOrderLocal(order.id, {
+          accepted_at: data.order.accepted_at,
+          accepted_by: data.order.accepted_by ?? null,
+        });
+      }
+      toast.success(
+        data.alreadyAccepted
+          ? `Already accepted by ${data.order?.accepted_by || "Staff"}`
+          : "Order accepted — kitchen notified"
+      );
+    } finally {
+      setAcceptBusyId(null);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
+      <AcceptOrdersQueue
+        orders={awaitingAcceptance}
+        busyOrderId={acceptBusyId}
+        onAccept={handleAcceptOrder}
+      />
+
       <header className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary" className="px-3 py-1 text-sm">
-          Pending: {summary.total}
+          Pending payment: {summary.total}
         </Badge>
         <Badge className="border-0 bg-amber-100 px-3 py-1 text-sm text-amber-900">
           Customer confirmed: {summary.awaitingCashier}

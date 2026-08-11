@@ -1,7 +1,8 @@
 /**
- * Kitchen visibility: same rules for new/preparing/ready; pay_after vs pay_before.
+ * Kitchen visibility: acceptance gate only (payment-independent).
  */
 import { isKitchenVisible } from "../lib/order/kitchen-visibility.ts";
+import { isAwaitingAcceptance } from "../lib/order/acceptance.ts";
 
 let passed = 0;
 let failed = 0;
@@ -16,51 +17,60 @@ function fail(n, d) {
 
 const cases = [
   {
-    name: "pay_after + new + unpaid → visible",
-    order: { status: "new", payment_status: "pending_cashier_confirmation", billing_model: "pay_after" },
-    want: true,
-  },
-  {
-    name: "pay_after + preparing + unpaid → visible",
+    name: "unaccepted new unpaid → kitchen hidden",
     order: {
-      status: "preparing",
+      status: "new",
       payment_status: "pending_cashier_confirmation",
       billing_model: "pay_after",
+      accepted_at: null,
+    },
+    want: false,
+  },
+  {
+    name: "accepted new unpaid pay_after → kitchen visible",
+    order: {
+      status: "new",
+      payment_status: "pending_cashier_confirmation",
+      billing_model: "pay_after",
+      accepted_at: "2026-08-11T00:00:00Z",
     },
     want: true,
   },
   {
-    name: "pay_after + ready + unpaid → visible",
-    order: { status: "ready", payment_status: "pending_cashier_confirmation", billing_model: "pay_after" },
-    want: true,
-  },
-  {
-    name: "pay_before + new + unpaid → hidden",
-    order: { status: "new", payment_status: "pending_cashier_confirmation", billing_model: "pay_before" },
-    want: false,
-  },
-  {
-    name: "pay_before + preparing + unpaid → hidden",
+    name: "accepted preparing unpaid → kitchen visible",
     order: {
       status: "preparing",
       payment_status: "pending_cashier_confirmation",
-      billing_model: "pay_before",
+      accepted_at: "2026-08-11T00:00:00Z",
+    },
+    want: true,
+  },
+  {
+    name: "unaccepted preparing → kitchen hidden",
+    order: {
+      status: "preparing",
+      payment_status: "paid",
+      accepted_at: null,
     },
     want: false,
   },
   {
-    name: "pay_before + new + paid → visible",
-    order: { status: "new", payment_status: "paid", billing_model: "pay_before" },
+    name: "accepted unpaid pay_before → kitchen visible (payment irrelevant)",
+    order: {
+      status: "new",
+      payment_status: "pending",
+      billing_model: "pay_before",
+      accepted_at: "2026-08-11T00:00:00Z",
+    },
     want: true,
   },
   {
-    name: "pay_before + preparing + paid → visible",
-    order: { status: "preparing", payment_status: "paid", billing_model: "pay_before" },
-    want: true,
-  },
-  {
-    name: "awaiting_payment never visible",
-    order: { status: "awaiting_payment", payment_status: "pending", billing_model: "pay_before" },
+    name: "awaiting_payment never visible even if accepted",
+    order: {
+      status: "awaiting_payment",
+      payment_status: "pending",
+      accepted_at: "2026-08-11T00:00:00Z",
+    },
     want: false,
   },
 ];
@@ -71,13 +81,21 @@ for (const c of cases) {
   else fail(c.name, `got ${got} want ${c.want}`);
 }
 
-// Prove new/preparing/ready share identical gate for a given payment+billing pair
-const unpaidAfter = { payment_status: "pending_cashier_confirmation", billing_model: "pay_after" };
-const a = isKitchenVisible({ status: "new", ...unpaidAfter });
-const b = isKitchenVisible({ status: "preparing", ...unpaidAfter });
-const c = isKitchenVisible({ status: "ready", ...unpaidAfter });
-if (a === b && b === c) pass("new/preparing/ready identical for unpaid pay_after");
-else fail("new/preparing/ready identical", `${a},${b},${c}`);
+if (isAwaitingAcceptance({ status: "new", accepted_at: null })) {
+  pass("awaiting acceptance: new + null");
+} else fail("awaiting acceptance: new + null");
+
+if (!isAwaitingAcceptance({ status: "new", accepted_at: "2026-08-11T00:00:00Z" })) {
+  pass("not awaiting after accept");
+} else fail("not awaiting after accept");
+
+if (!isAwaitingAcceptance({ status: "awaiting_payment", accepted_at: null })) {
+  pass("awaiting_payment not in accept queue");
+} else fail("awaiting_payment not in accept queue");
+
+if (isAwaitingAcceptance({ status: "preparing", accepted_at: null })) {
+  pass("preparing without accept still in accept queue");
+} else fail("preparing without accept still in accept queue");
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

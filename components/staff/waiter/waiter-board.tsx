@@ -20,9 +20,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn, formatOrderLabel } from "@/lib/utils";
+import { AcceptOrdersQueue } from "@/components/staff/accept-orders-queue";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import { useStaffOrderNotifications } from "@/lib/hooks/use-staff-order-notifications";
+import { filterAwaitingAcceptance } from "@/lib/order/acceptance";
 import { playWaiterReadySound } from "@/lib/sounds/play-order-sound";
 import type { OrderStatus, OrderWithItems, RestaurantTable, Waiter } from "@/types/database";
 
@@ -100,7 +102,7 @@ export function WaiterBoard({
     restaurantName
   );
 
-  const { orders, removeOrder, restoreOrder, updateOrderFields } = useRealtimeOrders(
+  const { orders, removeOrder, restoreOrder, updateOrderFields, patchOrderLocal } = useRealtimeOrders(
     restaurantId,
     initialOrders,
     {
@@ -129,13 +131,23 @@ export function WaiterBoard({
   }, [orders]);
 
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
+  const [acceptBusyId, setAcceptBusyId] = useState<string | null>(null);
   const [selectedWaiter, setSelectedWaiter] = useState("");
   const [deliveryCounts, setDeliveryCounts] = useState<Record<string, number>>(initialDeliveryCounts);
 
   const deliveriesToday = selectedWaiter ? (deliveryCounts[selectedWaiter] ?? 0) : 0;
 
+  const awaitingAcceptance = useMemo(() => filterAwaitingAcceptance(orders), [orders]);
+
+  // Unaccepted tickets live only in the Accept queue — not on table cards.
   const activeDineIn = useMemo(
-    () => orders.filter((o) => o.order_type === "dine-in" && ACTIVE_STATUSES.includes(o.status)),
+    () =>
+      orders.filter(
+        (o) =>
+          o.order_type === "dine-in" &&
+          ACTIVE_STATUSES.includes(o.status) &&
+          Boolean(o.accepted_at)
+      ),
     [orders]
   );
 
@@ -170,6 +182,35 @@ export function WaiterBoard({
       return 0;
     });
   }, [tables, activeDineIn]);
+
+  async function handleAcceptOrder(order: OrderWithItems) {
+    setAcceptBusyId(order.id);
+    try {
+      const res = await fetch(`/api/staff/orders/${order.id}/accept`, { method: "POST" });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        alreadyAccepted?: boolean;
+        order?: { accepted_at?: string | null; accepted_by?: string | null };
+      };
+      if (!res.ok) {
+        toast.error(data.error || "Could not accept order");
+        return;
+      }
+      if (data.order?.accepted_at) {
+        patchOrderLocal(order.id, {
+          accepted_at: data.order.accepted_at,
+          accepted_by: data.order.accepted_by ?? null,
+        });
+      }
+      toast.success(
+        data.alreadyAccepted
+          ? `Already accepted by ${data.order?.accepted_by || "Staff"}`
+          : "Order accepted — kitchen notified"
+      );
+    } finally {
+      setAcceptBusyId(null);
+    }
+  }
 
   async function markDelivered(orderId: string) {
     if (!selectedWaiter) {
@@ -206,6 +247,12 @@ export function WaiterBoard({
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
+      <AcceptOrdersQueue
+        orders={awaitingAcceptance}
+        busyOrderId={acceptBusyId}
+        onAccept={handleAcceptOrder}
+      />
+
       <header className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
           <PackageCheck className="h-5 w-5" aria-hidden="true" />

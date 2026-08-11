@@ -162,6 +162,8 @@ create table if not exists public.orders (
   customer_phone text,
   notes text,
   delivered_by text,
+  accepted_at timestamptz,
+  accepted_by text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

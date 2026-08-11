@@ -233,7 +233,12 @@ export function useRealtimeOrders(
   /** Local-only patch after a server API already wrote the row (avoid double UPDATE). */
   function patchOrderLocal(
     orderId: string,
-    fields: Partial<Pick<OrderWithItems, "status" | "payment_status" | "delivered_by" | "updated_at">>
+    fields: Partial<
+      Pick<
+        OrderWithItems,
+        "status" | "payment_status" | "delivered_by" | "accepted_at" | "accepted_by" | "updated_at"
+      >
+    >
   ) {
     setOrders((prev) => {
       const updated = prev.map((o) => (o.id === orderId ? { ...o, ...fields } : o));
@@ -247,7 +252,13 @@ export function useRealtimeOrders(
 
   async function updateOrderFields(
     orderId: string,
-    fields: { status?: string; payment_status?: string; delivered_by?: string }
+    fields: {
+      status?: string;
+      payment_status?: string;
+      delivered_by?: string;
+      accepted_at?: string | null;
+      accepted_by?: string | null;
+    }
   ) {
     let previous: OrderWithItems | undefined;
 
