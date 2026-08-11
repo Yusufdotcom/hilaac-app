@@ -101,10 +101,10 @@ export function WaiterManager({
               {waiters.map((waiter) => (
                 <li
                   key={waiter.id}
-                  className="flex items-center justify-between rounded-lg border bg-white px-4 py-3"
+                  className="flex items-center justify-between rounded-lg border bg-[var(--admin-card)] px-4 py-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0F172A]/5 text-[#0F172A]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--admin-subtle)] text-[var(--admin-text)]">
                       <UserRound className="h-4 w-4" aria-hidden="true" />
                     </div>
                     <span className="font-medium">{waiter.name}</span>

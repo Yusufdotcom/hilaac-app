@@ -48,7 +48,7 @@ function TrendBadge({ trend }: { trend: KpiTrend }) {
   if (trend.insufficientData) {
     return (
       <span
-        className="inline-flex max-w-[9.5rem] items-center gap-0.5 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold leading-tight text-slate-500"
+        className="inline-flex max-w-[9.5rem] items-center gap-0.5 rounded-full bg-[var(--admin-subtle)] px-2 py-0.5 text-[10px] font-semibold leading-tight text-[var(--admin-muted)]"
         title="Not enough data yet this period"
       >
         <Minus className="h-3 w-3 shrink-0" aria-hidden="true" />
@@ -59,7 +59,7 @@ function TrendBadge({ trend }: { trend: KpiTrend }) {
 
   if (trend.direction === "flat" || trend.percent == null) {
     return (
-      <span className="inline-flex items-center gap-0.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
+      <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--admin-subtle)] px-2 py-0.5 text-xs font-semibold text-[var(--admin-muted)]">
         <Minus className="h-3 w-3" aria-hidden="true" />
         <span>0%</span>
       </span>
@@ -233,26 +233,26 @@ export function KpiCards({
           onFocus={() => card.trend && setFocusLabel(card.label)}
           onBlur={() => setFocusLabel((cur) => (cur === card.label ? null : cur))}
           className={cn(
-            "relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm",
+            "admin-surface relative rounded-xl border p-5 shadow-sm",
             "motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-md",
             "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
           )}
         >
           <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-medium text-slate-500">{card.label}</p>
+            <p className="text-sm font-medium text-[var(--admin-muted)]">{card.label}</p>
             {card.trend && <TrendBadge trend={card.trend} />}
           </div>
           <p
             className={cn(
-              "mt-3 font-bold tracking-tight text-slate-900",
+              "mt-3 font-bold tracking-tight text-[var(--admin-text)]",
               card.label === "Top Selling Item" ? "truncate text-xl" : "text-3xl"
             )}
           >
             {card.value}
           </p>
-          {card.sub && <p className="mt-1.5 text-xs font-medium text-slate-400">{card.sub}</p>}
+          {card.sub && <p className="mt-1.5 text-xs font-medium text-[var(--admin-muted)]">{card.sub}</p>}
           {card.trend && (
-            <p className="mt-2 text-[11px] text-slate-400">
+            <p className="mt-2 text-[11px] text-[var(--admin-muted)]">
               {card.trend.insufficientData ? "Not enough data yet this period" : "vs previous period"}
             </p>
           )}

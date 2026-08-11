@@ -413,7 +413,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
                 <Label htmlFor="brand-color-value">Current value</Label>
                 <p
                   id="brand-color-value"
-                  className="font-mono text-sm font-medium uppercase tracking-wide text-[#0F172A]"
+                  className="font-mono text-sm font-medium uppercase tracking-wide text-[var(--admin-text)]"
                 >
                   {brandColor}
                 </p>

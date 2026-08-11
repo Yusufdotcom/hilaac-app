@@ -55,7 +55,7 @@ function StaffDashboardCard({
     <Link
       href={dashboard.path}
       className={cn(
-        "group flex w-full flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm",
+        "group flex w-full flex-col overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-card)] shadow-sm",
         "transition-all duration-200 hover:scale-[1.02] hover:shadow-lg",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
         adminBrandRingClass
@@ -74,7 +74,7 @@ function StaffDashboardCard({
       </div>
 
       <div className="flex flex-1 flex-col gap-4 p-6">
-        <p className="break-all rounded-xl bg-[#F8FAFC] px-4 py-3 font-mono text-xs text-[#64748B]">
+        <p className="break-all rounded-xl bg-[var(--admin-subtle)] px-4 py-3 font-mono text-xs text-[#64748B]">
           {dashboard.path}
         </p>
         <div className="mt-auto grid gap-3 sm:grid-cols-2">
@@ -98,7 +98,7 @@ function StaffDashboardCard({
               e.stopPropagation();
               onShowQr();
             }}
-            className="h-14 rounded-xl border-[#0F172A] text-base font-semibold text-[#0F172A] hover:bg-[#F8FAFC]"
+            className="h-14 rounded-xl border-[var(--admin-text)] text-base font-semibold text-[var(--admin-text)] hover:bg-[var(--admin-subtle)]"
           >
             <QrCode className="mr-2 h-5 w-5" aria-hidden="true" />
             QR Code
@@ -196,7 +196,7 @@ export function StaffAccessBoard({
           </p>
         </header>
       ) : (
-        <Card className="w-full overflow-hidden border-[#E2E8F0]">
+        <Card className="w-full overflow-hidden border-[var(--admin-border)]">
           <CardHeader>
             <CardTitle className="text-lg">Dashboard Access</CardTitle>
             <CardDescription>
@@ -228,9 +228,9 @@ export function StaffAccessBoard({
       </div>
 
       <Dialog open={qrOpen} onOpenChange={setQrOpen}>
-        <DialogContent className="max-w-md border-[#E2E8F0]">
+        <DialogContent className="max-w-md border-[var(--admin-border)]">
           <DialogHeader>
-            <DialogTitle className="text-[#0F172A]">
+            <DialogTitle className="text-[var(--admin-text)]">
               {activeDashboard?.title ?? "Dashboard QR Code"}
             </DialogTitle>
             <DialogDescription>

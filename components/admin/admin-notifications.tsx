@@ -48,7 +48,7 @@ export function AdminNotifications({ className }: { className?: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--admin-border)] transition-colors hover:bg-slate-50"
+        className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--admin-border)] transition-colors hover:bg-[var(--admin-bg)]"
         aria-label="Notifications"
         aria-expanded={open}
       >
@@ -82,7 +82,7 @@ export function AdminNotifications({ className }: { className?: string }) {
                 <Link
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="block px-4 py-3 transition-colors hover:bg-slate-50/80"
+                  className="block px-4 py-3 transition-colors hover:bg-[var(--admin-subtle)]"
                 >
                   <p className="text-sm font-medium text-[var(--admin-text)]">{item.title}</p>
                   <p className="mt-0.5 text-xs text-[var(--admin-muted)]">{item.body}</p>

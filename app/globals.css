@@ -241,10 +241,29 @@
   --admin-border: #eef0f5;
   --admin-muted: #64748b;
   --admin-text: #0f172a;
+  --admin-subtle: #f1f5f9;
+  --admin-hover: rgba(15, 23, 42, 0.05);
   --admin-glass-bg: rgba(255, 255, 255, 0.65);
   --admin-glass-border: rgba(255, 255, 255, 0.4);
   --admin-glass-dark-bg: rgba(28, 32, 48, 0.65);
   --admin-sidebar-width: 16rem;
+
+  /* Bridge shadcn/ui tokens → admin theme (Card, muted, borders, etc.) */
+  --background: 228 33% 97%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222 47% 11%;
+  --border: 220 20% 94%;
+  --input: 220 20% 94%;
+
   background-color: var(--admin-bg);
   color: var(--admin-text);
 }
@@ -255,8 +274,38 @@
   --admin-border: #2a2f42;
   --admin-muted: #8a8fa3;
   --admin-text: #f1f2f6;
+  --admin-subtle: #232836;
+  --admin-hover: rgba(255, 255, 255, 0.06);
   --admin-glass-bg: rgba(28, 32, 48, 0.65);
   --admin-glass-border: rgba(255, 255, 255, 0.12);
+
+  --background: 228 18% 10%;
+  --foreground: 220 20% 96%;
+  --card: 228 26% 15%;
+  --card-foreground: 220 20% 96%;
+  --popover: 228 26% 15%;
+  --popover-foreground: 220 20% 96%;
+  --secondary: 228 20% 18%;
+  --secondary-foreground: 220 20% 96%;
+  --muted: 228 20% 18%;
+  --muted-foreground: 225 10% 59%;
+  --accent: 228 20% 18%;
+  --accent-foreground: 220 20% 96%;
+  --border: 228 22% 21%;
+  --input: 228 22% 21%;
+}
+
+/* Shared content surface — same tokens as Dashboard KPI cards */
+.admin-surface {
+  background-color: var(--admin-card);
+  border-color: var(--admin-border);
+  color: var(--admin-text);
+}
+
+.admin-surface-subtle {
+  background-color: var(--admin-subtle);
+  border-color: var(--admin-border);
+  color: var(--admin-text);
 }
 
 .admin-shell-main {

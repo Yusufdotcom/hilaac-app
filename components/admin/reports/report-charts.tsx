@@ -63,12 +63,12 @@ function PreviousPeriodToggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-500">
+    <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--admin-muted)]">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-3.5 w-3.5 rounded border-slate-300"
+        className="h-3.5 w-3.5 rounded border-[var(--admin-border)]"
       />
       Previous period
     </label>
@@ -91,9 +91,9 @@ function ChartCard({
   headerRight?: React.ReactNode;
 }) {
   return (
-    <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+    <article className="min-w-0 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] p-4 shadow-sm sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+        <h3 className="text-base font-semibold text-[var(--admin-text)]">{title}</h3>
         {headerRight}
       </div>
       {empty ? (
@@ -109,10 +109,10 @@ function ChartCard({
 
 function EmptyChartState({ message = EMPTY_PERIOD }: { message?: string }) {
   return (
-    <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 text-center sm:h-72">
-      <BarChart3 className="mb-3 h-9 w-9 text-slate-300" aria-hidden="true" />
-      <p className="text-sm font-semibold text-slate-900">No data available</p>
-      <p className="mt-1 max-w-xs text-xs text-slate-400">{message}</p>
+    <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--admin-border)] bg-[var(--admin-bg)] px-4 text-center sm:h-72">
+      <BarChart3 className="mb-3 h-9 w-9 text-[var(--admin-muted)]" aria-hidden="true" />
+      <p className="text-sm font-semibold text-[var(--admin-text)]">No data available</p>
+      <p className="mt-1 max-w-xs text-xs text-[var(--admin-muted)]">{message}</p>
     </div>
   );
 }
@@ -120,10 +120,10 @@ function EmptyChartState({ message = EMPTY_PERIOD }: { message?: string }) {
 function SpikedSection({ items }: { items: ReportData["spikedItems"] }) {
   if (!items.length) {
     return (
-      <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <article className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] p-5 shadow-sm sm:p-6">
         <div className="mb-3 flex items-center gap-2">
-          <Flame className="h-5 w-5 text-slate-400" aria-hidden="true" />
-          <h3 className="text-base font-semibold text-slate-900">Trending / Spiked</h3>
+          <Flame className="h-5 w-5 text-[var(--admin-muted)]" aria-hidden="true" />
+          <h3 className="text-base font-semibold text-[var(--admin-text)]">Trending / Spiked</h3>
         </div>
         <EmptyChartState message="No items with notable growth vs the previous period." />
       </article>
@@ -131,21 +131,21 @@ function SpikedSection({ items }: { items: ReportData["spikedItems"] }) {
   }
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <article className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] p-5 shadow-sm sm:p-6">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Flame className="h-5 w-5 text-[#10B981]" aria-hidden="true" />
-        <h3 className="text-base font-semibold text-slate-900">Trending / Spiked</h3>
-        <span className="text-xs text-slate-400">Highest % growth vs previous period</span>
+        <h3 className="text-base font-semibold text-[var(--admin-text)]">Trending / Spiked</h3>
+        <span className="text-xs text-[var(--admin-muted)]">Highest % growth vs previous period</span>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((item) => (
           <div
             key={item.item_name}
-            className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4"
+            className="flex items-center justify-between gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-bg)] px-4 py-4"
           >
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-slate-900">{item.item_name}</p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="truncate text-sm font-bold text-[var(--admin-text)]">{item.item_name}</p>
+              <p className="mt-0.5 text-xs text-[var(--admin-muted)]">
                 {Number(item.quantity_sold)} sold · was {Number(item.previous_quantity)}
               </p>
             </div>
@@ -292,7 +292,7 @@ export function RevenueTrendPanel({
       empty={!hasRevenue}
       headerRight={
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <span className="text-xs font-medium text-slate-500">
+          <span className="text-xs font-medium text-[var(--admin-muted)]">
             Period total {formatCurrency(revenuePeriodTotal)}
           </span>
           <PreviousPeriodToggle checked={showPrevious} onChange={onShowPreviousChange} />
@@ -386,8 +386,8 @@ function PaymentSplitPanel({ data }: { data: ReportData }) {
   }, [paymentData, paymentPieSlices, pieTotal]);
 
   return (
-    <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-      <h3 className="mb-4 text-base font-semibold text-slate-900">Payment split</h3>
+    <article className="min-w-0 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] p-4 shadow-sm sm:p-6">
+      <h3 className="mb-4 text-base font-semibold text-[var(--admin-text)]">Payment split</h3>
       {!hasPaymentRevenue ? (
         <EmptyChartState />
       ) : (
@@ -427,7 +427,7 @@ function PaymentSplitPanel({ data }: { data: ReportData }) {
             {paymentData.map((p) => (
               <li
                 key={p.name}
-                className="inline-flex items-center gap-1.5 text-xs text-slate-600"
+                className="inline-flex items-center gap-1.5 text-xs text-[var(--admin-muted)]"
                 title={`${p.name}: ${formatCurrency(p.value)} · ${p.order_count} orders`}
               >
                 <span
@@ -438,7 +438,7 @@ function PaymentSplitPanel({ data }: { data: ReportData }) {
                 <span>
                   {p.name} ({formatCurrency(p.value)})
                   {p.value === 0 ? (
-                    <span className="text-slate-400"> · none this period</span>
+                    <span className="text-[var(--admin-muted)]"> · none this period</span>
                   ) : null}
                 </span>
               </li>
@@ -457,8 +457,8 @@ export function MenuPerformancePanel({ data }: { data: ReportData }) {
 
   return (
     <div className="space-y-6">
-      <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <h3 className="mb-4 text-base font-semibold text-slate-900">Top 10 items</h3>
+      <article className="min-w-0 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] p-4 shadow-sm sm:p-6">
+        <h3 className="mb-4 text-base font-semibold text-[var(--admin-text)]">Top 10 items</h3>
         {!hasTopItems ? (
           <EmptyChartState />
         ) : (
@@ -504,12 +504,12 @@ export function MenuPerformancePanel({ data }: { data: ReportData }) {
               </div>
             </div>
 
-            <div className="mt-4 border-t border-slate-100 pt-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <div className="mt-4 border-t border-[var(--admin-border)] pt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--admin-muted)]">
                 Least ordered
               </p>
               {data.leastItems.length === 0 ? (
-                <p className="text-xs text-slate-400">No low-volume items in this period.</p>
+                <p className="text-xs text-[var(--admin-muted)]">No low-volume items in this period.</p>
               ) : (
                 <ul className="space-y-2">
                   {data.leastItems.slice(0, 5).map((item) => {
@@ -519,10 +519,10 @@ export function MenuPerformancePanel({ data }: { data: ReportData }) {
                         key={item.item_name}
                         className="flex items-center justify-between gap-2"
                       >
-                        <span className="truncate text-sm font-medium text-slate-900">
+                        <span className="truncate text-sm font-medium text-[var(--admin-text)]">
                           {item.item_name}
                         </span>
-                        <span className="shrink-0 text-xs font-semibold text-slate-500">
+                        <span className="shrink-0 text-xs font-semibold text-[var(--admin-muted)]">
                           {qty} sold
                         </span>
                       </li>
@@ -641,7 +641,7 @@ export function TrafficTimingPanel({
         headerRight={
           peakDay && peakDay.order_count > 0 ? (
             <span
-              className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"
+              className="rounded-full bg-[var(--admin-subtle)] px-2.5 py-1 text-xs font-semibold text-[var(--admin-text)]"
               title={`${peakDay.day_label} had the most orders (${peakDay.order_count}) in this period`}
             >
               Peak day: {peakDay.day_label}
@@ -707,8 +707,8 @@ export function StaffPerformancePanel({
   const hasWaiters = waiterData.length > 0;
 
   return (
-    <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-      <h3 className="mb-4 text-base font-semibold text-slate-900">Waiter performance</h3>
+    <article className="min-w-0 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] p-4 shadow-sm sm:p-6">
+      <h3 className="mb-4 text-base font-semibold text-[var(--admin-text)]">Waiter performance</h3>
       {waiterError ? (
         <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-red-200 bg-red-50 px-4 text-center sm:h-72">
           <p className="text-sm font-semibold text-red-800">Failed to load waiter performance</p>
@@ -717,17 +717,17 @@ export function StaffPerformancePanel({
             <button
               type="button"
               onClick={onRetryWaiter}
-              className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-50"
+              className="rounded-lg border border-red-200 bg-[var(--admin-card)] px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-50"
             >
               Retry
             </button>
           )}
         </div>
       ) : !hasWaiters ? (
-        <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 text-center sm:h-72">
-          <Users className="mb-3 h-9 w-9 text-slate-300" aria-hidden="true" />
-          <p className="text-sm font-semibold text-slate-900">No waiter deliveries recorded yet</p>
-          <p className="mt-1 max-w-sm text-xs text-slate-400">
+        <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--admin-border)] bg-[var(--admin-bg)] px-4 text-center sm:h-72">
+          <Users className="mb-3 h-9 w-9 text-[var(--admin-muted)]" aria-hidden="true" />
+          <p className="text-sm font-semibold text-[var(--admin-text)]">No waiter deliveries recorded yet</p>
+          <p className="mt-1 max-w-sm text-xs text-[var(--admin-muted)]">
             When staff mark orders as delivered with their name, performance stats appear here.
           </p>
         </div>

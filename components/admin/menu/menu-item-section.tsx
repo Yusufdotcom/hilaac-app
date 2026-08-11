@@ -92,7 +92,7 @@ export function MenuItemSection({
           {menuItems.map((item) => (
             <div
               key={item.id}
-              className="overflow-hidden rounded-xl border bg-card transition-colors hover:border-[#CBD5E1]"
+              className="overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-[var(--admin-border)]"
             >
               <div className="relative h-36 w-full overflow-hidden bg-muted">
                 <MenuItemImage src={item.image_url} alt={item.name} />

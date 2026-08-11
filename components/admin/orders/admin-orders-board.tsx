@@ -22,7 +22,7 @@ const STATUS_CLASS: Record<string, string> = {
 
 const PAYMENT_CLASS: Record<string, string> = {
   paid: "bg-emerald-100 text-emerald-900",
-  pending: "bg-slate-100 text-slate-700",
+  pending: "bg-[var(--admin-subtle)] text-[var(--admin-text)]",
   pending_cashier_confirmation: "bg-amber-100 text-amber-900",
   failed: "bg-red-100 text-red-800",
 };
@@ -106,7 +106,7 @@ export function AdminOrdersBoard({
                       <Badge
                         className={cn(
                           "max-w-[9rem] truncate border-0 capitalize",
-                          STATUS_CLASS[order.status] ?? "bg-slate-100"
+                          STATUS_CLASS[order.status] ?? "bg-[var(--admin-subtle)]"
                         )}
                       >
                         {order.status.replaceAll("_", " ")}
@@ -163,7 +163,7 @@ export function AdminOrdersBoard({
                       <Badge
                         className={cn(
                           "max-w-full truncate border-0 capitalize",
-                          STATUS_CLASS[order.status] ?? "bg-slate-100"
+                          STATUS_CLASS[order.status] ?? "bg-[var(--admin-subtle)]"
                         )}
                       >
                         {order.status.replaceAll("_", " ")}

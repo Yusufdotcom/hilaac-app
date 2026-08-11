@@ -58,7 +58,7 @@ function BranchCard({
       {canSwitch ? (
         <label className="block">
           <span className="sr-only">Switch branch</span>
-          <div className="flex items-center justify-between gap-2 rounded-xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] px-3 py-2.5 transition hover:border-slate-200">
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] px-3 py-2.5 transition hover:border-[var(--admin-border)]">
             <div className="flex min-w-0 items-center gap-2">
               <span
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
@@ -76,7 +76,7 @@ function BranchCard({
                 <p className="truncate text-xs text-[var(--admin-muted,#64748B)]">{branchLabel}</p>
               </div>
             </div>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+            <ChevronsUpDown className="h-4 w-4 shrink-0 text-[var(--admin-muted)]" aria-hidden="true" />
           </div>
           <select
             className="absolute inset-0 cursor-pointer opacity-0"
@@ -222,7 +222,7 @@ export function AdminSidebar({
             "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
             active
               ? "admin-nav-active"
-              : "text-[var(--admin-muted,#64748B)] hover:bg-slate-50 dark:hover:bg-white/5"
+              : "text-[var(--admin-muted,#64748B)] hover:bg-[var(--admin-hover)]"
           )}
         >
           <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
@@ -246,7 +246,7 @@ export function AdminSidebar({
         <button
           type="button"
           onClick={() => onMobileClose?.()}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--admin-border)] text-slate-400"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--admin-border)] text-[var(--admin-muted)]"
           aria-label="Close menu"
         >
           <X className="h-4 w-4" aria-hidden="true" />
@@ -261,10 +261,10 @@ export function AdminSidebar({
         brandColor={brandColor}
       />
 
-      <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-slate-400">MAIN</p>
+      <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-[var(--admin-muted)]">MAIN</p>
       <nav className="mb-6 space-y-1">{renderNav(MAIN_NAV, { showOrdersBadge: true })}</nav>
 
-      <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-slate-400">MANAGE</p>
+      <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-[var(--admin-muted)]">MANAGE</p>
       <nav className="space-y-1">{renderNav(MANAGE_NAV)}</nav>
 
       <PlanCard
@@ -278,7 +278,7 @@ export function AdminSidebar({
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--admin-muted)] transition-colors hover:bg-slate-50"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--admin-muted)] transition-colors hover:bg-[var(--admin-bg)]"
         >
           <LogOut className="h-[18px] w-[18px]" aria-hidden="true" />
           Logout

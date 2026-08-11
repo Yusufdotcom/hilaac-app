@@ -85,7 +85,7 @@ export function AdminUserMenu({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="flex items-center gap-2 rounded-xl border border-transparent py-1.5 pl-2 pr-3 outline-none transition-colors hover:border-[var(--admin-border)] hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[var(--admin-brand)]"
+            className="flex items-center gap-2 rounded-xl border border-transparent py-1.5 pl-2 pr-3 outline-none transition-colors hover:border-[var(--admin-border)] hover:bg-[var(--admin-bg)] focus-visible:ring-2 focus-visible:ring-[var(--admin-brand)]"
             aria-label="Open profile menu"
           >
             <Avatar className="h-9 w-9">

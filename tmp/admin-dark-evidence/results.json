@@ -1,0 +1,66 @@
+[
+  {
+    "name": "dashboard",
+    "file": "C:\\hilaac-app\\tmp\\admin-dark-evidence\\dark-dashboard.png",
+    "dataTheme": "dark",
+    "adminCard": "#1c2030",
+    "cardBg": "rgb(28, 32, 48)",
+    "shellBg": "rgb(20, 23, 31)"
+  },
+  {
+    "name": "reports",
+    "file": "C:\\hilaac-app\\tmp\\admin-dark-evidence\\dark-reports.png",
+    "dataTheme": "dark",
+    "adminCard": "#1c2030",
+    "cardBg": "rgb(28, 32, 48)",
+    "shellBg": "rgb(20, 23, 31)"
+  },
+  {
+    "name": "menu",
+    "file": "C:\\hilaac-app\\tmp\\admin-dark-evidence\\dark-menu.png",
+    "dataTheme": "dark",
+    "adminCard": "#1c2030",
+    "cardBg": "rgb(28, 32, 48)",
+    "shellBg": "rgb(20, 23, 31)"
+  },
+  {
+    "name": "tables",
+    "file": "C:\\hilaac-app\\tmp\\admin-dark-evidence\\dark-tables.png",
+    "dataTheme": "dark",
+    "adminCard": "#1c2030",
+    "cardBg": "rgb(28, 32, 48)",
+    "shellBg": "rgb(20, 23, 31)"
+  },
+  {
+    "name": "orders",
+    "file": "C:\\hilaac-app\\tmp\\admin-dark-evidence\\dark-orders.png",
+    "dataTheme": "dark",
+    "adminCard": "#1c2030",
+    "cardBg": "rgb(28, 32, 48)",
+    "shellBg": "rgb(20, 23, 31)"
+  },
+  {
+    "name": "staff",
+    "file": "C:\\hilaac-app\\tmp\\admin-dark-evidence\\dark-staff.png",
+    "dataTheme": "dark",
+    "adminCard": "#1c2030",
+    "cardBg": "rgb(28, 32, 48)",
+    "shellBg": "rgb(20, 23, 31)"
+  },
+  {
+    "name": "settings",
+    "file": "C:\\hilaac-app\\tmp\\admin-dark-evidence\\dark-settings.png",
+    "dataTheme": "dark",
+    "adminCard": "#1c2030",
+    "cardBg": "rgb(28, 32, 48)",
+    "shellBg": "rgb(20, 23, 31)"
+  },
+  {
+    "name": "billing",
+    "file": "C:\\hilaac-app\\tmp\\admin-dark-evidence\\dark-billing.png",
+    "dataTheme": "dark",
+    "adminCard": "#1c2030",
+    "cardBg": "rgb(28, 32, 48)",
+    "shellBg": "rgb(20, 23, 31)"
+  }
+]

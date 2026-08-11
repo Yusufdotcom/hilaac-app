@@ -34,7 +34,7 @@ export function MenuManager({
       </AdminPageIntro>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full min-w-0 space-y-4">
-        <TabsList className="h-auto w-full flex-wrap justify-start gap-1 sm:w-auto">
+        <TabsList className="admin-surface h-auto w-full flex-wrap justify-start gap-1 border sm:w-auto">
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="addons">Add-ons</TabsTrigger>
           <TabsTrigger value="items">Menu Items</TabsTrigger>

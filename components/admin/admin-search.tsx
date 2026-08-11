@@ -45,7 +45,7 @@ function ResultsList({
       )}
       {!loading && results && results.orders.length > 0 && (
         <div className="mb-2">
-          <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--admin-muted)]">
             Orders
           </p>
           {results.orders.map((o) => (
@@ -53,7 +53,7 @@ function ResultsList({
               key={o.id}
               href={`/admin/${slug}/orders`}
               onClick={onNavigate}
-              className="block rounded-lg px-3 py-2 text-sm hover:bg-slate-50"
+              className="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--admin-bg)]"
             >
               <span className="font-medium">{formatOrderLabel(o, { prefix: false })}</span>
               <span className="ml-2 text-[var(--admin-muted)]">
@@ -65,7 +65,7 @@ function ResultsList({
       )}
       {!loading && results && results.menuItems.length > 0 && (
         <div className="mb-2">
-          <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--admin-muted)]">
             Menu
           </p>
           {results.menuItems.map((m) => (
@@ -73,7 +73,7 @@ function ResultsList({
               key={m.id}
               href={`/admin/${slug}/menu`}
               onClick={onNavigate}
-              className="block rounded-lg px-3 py-2 text-sm hover:bg-slate-50"
+              className="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--admin-bg)]"
             >
               <span className="font-medium">{m.name}</span>
               <span className="ml-2 text-[var(--admin-muted)]">
@@ -85,7 +85,7 @@ function ResultsList({
       )}
       {!loading && results && results.staff.length > 0 && (
         <div>
-          <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--admin-muted)]">
             Staff
           </p>
           {results.staff.map((s) => (
@@ -93,7 +93,7 @@ function ResultsList({
               key={s.id}
               href={`/admin/${slug}/staff`}
               onClick={onNavigate}
-              className="block rounded-lg px-3 py-2 text-sm hover:bg-slate-50"
+              className="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--admin-bg)]"
             >
               <span className="font-medium">{s.full_name || "Unnamed"}</span>
               <span className="ml-2 capitalize text-[var(--admin-muted)]">
@@ -173,13 +173,13 @@ export function AdminSearch({
         {open && (
           <div className="admin-glass-panel absolute right-0 top-full z-50 mt-2 w-[min(100vw-2rem,22rem)] rounded-xl p-3">
             <div className="mb-2 flex items-center gap-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-bg)] px-3 py-2">
-              <Search className="h-4 w-4 shrink-0 text-slate-400" />
+              <Search className="h-4 w-4 shrink-0 text-[var(--admin-muted)]" />
               <input
                 autoFocus
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search orders, menu, staff…"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--admin-muted)]"
               />
             </div>
             <ResultsList
@@ -198,7 +198,7 @@ export function AdminSearch({
   return (
     <div ref={rootRef} className={cn("relative w-full", className)}>
       <div className="flex items-center gap-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-bg)] px-3.5 py-2.5">
-        <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+        <Search className="h-4 w-4 shrink-0 text-[var(--admin-muted)]" aria-hidden="true" />
         <input
           type="search"
           value={q}
@@ -208,7 +208,7 @@ export function AdminSearch({
           }}
           onFocus={() => setOpen(true)}
           placeholder="Search orders, menu items, staff…"
-          className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+          className="w-full bg-transparent text-sm outline-none placeholder:text-[var(--admin-muted)]"
         />
       </div>
       {open && (q.trim().length > 0 || loading) && (

@@ -41,8 +41,8 @@ const ICON_BY_TYPE: Record<
   },
   revenue_trend: {
     Icon: ArrowUpRight,
-    className: "text-slate-700",
-    bg: "bg-slate-100 ring-slate-200",
+    className: "text-[var(--admin-text)]",
+    bg: "bg-[var(--admin-subtle)] ring-[var(--admin-border)]",
   },
 };
 
@@ -88,14 +88,14 @@ export function InsightsCard({
       >
         <div className="flex items-start gap-3">
           <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm"
+            className="admin-surface flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm"
             style={{ color: accent }}
           >
             <Lock className="h-4 w-4" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-slate-900">Insights</h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <h2 className="text-base font-semibold text-[var(--admin-text)]">Insights</h2>
+            <p className="mt-1 text-sm text-[var(--admin-muted)]">
               Get short, actionable recommendations from your sales data — trending items, quiet
               menu items, peak staffing windows, and more.
             </p>
@@ -115,27 +115,27 @@ export function InsightsCard({
   if (!insights.length) return null;
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <article className="admin-surface rounded-xl border p-5 shadow-sm sm:p-6">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Lightbulb
           className="h-5 w-5 text-[color:var(--admin-brand,var(--brand-accent,#0F172A))]"
           aria-hidden="true"
         />
-        <h2 className="text-base font-semibold text-slate-900">Insights</h2>
-        <span className="text-xs text-slate-400">Actionable tips from this period</span>
+        <h2 className="text-base font-semibold text-[var(--admin-text)]">Insights</h2>
+        <span className="text-xs text-[var(--admin-muted)]">Actionable tips from this period</span>
       </div>
       <ul className="space-y-3">
         {insights.map((insight) => (
           <li
             key={insight.id}
-            className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3.5"
+            className="admin-surface-subtle flex items-start gap-3 rounded-xl border px-3.5 py-3.5"
           >
             <InsightIcon insight={insight} />
             <div className="min-w-0 pt-0.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--admin-muted)]">
                 {insight.title}
               </p>
-              <p className="mt-0.5 text-sm font-medium leading-snug text-slate-800">
+              <p className="mt-0.5 text-sm font-medium leading-snug text-[var(--admin-text)]">
                 {insight.message}
               </p>
             </div>

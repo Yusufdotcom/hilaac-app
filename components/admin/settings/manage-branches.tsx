@@ -121,7 +121,7 @@ export function ManageBranches({
             </BrandButton>
           ) : (
             <div
-              className="flex items-start gap-3 rounded-lg border px-4 py-3 text-sm text-[#0F172A]"
+              className="flex items-start gap-3 rounded-lg border px-4 py-3 text-sm text-[var(--admin-text)]"
               style={{
                 borderColor: brandColorWithAlpha(accent, 0.4),
                 backgroundColor: brandColorWithAlpha(accent, 0.1),
@@ -132,7 +132,7 @@ export function ManageBranches({
                 <p className="font-medium">Upgrade to Pro to add multiple branches.</p>
                 <p className="mt-1 text-[#64748B]">
                   Pro lets you run 2–3 locations from one account.{" "}
-                  <Link href={`/admin/${currentSlug}/billing`} className="font-medium text-[#0F172A] underline">
+                  <Link href={`/admin/${currentSlug}/billing`} className="font-medium text-[var(--admin-text)] underline">
                     Upgrade now
                   </Link>
                 </p>

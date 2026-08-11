@@ -204,20 +204,20 @@ export function ReportsClient({
   const rangeLabel = formatDateRangeLabel(data.meta.startDate, data.meta.endDate);
 
   return (
-    <div className="-mx-4 min-h-full bg-slate-50 px-4 pb-8 pt-0 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+    <div className="-mx-4 min-h-full bg-[var(--admin-bg)] px-4 pb-8 pt-0 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
       <div className="admin-glass sticky top-[4.5rem] z-20 -mx-4 border-b border-[var(--admin-border,#E2E8F0)] px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <header className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <p className="text-sm text-[var(--admin-muted,#64748B)]">
               Period controls &amp; exports
             </p>
-            <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+            <div className="mt-1 flex items-center gap-1.5 text-sm text-[var(--admin-muted)]">
               <button
                 type="button"
                 aria-label="Previous period"
                 disabled={loading}
                 onClick={() => stepPeriod(-1)}
-                className="rounded-md p-1 text-slate-500 hover:bg-white hover:text-slate-900 disabled:opacity-40"
+                className="rounded-md p-1 text-[var(--admin-muted)] hover:bg-[var(--admin-card)] hover:text-[var(--admin-text)] disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -227,7 +227,7 @@ export function ReportsClient({
                 aria-label="Next period"
                 disabled={loading || periodOffset >= 0}
                 onClick={() => stepPeriod(1)}
-                className="rounded-md p-1 text-slate-500 hover:bg-white hover:text-slate-900 disabled:opacity-40"
+                className="rounded-md p-1 text-[var(--admin-muted)] hover:bg-[var(--admin-card)] hover:text-[var(--admin-text)] disabled:opacity-40"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -236,12 +236,12 @@ export function ReportsClient({
 
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-slate-500">Timeframe</span>
+              <span className="text-sm font-medium text-[var(--admin-muted)]">Timeframe</span>
               <Select
                 value={granularity}
                 onValueChange={(v) => handleGranularityChange(v as ReportGranularity)}
               >
-                <SelectTrigger className="w-[168px] bg-white">
+                <SelectTrigger className="w-[168px] bg-[var(--admin-card)]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -259,7 +259,7 @@ export function ReportsClient({
                         >
                           {granularityLabel(g)}
                           {locked && (
-                            <Lock className="h-3 w-3 text-slate-400" aria-hidden="true" />
+                            <Lock className="h-3 w-3 text-[var(--admin-muted)]" aria-hidden="true" />
                           )}
                         </span>
                       </SelectItem>
@@ -276,7 +276,7 @@ export function ReportsClient({
                 disabled={exportDisabled || exportingPdf || loading}
                 title={exportTitle}
                 onClick={handleExportPdf}
-                className="gap-2 bg-white"
+                className="gap-2 bg-[var(--admin-card)]"
               >
                 {exportingPdf ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -291,7 +291,7 @@ export function ReportsClient({
                 disabled={exportDisabled || exportingExcel || loading}
                 title={exportTitle}
                 onClick={handleExportExcel}
-                className="gap-2 bg-white"
+                className="gap-2 bg-[var(--admin-card)]"
               >
                 {exportingExcel ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -323,7 +323,7 @@ export function ReportsClient({
 
         {!isPro && !isExpired && (
           <div
-            className="flex items-start gap-3 rounded-xl border px-4 py-3 text-sm text-slate-900"
+            className="flex items-start gap-3 rounded-xl border px-4 py-3 text-sm text-[var(--admin-text)]"
             style={{
               borderColor: brandColorWithAlpha(accent, 0.4),
               backgroundColor: brandColorWithAlpha(accent, 0.1),
@@ -332,10 +332,10 @@ export function ReportsClient({
             <Sparkles className="mt-0.5 h-5 w-5 shrink-0" style={{ color: accent }} />
             <div>
               <p className="font-semibold">Upgrade to Pro for advanced analytics</p>
-              <p className="mt-1 text-slate-500">
+              <p className="mt-1 text-[var(--admin-muted)]">
                 Unlock Insights recommendations, weekly/biweekly/yearly timeframes, and PDF/Excel
                 exports.{" "}
-                <Link href={`/admin/${slug}/billing`} className="font-medium text-slate-900 underline">
+                <Link href={`/admin/${slug}/billing`} className="font-medium text-[var(--admin-text)] underline">
                   Upgrade now
                 </Link>
               </p>
@@ -354,7 +354,7 @@ export function ReportsClient({
               variant="outline"
               size="sm"
               onClick={() => refetch(granularity, periodOffset)}
-              className="gap-2 bg-white"
+              className="gap-2 bg-[var(--admin-card)]"
             >
               <RefreshCw className="h-4 w-4" />
               Retry
@@ -381,12 +381,12 @@ export function ReportsClient({
               />
 
               {isEmpty ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
-                    <Sparkles className="h-8 w-8 text-slate-400" aria-hidden="true" />
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--admin-border)] bg-[var(--admin-card)] px-6 py-16 text-center shadow-sm">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--admin-subtle)]">
+                    <Sparkles className="h-8 w-8 text-[var(--admin-muted)]" aria-hidden="true" />
                   </div>
-                  <p className="text-lg font-semibold text-slate-900">No data available</p>
-                  <p className="mt-1 max-w-sm text-sm text-slate-500">
+                  <p className="text-lg font-semibold text-[var(--admin-text)]">No data available</p>
+                  <p className="mt-1 max-w-sm text-sm text-[var(--admin-muted)]">
                     No data available for this period.
                   </p>
                 </div>
@@ -396,7 +396,7 @@ export function ReportsClient({
                   onValueChange={setTab}
                   className="w-full min-w-0 space-y-4"
                 >
-                  <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-white p-1 shadow-sm">
+                  <TabsList className="admin-surface flex h-auto w-full flex-wrap justify-start gap-1 border p-1 shadow-sm">
                     <TabsTrigger value="overview" className="text-xs sm:text-sm">
                       Overview
                     </TabsTrigger>
