@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { readSupportSessionForUser } from "@/lib/platform/support-session";
+import { readSupportSessionForUser } from "@/lib/platform/support-session-server";
 import type { UserRole } from "@/types/database";
 
 export type ActiveStaffProfile = {
@@ -65,7 +65,7 @@ export async function requireActiveStaff(options?: {
   }
 
   const isPlatformAdmin = profile.is_platform_admin === true;
-  const support = isPlatformAdmin ? readSupportSessionForUser(user.id) : null;
+  const support = isPlatformAdmin ? await readSupportSessionForUser(user.id) : null;
 
   let restaurantId = profile.restaurant_id as string | null;
   let role = profile.role as UserRole;

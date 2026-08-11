@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/database";
 import { ownerCanAccessSlug } from "@/lib/admin/owner-branches";
-import { readSupportSessionForUser } from "@/lib/platform/support-session";
+import { readSupportSessionForUser } from "@/lib/platform/support-session-server";
 
 export type UserRestaurantContext = {
   profile: Pick<Profile, "role" | "restaurant_id">;
@@ -115,7 +115,7 @@ export async function getAdminSlugRedirect(
 
   // Platform support Open uses a cookie; do not bounce to a home restaurant.
   if (profile?.is_platform_admin === true) {
-    const support = readSupportSessionForUser(userId);
+    const support = await readSupportSessionForUser(userId);
     if (support?.slug === urlSlug) return null;
     // Platform-only accounts have no tenant home to redirect to.
     if (!profile.restaurant_id) return "/platform/restaurants";

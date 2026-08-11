@@ -148,7 +148,10 @@ export async function updateSession(request: NextRequest) {
 
     const adminSlugMatch = pathname.match(/^\/admin\/([^/]+)/);
     const urlSlug = adminSlugMatch?.[1];
-    const support = isPlatformAdmin ? readSupportSessionFromRequest(request, user.id) : null;
+    // Edge-safe Web Crypto verify — never import Node.js `crypto` here.
+    const support = isPlatformAdmin
+      ? await readSupportSessionFromRequest(request, user.id)
+      : null;
 
     let restaurant:
       | { slug: string; subscription_status: string | null; subscription_end_date: string | null }

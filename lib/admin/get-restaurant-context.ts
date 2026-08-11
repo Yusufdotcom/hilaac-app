@@ -4,7 +4,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import type { Profile, Restaurant } from "@/types/database";
 import { getUserRestaurantContext } from "@/lib/admin/resolve-user-restaurant";
 import { ownerCanAccessSlug } from "@/lib/admin/owner-branches";
-import { readSupportSessionForUser } from "@/lib/platform/support-session";
+import { readSupportSessionForUser } from "@/lib/platform/support-session-server";
 
 async function loadProfile(supabase: ReturnType<typeof createClient>, userId: string): Promise<Profile | null> {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
@@ -62,7 +62,7 @@ export async function getRestaurantContext(
   if (resolvedProfile.is_active === false) redirect("/login?error=deactivated");
 
   const isPlatformAdmin = resolvedProfile.is_platform_admin === true;
-  const support = isPlatformAdmin ? readSupportSessionForUser(user.id) : null;
+  const support = isPlatformAdmin ? await readSupportSessionForUser(user.id) : null;
   const platformSupport = Boolean(support && support.slug === slug);
 
   const userCtx = await getUserRestaurantContext(supabase, user.id);
@@ -112,7 +112,7 @@ export async function canUserAccessAdminSlug(
     .maybeSingle();
 
   if (profile?.is_platform_admin === true) {
-    const support = readSupportSessionForUser(userId);
+    const support = await readSupportSessionForUser(userId);
     if (support?.slug === urlSlug) return true;
   }
 

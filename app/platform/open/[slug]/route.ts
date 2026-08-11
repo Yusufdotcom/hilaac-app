@@ -55,7 +55,7 @@ export async function GET(
 
   // Refuse to open a restaurant the platform admin somehow owns as a "cross-tenant"
   // path still works; ownership is irrelevant — support cookie is always set.
-  const token = mintPlatformSupportToken(auth.user.id, restaurant.id, restaurant.slug);
+  const token = await mintPlatformSupportToken(auth.user.id, restaurant.id, restaurant.slug);
   const destination = new URL(`/admin/${restaurant.slug}/dashboard`, _req.url);
   const res = NextResponse.redirect(destination);
   applySupportCookie(res, token);
