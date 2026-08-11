@@ -3,6 +3,7 @@ import { requireActiveStaff } from "@/lib/auth/require-active-staff";
 import { PLANS } from "@/lib/constants";
 import { decrypt } from "@/lib/encryption";
 import {
+  parseRenewalIntent,
   renewalAmountForTier,
   resolveRenewalTier,
   type BillableTier,
@@ -11,7 +12,7 @@ import { ussdDialString } from "@/lib/platform/ussd";
 import { createAdminClient } from "@/lib/supabase/server";
 
 /**
- * GET /api/admin/subscriptions/ussd?intent=renew|upgrade_pro
+ * GET /api/admin/subscriptions/ussd?intent=renew|upgrade_pro|switch_starter
  * Returns Hilaac platform USSD dial strings for the owner's restaurant plan.
  * Does not expose restaurant customer merchant codes.
  */
@@ -19,8 +20,7 @@ export async function GET(req: NextRequest) {
   const auth = await requireActiveStaff({ roles: ["owner", "manager"] });
   if (!auth.ok) return auth.response;
 
-  const intentParam = req.nextUrl.searchParams.get("intent") ?? "renew";
-  const intent = intentParam === "upgrade_pro" ? "upgrade_pro" : "renew";
+  const intent = parseRenewalIntent(req.nextUrl.searchParams.get("intent") ?? "renew");
 
   const admin = createAdminClient();
   const { data: restaurant, error: restErr } = await admin
@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     tier,
     amount,
+    intent,
     priceLabel: PLANS[tier].priceLabel,
     planName: PLANS[tier].name,
     dial: {

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/lib/auth/require-platform-admin";
-import { nextSubscriptionEndDate } from "@/lib/platform/subscription-renewal";
+import {
+  nextEndDateForConfirm,
+  type BillableTier,
+} from "@/lib/platform/subscription-renewal";
 import { createAdminClient } from "@/lib/supabase/server";
 
 /**
@@ -39,7 +42,7 @@ export async function POST(
 
   const { data: restaurant, error: restErr } = await admin
     .from("restaurants")
-    .select("id, subscription_end_date, subscription_tier")
+    .select("id, subscription_end_date, subscription_tier, payment_mode")
     .eq("id", renewal.restaurant_id)
     .maybeSingle();
 
@@ -47,18 +50,36 @@ export async function POST(
     return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
   }
 
-  const nextEnd = nextSubscriptionEndDate(restaurant.subscription_end_date);
-  const tier =
+  const tier: BillableTier =
     renewal.tier === "pro" || renewal.tier === "starter" ? renewal.tier : "starter";
+
+  const nextEnd = nextEndDateForConfirm({
+    currentTier: restaurant.subscription_tier,
+    renewalTier: tier,
+    currentEnd: restaurant.subscription_end_date,
+  });
+
+  const restaurantUpdate: {
+    subscription_tier: BillableTier;
+    subscription_status: "active";
+    subscription_end_date: string;
+    updated_at: string;
+    payment_mode?: "ussd";
+  } = {
+    subscription_tier: tier,
+    subscription_status: "active",
+    subscription_end_date: nextEnd,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Downgrade / leave Pro: force USSD so API merchant mode cannot linger.
+  if (tier === "starter" && restaurant.subscription_tier !== "starter") {
+    restaurantUpdate.payment_mode = "ussd";
+  }
 
   const { error: updateRestErr } = await admin
     .from("restaurants")
-    .update({
-      subscription_tier: tier,
-      subscription_status: "active",
-      subscription_end_date: nextEnd,
-      updated_at: new Date().toISOString(),
-    })
+    .update(restaurantUpdate)
     .eq("id", restaurant.id);
 
   if (updateRestErr) {
@@ -83,11 +104,13 @@ export async function POST(
   console.info("[platform] renewal_confirmed", {
     renewalId: renewal.id,
     restaurantId: restaurant.id,
+    previousTier: restaurant.subscription_tier,
     tier,
     amount: renewal.amount,
     method: renewal.method,
     confirmedBy: auth.user.id,
     subscriptionEndDate: nextEnd,
+    paymentModeForcedUssd: restaurantUpdate.payment_mode === "ussd",
   });
 
   return NextResponse.json({

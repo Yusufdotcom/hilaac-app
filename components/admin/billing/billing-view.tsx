@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, CheckCircle2, Crown, Smartphone } from "lucide-react";
+import { Loader2, CheckCircle2, Crown, Smartphone, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
@@ -20,23 +20,34 @@ import {
 } from "@/components/ui/dialog";
 import { adminBrandBorderClass, adminBrandTextClass } from "@/lib/brand/admin-tokens";
 import { PLANS } from "@/lib/constants";
+import type { RenewalIntent } from "@/lib/platform/subscription-renewal";
 import { cn, formatDate, daysUntil, formatCurrency } from "@/lib/utils";
 import type { Restaurant } from "@/types/database";
 
-type PayIntent = "renew" | "upgrade_pro";
+type PayIntent = RenewalIntent;
+type PlanKey = "starter" | "pro";
 
 type UssdPayload = {
-  tier: "starter" | "pro";
+  tier: PlanKey;
   amount: number;
   priceLabel: string;
   planName: string;
+  intent?: PayIntent;
   dial: { evc: string; edahab: string };
 };
+
+const DOWNGRADE_LOSSES = [
+  "AI menu image generator",
+  "Direct API mobile money payments (reverts to USSD)",
+  "Unlimited staff accounts (Starter allows up to 3)",
+  "Priority support",
+] as const;
 
 export function BillingView({ restaurant }: { restaurant: Restaurant }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [payOpen, setPayOpen] = useState(false);
+  const [downgradeOpen, setDowngradeOpen] = useState(false);
   const [intent, setIntent] = useState<PayIntent>("renew");
   const [ussd, setUssd] = useState<UssdPayload | null>(null);
   const [loadingUssd, setLoadingUssd] = useState(false);
@@ -47,9 +58,8 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
 
   const daysLeft = daysUntil(restaurant.subscription_end_date);
   const isPro = restaurant.subscription_tier === "pro";
+  const currentPlanKey: PlanKey = isPro ? "pro" : "starter";
   const isExpired = restaurant.subscription_status === "expired" || daysLeft < 0;
-  const renewTier = isPro ? "pro" : "starter";
-  const renewAmount = PLANS[renewTier].price;
 
   useEffect(() => {
     if (searchParams.get("renew") === "1") {
@@ -82,10 +92,9 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
     setPayOpen(true);
     setLoadingUssd(true);
     try {
-      const res = await fetch(
-        `/api/admin/subscriptions/ussd?intent=${nextIntent}`,
-        { cache: "no-store" }
-      );
+      const res = await fetch(`/api/admin/subscriptions/ussd?intent=${nextIntent}`, {
+        cache: "no-store",
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not load payment codes");
       setUssd(data as UssdPayload);
@@ -95,6 +104,19 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
     } finally {
       setLoadingUssd(false);
     }
+  }
+
+  function requestPlanAction(planKey: PlanKey) {
+    if (pendingRenewalId) return;
+    if (planKey === currentPlanKey) {
+      void openPay("renew");
+      return;
+    }
+    if (planKey === "pro") {
+      void openPay("upgrade_pro");
+      return;
+    }
+    setDowngradeOpen(true);
   }
 
   function dial(next: "evc" | "edahab") {
@@ -131,6 +153,16 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
     }
   }
 
+  function payDialogTitle() {
+    if (intent === "upgrade_pro") {
+      return `Upgrade to Pro — ${ussd?.priceLabel ?? PLANS.pro.priceLabel}`;
+    }
+    if (intent === "switch_starter") {
+      return `Switch to Starter — ${ussd?.priceLabel ?? PLANS.starter.priceLabel}`;
+    }
+    return `Renew ${ussd?.planName ?? PLANS[currentPlanKey].name} — ${ussd?.priceLabel ?? PLANS[currentPlanKey].priceLabel}`;
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -163,69 +195,130 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
 
           {pendingRenewalId && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-              A renewal payment is awaiting Hilaac confirmation. Your plan will unlock as soon as
-              it is confirmed.
+              A payment is awaiting Hilaac confirmation. Your plan will update as soon as it is
+              confirmed.
             </div>
           )}
-
-          <div className="flex flex-wrap gap-2 pt-2">
-            <BrandButton onClick={() => void openPay("renew")} disabled={!!pendingRenewalId}>
-              <Smartphone className="h-4 w-4" />
-              Renew now — {formatCurrency(renewAmount)}
-            </BrandButton>
-            {!isPro && (
-              <Button
-                variant="outline"
-                onClick={() => void openPay("upgrade_pro")}
-                disabled={!!pendingRenewalId}
-              >
-                <Crown className="h-4 w-4" /> Upgrade to Pro — $79
-              </Button>
-            )}
-          </div>
         </CardContent>
       </Card>
 
       <div className="grid gap-6 sm:grid-cols-2">
-        {Object.entries(PLANS).map(([key, plan]) => (
-          <Card
-            key={key}
-            className={
-              restaurant.subscription_tier === key || (key === "pro" && isPro)
-                ? cn("border-2", adminBrandBorderClass)
-                : ""
-            }
-          >
-            <CardHeader>
-              <CardTitle className="text-lg">{plan.name}</CardTitle>
-              <div className="text-3xl font-bold">{plan.priceLabel}</div>
-              <CardDescription>{plan.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <CheckCircle2 className={cn("mt-0.5 h-4 w-4 shrink-0", adminBrandTextClass)} />{" "}
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        ))}
+        {(Object.entries(PLANS) as [PlanKey, (typeof PLANS)[PlanKey]][]).map(([key, plan]) => {
+          const isCurrent = currentPlanKey === key;
+          return (
+            <Card
+              key={key}
+              className={isCurrent ? cn("border-2", adminBrandBorderClass) : ""}
+            >
+              <CardHeader>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-lg">{plan.name}</CardTitle>
+                  {isCurrent && (
+                    <Badge variant="secondary" className="text-xs">
+                      Current
+                    </Badge>
+                  )}
+                </div>
+                <div className="text-3xl font-bold">{plan.priceLabel}</div>
+                <CardDescription>{plan.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ul className="space-y-2 text-sm">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <CheckCircle2
+                        className={cn("mt-0.5 h-4 w-4 shrink-0", adminBrandTextClass)}
+                      />{" "}
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                {isCurrent ? (
+                  <BrandButton
+                    className="w-full"
+                    onClick={() => requestPlanAction(key)}
+                    disabled={!!pendingRenewalId}
+                  >
+                    <Smartphone className="h-4 w-4" />
+                    Renew now — {formatCurrency(plan.price)}
+                  </BrandButton>
+                ) : key === "pro" ? (
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => requestPlanAction("pro")}
+                    disabled={!!pendingRenewalId}
+                  >
+                    <Crown className="h-4 w-4" />
+                    Upgrade to Pro — {formatCurrency(PLANS.pro.price)}
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => requestPlanAction("starter")}
+                    disabled={!!pendingRenewalId}
+                  >
+                    Switch to Starter — {formatCurrency(PLANS.starter.price)}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
+
+      <Dialog open={downgradeOpen} onOpenChange={setDowngradeOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              Switch to Starter?
+            </DialogTitle>
+            <DialogDescription>
+              You will lose Pro-only features as soon as Hilaac confirms payment. Switching starts a
+              fresh 30-day Starter period (remaining Pro days are not carried over).
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="space-y-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+            {DOWNGRADE_LOSSES.map((item) => (
+              <li key={item} className="flex items-start gap-2">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-600" />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setDowngradeOpen(false)}>
+              Keep Pro
+            </Button>
+            <BrandButton
+              type="button"
+              onClick={() => {
+                setDowngradeOpen(false);
+                void openPay("switch_starter");
+              }}
+            >
+              Continue to pay {formatCurrency(PLANS.starter.price)}
+            </BrandButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {intent === "upgrade_pro"
-                ? "Upgrade to Pro — $79/mo"
-                : `Renew ${ussd?.planName ?? PLANS[renewTier].name} — ${ussd?.priceLabel ?? PLANS[renewTier].priceLabel}`}
-            </DialogTitle>
+            <DialogTitle>{payDialogTitle()}</DialogTitle>
             <DialogDescription>
               Pay Hilaac via mobile money, then submit. A Super Admin will confirm — same pattern as
               cashier payment confirmation.
+              {intent !== "renew" && (
+                <>
+                  {" "}
+                  On confirmation your plan switches immediately and a new 30-day period starts.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
 
@@ -235,6 +328,13 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
             </div>
           ) : (
             <>
+              <p className="text-sm text-muted-foreground">
+                Amount to dial:{" "}
+                <span className="font-semibold text-foreground">
+                  {formatCurrency(ussd.amount)}
+                </span>{" "}
+                ({ussd.planName})
+              </p>
               <div className="grid grid-cols-2 gap-3">
                 <BrandButton variant="success" size="lg" onClick={() => dial("evc")}>
                   <Smartphone className="h-4 w-4" /> Ku bixi EVC

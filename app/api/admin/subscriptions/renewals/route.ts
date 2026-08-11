@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAal2ForPrivilegedRole } from "@/lib/auth/aal";
 import { requireActiveStaff } from "@/lib/auth/require-active-staff";
 import {
+  parseRenewalIntent,
   renewalAmountForTier,
   resolveRenewalTier,
   type BillableTier,
@@ -46,8 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
   }
 
-  const intent =
-    body.intent === "upgrade_pro" ? ("upgrade_pro" as const) : ("renew" as const);
+  const intent = parseRenewalIntent(body.intent);
 
   const txRef =
     typeof body.txRef === "string" && body.txRef.trim()
@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
     tier,
     amount,
     method,
+    intent,
     userId: auth.user.id,
   });
 
