@@ -24,9 +24,16 @@ export default async function AdminLayout({
   const slugRedirect = await getAdminSlugRedirect(supabase, user.id, params.slug);
   if (slugRedirect) redirect(slugRedirect);
 
-  const { restaurant, profile } = await getRestaurantContext(params.slug, ["owner", "manager"]);
+  const { restaurant, profile, platformSupport } = await getRestaurantContext(params.slug, [
+    "owner",
+    "manager",
+  ]);
 
-  const branches = profile.role === "owner" ? await getOwnerBranches(supabase, user.id) : [];
+  // Platform support: do not expose the owner's branch list as if it were theirs.
+  const branches =
+    !platformSupport && profile.role === "owner"
+      ? await getOwnerBranches(supabase, user.id)
+      : [];
 
   const userName =
     profile.full_name?.trim() ||
@@ -58,9 +65,10 @@ export default async function AdminLayout({
       subscriptionEndDate={restaurant.subscription_end_date}
       brandColor={restaurant.brand_color}
       userName={userName}
-      userRole={profile.role}
+      userRole={platformSupport ? "owner" : profile.role}
       avatarUrl={profile.avatar_url ?? null}
       isPlatformAdmin={profile.is_platform_admin === true}
+      platformSupportView={platformSupport}
       currentSlug={params.slug}
       branches={branches}
       awaitingOrdersCount={awaitingOrdersCount}

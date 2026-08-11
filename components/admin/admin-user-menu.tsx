@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import { Building2, Camera, Loader2, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -112,11 +111,17 @@ export function AdminUserMenu({
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           {isPlatformAdmin && (
-            <DropdownMenuItem asChild className="cursor-pointer">
-              <Link href="/platform/dashboard">
-                <Building2 className="mr-2 h-4 w-4" aria-hidden="true" />
-                Platform dashboard
-              </Link>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={(e) => {
+                // Full navigation — leave restaurant admin shell entirely
+                // (no soft-nav leftover tenant branding / sidebar).
+                e.preventDefault();
+                window.location.assign("/platform/restaurants");
+              }}
+            >
+              <Building2 className="mr-2 h-4 w-4" aria-hidden="true" />
+              Hilaac Platform
             </DropdownMenuItem>
           )}
           <DropdownMenuItem

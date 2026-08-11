@@ -1,8 +1,20 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getPlatformAdminSession } from "@/lib/auth/require-platform-admin";
 import { PlatformShell } from "@/components/platform/platform-shell";
 import { createClient } from "@/lib/supabase/server";
 
+export const metadata: Metadata = {
+  title: "Hilaac Platform",
+  description: "Cross-tenant Super Admin console for Hilaac.",
+};
+
+export const dynamic = "force-dynamic";
+
+/**
+ * Tenant-agnostic platform console.
+ * Never wraps AdminLayoutShell — no restaurant sidebar, brand_color, or slug context.
+ */
 export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
   const session = await getPlatformAdminSession();
   if (!session) {
@@ -16,8 +28,11 @@ export default async function PlatformLayout({ children }: { children: React.Rea
     .eq("id", session.user.id)
     .maybeSingle();
 
+  const adminName =
+    profile?.full_name?.trim() || session.user.email?.split("@")[0] || "Platform admin";
+
   return (
-    <PlatformShell adminName={profile?.full_name ?? session.user.email}>
+    <PlatformShell adminName={adminName}>
       {children}
     </PlatformShell>
   );

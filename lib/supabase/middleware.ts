@@ -1,12 +1,19 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { roleRequiresMfa } from "@/lib/auth/roles";
+import {
+  PLATFORM_SUPPORT_COOKIE,
+  readSupportSessionFromRequest,
+} from "@/lib/platform/support-session";
 
 /**
  * Refreshes the Supabase auth session on every request.
- * Login is required ONLY for /admin/* and /staff/*.
+ * Login is required ONLY for /admin/* , /staff/* , and /platform/*.
  * Public QR ordering (/order/*) and other public routes never redirect to /login.
- * Owner/manager on /admin must complete MFA enroll / AAL2 challenge.
+ *
+ * MFA:
+ *   - is_platform_admin → unconditional on /platform and while in tenant support Open
+ *   - owner/manager → on /admin (existing)
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -77,20 +84,11 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Platform Super Admin routes — never restaurant-role based.
-    if (isPlatform) {
-      if (profile.is_platform_admin !== true) {
-        const url = request.nextUrl.clone();
-        url.pathname = "/login";
-        url.searchParams.set("error", "forbidden");
-        return NextResponse.redirect(url);
-      }
-      return supabaseResponse;
-    }
+    const isPlatformAdmin = profile.is_platform_admin === true;
 
-    // MFA: owner/manager only — never kitchen/waiter/cashier (shared tablets).
-    // Fail-closed: null/error AAL → enroll (do not skip MFA).
-    if (pathname.startsWith("/admin") && roleRequiresMfa(profile.role) && !isMfaRoute) {
+    // --- MFA helper (fail-closed) ---
+    const enforceMfa = async (): Promise<NextResponse | null> => {
+      if (isMfaRoute) return null;
       const { data: aal, error: aalError } =
         await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       const nextParam = encodeURIComponent(pathname + request.nextUrl.search);
@@ -112,10 +110,45 @@ export async function updateSession(request: NextRequest) {
         url.search = `?next=${nextParam}`;
         return NextResponse.redirect(url);
       }
+      return null;
+    };
+
+    // Platform Super Admin routes — never restaurant-role based.
+    if (isPlatform) {
+      if (!isPlatformAdmin) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        url.searchParams.set("error", "forbidden");
+        return NextResponse.redirect(url);
+      }
+      // Unconditional MFA for the most privileged account.
+      const mfaRedirect = await enforceMfa();
+      if (mfaRedirect) return mfaRedirect;
+      // Leaving tenant support when returning to the platform console.
+      if (!pathname.startsWith("/platform/open")) {
+        supabaseResponse.cookies.set(PLATFORM_SUPPORT_COOKIE, "", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: 0,
+        });
+      }
+      return supabaseResponse;
+    }
+
+    // MFA: platform admins always; else owner/manager only — never kitchen/waiter/cashier.
+    if (
+      pathname.startsWith("/admin") &&
+      (isPlatformAdmin || roleRequiresMfa(profile.role))
+    ) {
+      const mfaRedirect = await enforceMfa();
+      if (mfaRedirect) return mfaRedirect;
     }
 
     const adminSlugMatch = pathname.match(/^\/admin\/([^/]+)/);
     const urlSlug = adminSlugMatch?.[1];
+    const support = isPlatformAdmin ? readSupportSessionFromRequest(request, user.id) : null;
 
     let restaurant:
       | { slug: string; subscription_status: string | null; subscription_end_date: string | null }
@@ -131,7 +164,8 @@ export async function updateSession(request: NextRequest) {
       if (urlRestaurant) {
         const isOwnerBranch = profile?.role === "owner" && urlRestaurant.owner_id === user.id;
         const isProfileRestaurant = urlRestaurant.id === profile?.restaurant_id;
-        if (isOwnerBranch || isProfileRestaurant) {
+        const isPlatformSupport = support?.slug === urlSlug && support.restaurantId === urlRestaurant.id;
+        if (isOwnerBranch || isProfileRestaurant || isPlatformSupport) {
           restaurant = urlRestaurant;
         }
       }
@@ -146,6 +180,18 @@ export async function updateSession(request: NextRequest) {
       restaurant = profileRestaurant;
     }
 
+    // Platform-only admin hitting /admin without a valid support session → platform home.
+    if (
+      isPlatformAdmin &&
+      !profile.restaurant_id &&
+      pathname.startsWith("/admin") &&
+      !support
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/platform/restaurants";
+      return NextResponse.redirect(url);
+    }
+
     if (restaurant) {
       const isExpired =
         restaurant.subscription_status === "expired" ||
@@ -153,7 +199,16 @@ export async function updateSession(request: NextRequest) {
 
       const isBillingRoute = pathname === `/admin/${restaurant.slug}/billing`;
 
-      if (isExpired && pathname.startsWith("/admin") && !isBillingRoute && restaurant.slug) {
+      // Platform support Open may still view expired tenants (billing support).
+      const skipExpiryRedirect = Boolean(support && support.slug === restaurant.slug);
+
+      if (
+        isExpired &&
+        pathname.startsWith("/admin") &&
+        !isBillingRoute &&
+        restaurant.slug &&
+        !skipExpiryRedirect
+      ) {
         const url = request.nextUrl.clone();
         url.pathname = `/admin/${restaurant.slug}/billing`;
         return NextResponse.redirect(url);

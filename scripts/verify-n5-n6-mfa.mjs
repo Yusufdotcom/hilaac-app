@@ -46,17 +46,23 @@ const routes = [
   "app/api/admin/loyalty/settings/route.ts",
   "app/api/admin/whatsapp/settings/route.ts",
   "app/api/admin/menu/generate-image/route.ts",
-  "app/api/admin/subscriptions/confirm-payment/route.ts",
+  // confirm-payment is retired (410) — platform renewals confirm uses requirePlatformAdmin + AAL2
   "app/api/admin/restaurant/settings/route.ts",
   "app/api/admin/restaurant/test-connection/route.ts",
   "app/api/admin/reports/orders/route.ts",
   "app/api/admin/reports/data/route.ts",
+  "app/api/platform/renewals/[id]/confirm/route.ts",
 ];
 
 let missing = 0;
 for (const r of routes) {
   const src = readFileSync(resolve(r), "utf8");
-  if (!src.includes("requireAal2ForPrivilegedRole")) {
+  const hasAal =
+    src.includes("requireAal2ForPrivilegedRole") ||
+    src.includes("requireAal2ForPlatformAdmin") ||
+    // requirePlatformAdmin embeds unconditional AAL2
+    src.includes("requirePlatformAdmin");
+  if (!hasAal) {
     fail(`AAL2 missing on ${r}`);
     missing += 1;
   }

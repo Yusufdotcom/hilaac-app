@@ -65,11 +65,11 @@ export function PlatformSettingsForm() {
       className="mx-auto max-w-lg space-y-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6"
     >
       <div>
-        <h1 className="text-2xl font-bold text-white">Payment collection</h1>
+        <h1 className="text-2xl font-bold text-white">Platform Settings</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Hilaac&apos;s own EVC / eDahab USSD codes for collecting restaurant subscription
-          payments. Stored with AES-256-GCM — separate from each restaurant&apos;s customer
-          merchant codes.
+          Hilaac&apos;s own EVC / eDahab merchant USSD codes for collecting restaurant
+          subscription payments. Encrypted at rest — separate from each tenant&apos;s customer
+          payment codes.
         </p>
       </div>
 

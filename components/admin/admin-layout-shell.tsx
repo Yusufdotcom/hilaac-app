@@ -25,6 +25,7 @@ function AdminShellChrome({
   userRole,
   avatarUrl,
   isPlatformAdmin = false,
+  platformSupportView = false,
   currentSlug,
   branches,
   awaitingOrdersCount,
@@ -38,6 +39,7 @@ function AdminShellChrome({
   userRole: UserRole;
   avatarUrl?: string | null;
   isPlatformAdmin?: boolean;
+  platformSupportView?: boolean;
   currentSlug: string;
   branches: OwnerBranch[];
   awaitingOrdersCount: number;
@@ -112,6 +114,18 @@ function AdminShellChrome({
           onOpenSidebar={() => setMobileOpen(true)}
         />
 
+        {platformSupportView ? (
+          <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-950 dark:text-amber-100">
+            <p className="font-medium">Platform support view</p>
+            <p className="text-xs opacity-90">
+              You are not this restaurant&apos;s owner. Acting via Super Admin support session.{" "}
+              <a href="/platform/restaurants" className="underline underline-offset-2">
+                Back to Hilaac Platform
+              </a>
+            </p>
+          </div>
+        ) : null}
+
         <main className="admin-shell-main relative z-0 flex min-w-0 w-full flex-1 flex-col overflow-x-clip">
           <div className="mx-auto w-full min-w-0 max-w-7xl p-4 sm:p-6 lg:p-8">{children}</div>
           <PoweredByHilaac className="pb-4 pt-2 sm:pb-6" />
@@ -131,6 +145,7 @@ export function AdminLayoutShell({
   userRole,
   avatarUrl,
   isPlatformAdmin = false,
+  platformSupportView = false,
   currentSlug,
   branches = [],
   awaitingOrdersCount = 0,
@@ -145,6 +160,7 @@ export function AdminLayoutShell({
   userRole: UserRole;
   avatarUrl?: string | null;
   isPlatformAdmin?: boolean;
+  platformSupportView?: boolean;
   currentSlug: string;
   branches?: OwnerBranch[];
   awaitingOrdersCount?: number;
@@ -162,6 +178,7 @@ export function AdminLayoutShell({
           userRole={userRole}
           avatarUrl={avatarUrl}
           isPlatformAdmin={isPlatformAdmin}
+          platformSupportView={platformSupportView}
           currentSlug={currentSlug}
           branches={branches}
           awaitingOrdersCount={awaitingOrdersCount}

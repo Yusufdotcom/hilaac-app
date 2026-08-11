@@ -6,18 +6,7 @@ export type AalGateResult =
   | { ok: true; aal: "aal1" | "aal2" | null }
   | { ok: false; response: NextResponse };
 
-/**
- * For owner/manager, require current session AAL2 before sensitive actions.
- * Staff roles are not subject to this gate (they never reach these APIs by role).
- */
-export async function requireAal2ForPrivilegedRole(
-  supabase: SupabaseClient,
-  role: string | null | undefined
-): Promise<AalGateResult> {
-  if (!roleRequiresMfa(role)) {
-    return { ok: true, aal: null };
-  }
-
+async function requireCurrentAal2(supabase: SupabaseClient): Promise<AalGateResult> {
   const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   if (error || !data) {
     return {
@@ -46,6 +35,29 @@ export async function requireAal2ForPrivilegedRole(
   }
 
   return { ok: true, aal: "aal2" };
+}
+
+/**
+ * For owner/manager, require current session AAL2 before sensitive actions.
+ * Staff roles are not subject to this gate (they never reach these APIs by role).
+ */
+export async function requireAal2ForPrivilegedRole(
+  supabase: SupabaseClient,
+  role: string | null | undefined
+): Promise<AalGateResult> {
+  if (!roleRequiresMfa(role)) {
+    return { ok: true, aal: null };
+  }
+  return requireCurrentAal2(supabase);
+}
+
+/**
+ * Platform Super Admin — MFA is mandatory with no opt-out (most privileged account).
+ */
+export async function requireAal2ForPlatformAdmin(
+  supabase: SupabaseClient
+): Promise<AalGateResult> {
+  return requireCurrentAal2(supabase);
 }
 
 /** Payment / merchant credential fields that require AAL2 to change. */

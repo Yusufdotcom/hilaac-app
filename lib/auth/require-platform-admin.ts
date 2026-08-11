@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
+import { requireAal2ForPlatformAdmin } from "@/lib/auth/aal";
 import { createClient } from "@/lib/supabase/server";
 
 export type PlatformAdminProfile = {
@@ -24,7 +25,11 @@ export type RequirePlatformAdminFail = {
 
 /**
  * API / server gate for /platform/* and /api/platform/*.
- * Restaurant owner/manager/cashier never satisfy this — only profiles.is_platform_admin.
+ *
+ * Independent of restaurant role / ownership:
+ *   1) authenticated session
+ *   2) profiles.is_platform_admin === true (and active)
+ *   3) session AAL2 (MFA) — mandatory, no opt-out
  */
 export async function requirePlatformAdmin(): Promise<
   RequirePlatformAdminOk | RequirePlatformAdminFail
@@ -47,12 +52,16 @@ export async function requirePlatformAdmin(): Promise<
     .eq("id", user.id)
     .maybeSingle();
 
+  // Explicit flag check — restaurant owner/manager never satisfy this alone.
   if (!profile || profile.is_active === false || profile.is_platform_admin !== true) {
     return {
       ok: false,
       response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
     };
   }
+
+  const aal = await requireAal2ForPlatformAdmin(supabase);
+  if (!aal.ok) return aal;
 
   return {
     ok: true,
@@ -62,7 +71,10 @@ export async function requirePlatformAdmin(): Promise<
   };
 }
 
-/** Server-component helper: returns profile or null (no throw). */
+/**
+ * Server-component helper for /platform layout.
+ * Same is_platform_admin gate; MFA is enforced in middleware for page routes.
+ */
 export async function getPlatformAdminSession(): Promise<{
   user: User;
   profile: PlatformAdminProfile;

@@ -179,19 +179,19 @@ try {
     fail("live platform restaurants", `got ${res.status}`);
   }
 
-  const page = await fetch(`${base}/platform/dashboard`, {
+  const page = await fetch(`${base}/platform/restaurants`, {
     redirect: "manual",
     cache: "no-store",
   });
   if (page.status === 307 || page.status === 302 || page.status === 303) {
     const loc = page.headers.get("location") ?? "";
-    if (loc.includes("/login")) pass("live /platform/dashboard redirects to login", loc);
-    else pass(`live /platform/dashboard redirect ${page.status}`, loc);
+    if (loc.includes("/login")) pass("live /platform/restaurants redirects to login", loc);
+    else pass(`live /platform/restaurants redirect ${page.status}`, loc);
   } else if (page.status === 401 || page.status === 403) {
-    pass(`live /platform/dashboard → ${page.status}`);
+    pass(`live /platform/restaurants → ${page.status}`);
   } else {
     // May be 200 only if somehow session in env — still note
-    fail("live /platform/dashboard should not be open", `got ${page.status}`);
+    fail("live /platform/restaurants should not be open", `got ${page.status}`);
   }
 } catch (e) {
   console.log("SKIP live HTTP —", e instanceof Error ? e.message : e);
