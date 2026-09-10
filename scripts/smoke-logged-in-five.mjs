@@ -105,6 +105,8 @@ function cookieHeaderFromSession(session) {
 }
 
 async function signInWithMagicLink(email) {
+  // Single attempt when racing a TOTP window — retries burn the code.
+  const attempts = totp ? 1 : 4;
   return withRetry("magiclink", async () => {
     const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
     if (error) throw error;
@@ -128,7 +130,7 @@ async function signInWithMagicLink(email) {
     if (verified.error) throw verified.error;
     globalThis.__smokeCookieBag = bag;
     return { client: userClient, session: verified.data.session };
-  });
+  }, attempts);
 }
 
 async function elevateAal2(client, code) {
@@ -163,6 +165,28 @@ if (!galeyr?.id || !galeyr.item_id) {
   process.exit(1);
 }
 pass("prep Galeyr ids", `${galeyr.name} / ${galeyr.item_name}`);
+
+// ---------- Owner session FIRST (TOTP expires in ~30s — do before slow POS) ----------
+let ownerSession = null;
+let ownerClient = null;
+try {
+  const signed = await signInWithMagicLink(OWNER_EMAIL);
+  ownerClient = signed.client;
+  ownerSession = signed.session;
+  const aal = await ownerClient.auth.mfa.getAuthenticatorAssuranceLevel();
+  note(`Owner AAL: ${aal.data?.currentLevel} → ${aal.data?.nextLevel}`);
+  if (totp) {
+    await elevateAal2(ownerClient, totp);
+    ownerSession = (await ownerClient.auth.getSession()).data.session;
+    const aal2 = await ownerClient.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal2.data?.currentLevel === "aal2") pass("Owner AAL2");
+    else fail("Owner AAL2", JSON.stringify(aal2.data));
+  } else {
+    note("No --totp — AAL2 checks will fail until you pass a fresh code");
+  }
+} catch (err) {
+  fail("Owner session", err instanceof Error ? err.message : String(err));
+}
 
 // ---------- 1) POS via temporary cashier ----------
 {
@@ -247,26 +271,6 @@ pass("prep Galeyr ids", `${galeyr.name} / ${galeyr.item_name}`);
       }
     }
   }
-}
-
-// ---------- Owner session ----------
-let ownerSession = null;
-let ownerClient = null;
-try {
-  const signed = await signInWithMagicLink(OWNER_EMAIL);
-  ownerClient = signed.client;
-  ownerSession = signed.session;
-  const aal = await ownerClient.auth.mfa.getAuthenticatorAssuranceLevel();
-  note(`Owner AAL: ${aal.data?.currentLevel} → ${aal.data?.nextLevel}`);
-  if (totp) {
-    await elevateAal2(ownerClient, totp);
-    ownerSession = (await ownerClient.auth.getSession()).data.session;
-    const aal2 = await ownerClient.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aal2.data?.currentLevel === "aal2") pass("Owner AAL2");
-    else fail("Owner AAL2", JSON.stringify(aal2.data));
-  }
-} catch (err) {
-  fail("Owner session", err instanceof Error ? err.message : String(err));
 }
 
 async function ownerFetch(path, body) {
