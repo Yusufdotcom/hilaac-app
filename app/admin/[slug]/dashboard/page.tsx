@@ -11,10 +11,14 @@ import { TodaysTipCard } from "@/components/admin/dashboard/todays-tip-card";
 import { DashboardAlertsPreview } from "@/components/admin/dashboard/dashboard-alerts-preview";
 import { DashboardQuickLinks } from "@/components/admin/dashboard/dashboard-quick-links";
 import { RecapCards } from "@/components/admin/dashboard/recap-cards";
+import { RamadanOverviewCard } from "@/components/admin/dashboard/ramadan-overview-card";
+import { TodaysEventsCard } from "@/components/admin/dashboard/todays-events-card";
 import { fetchDailyRecap, fetchMonthlyRecap } from "@/lib/recap/fetch-recap";
 import { fetchDashboardExtras } from "@/lib/dashboard/fetch-dashboard-extras";
 import { computeBusinessHealth } from "@/lib/dashboard/business-health";
 import { fetchRestaurantAlerts } from "@/lib/alerts/fetch-alerts";
+import { fetchRamadanOverview } from "@/lib/somali-airlines/season-ops";
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
 import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
 import { daysUntil } from "@/lib/utils";
 import { APP_TIMEZONE, getAppDayBounds } from "@/lib/time/app-calendar";
@@ -36,8 +40,9 @@ export default async function DashboardPage({ params }: { params: { slug: string
   const { restaurant, profile } = await getRestaurantContext(params.slug);
   const supabase = createClient();
 
-  const { start: dayStart, end: dayEnd } = getAppDayBounds(0);
+  const { start: dayStart, end: dayEnd, ymd: todayYmd } = getAppDayBounds(0);
   const { start: yStart, end: yEnd } = getAppDayBounds(-1);
+  const todayDateKey = `${todayYmd.year}-${String(todayYmd.month).padStart(2, "0")}-${String(todayYmd.day).padStart(2, "0")}`;
   const dayStartIso = dayStart.toISOString();
   const dayEndIso = dayEnd.toISOString();
   const yStartIso = yStart.toISOString();
@@ -202,6 +207,51 @@ export default async function DashboardPage({ params }: { params: { slug: string
       !awaitingCashierEnumResult.error && !awaitingCashierLegacyResult.error,
   });
 
+  const season =
+    restaurant.active_season === "ramadan" || restaurant.active_season === "eid"
+      ? restaurant.active_season
+      : null;
+  const showRamadanOverview =
+    !!season && canUseFeature(restaurant.subscription_tier, "ramadan_packages");
+  const showEvents =
+    canUseFeature(restaurant.subscription_tier, "event_hall_management");
+
+  const [ramadanOverview, todaysEvents] = await Promise.all([
+    showRamadanOverview
+      ? fetchRamadanOverview(supabase, restaurant.id, season!).catch(() => null)
+      : Promise.resolve(null),
+    showEvents
+      ? Promise.resolve(
+          supabase
+            .from("event_bookings")
+            .select(
+              "id, event_type, event_name, contact_name, guest_count, start_time, status, total_price, space:space_id(name)"
+            )
+            .eq("restaurant_id", restaurant.id)
+            .eq("event_date", todayDateKey)
+            .in("status", ["inquiry", "confirmed"])
+            .order("start_time", { ascending: true })
+        )
+          .then(({ data }) =>
+            (data ?? []).map((row) => ({
+              id: row.id as string,
+              event_type: row.event_type as string,
+              event_name: (row.event_name as string | null) ?? null,
+              contact_name: row.contact_name as string,
+              guest_count: (row.guest_count as number | null) ?? null,
+              start_time: (row.start_time as string | null) ?? null,
+              status: row.status as string,
+              total_price: row.total_price != null ? Number(row.total_price) : null,
+              space_name:
+                row.space && typeof row.space === "object" && "name" in row.space
+                  ? String((row.space as { name?: string }).name ?? "") || null
+                  : null,
+            }))
+          )
+          .catch(() => [])
+      : Promise.resolve([]),
+  ]);
+
   return (
     <div className="w-full min-w-0 max-w-full space-y-6">
       <DashboardGreeting fullName={profile.full_name} />
@@ -227,6 +277,12 @@ export default async function DashboardPage({ params }: { params: { slug: string
           </div>
         </div>
       )}
+
+      {ramadanOverview ? (
+        <RamadanOverviewCard slug={params.slug} overview={ramadanOverview} />
+      ) : null}
+
+      <TodaysEventsCard slug={params.slug} events={todaysEvents} />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <BusinessHealthCard health={health} />

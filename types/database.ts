@@ -172,10 +172,13 @@ export interface EventBooking {
   total_price: number | null;
   deposit_paid: number;
   balance_due_date: string | null;
+  estimated_cost: number | null;
   status: EventBookingStatus;
   notes: string | null;
   booking_source: EventBookingSource;
   created_by: string | null;
+  reminder_7d_sent_at: string | null;
+  reminder_48h_sent_at: string | null;
   created_at: string;
 }
 
