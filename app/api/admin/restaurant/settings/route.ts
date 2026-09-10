@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { encrypt } from "@/lib/encryption";
 import { generateSlug } from "@/lib/utils";
-import { requireAal2ForPrivilegedRole } from "@/lib/auth/aal";
+import { bodyTouchesPaymentSettings, requireAal2ForPrivilegedRole } from "@/lib/auth/aal";
 import { requireActiveStaff } from "@/lib/auth/require-active-staff";
 
 /**
@@ -26,6 +26,17 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json();
 
+  // C2: platform support Open must never write (or re-key) merchant credentials.
+  if (profile.platform_support && bodyTouchesPaymentSettings(body)) {
+    return NextResponse.json(
+      {
+        error: "Platform support view cannot change merchant payment credentials",
+        code: "platform_support_payment_blocked",
+      },
+      { status: 403 }
+    );
+  }
+
   const restaurantId =
     typeof body.restaurant_id === "string" && body.restaurant_id
       ? body.restaurant_id
@@ -44,7 +55,9 @@ export async function PATCH(req: NextRequest) {
 
   const isOwner = profile.role === "owner" && current.owner_id === user.id;
   const isPrimary = profile.restaurant_id === current.id;
-  if (!isOwner && !isPrimary) {
+  const isPlatformSupport =
+    profile.platform_support === true && profile.restaurant_id === current.id;
+  if (!isOwner && !isPrimary && !isPlatformSupport) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -65,10 +78,32 @@ export async function PATCH(req: NextRequest) {
     "billing_model_takeaway",
     "brand_color",
     "custom_branding_enabled",
+    "opening_time",
+    "closing_time",
+    "business_days",
   ] as const;
 
   for (const field of plainFields) {
     if (field in body) update[field] = body[field];
+  }
+
+  if ("opening_time" in body) {
+    const v = body.opening_time;
+    update.opening_time = typeof v === "string" && /^\d{1,2}:\d{2}/.test(v.trim()) ? v.trim() : null;
+  }
+  if ("closing_time" in body) {
+    const v = body.closing_time;
+    update.closing_time = typeof v === "string" && /^\d{1,2}:\d{2}/.test(v.trim()) ? v.trim() : null;
+  }
+  if ("business_days" in body) {
+    const raw = Array.isArray(body.business_days) ? body.business_days : [];
+    const days: number[] = [];
+    for (const item of raw) {
+      const n = Number(item);
+      if (Number.isInteger(n) && n >= 0 && n <= 6 && !days.includes(n)) days.push(n);
+    }
+    days.sort((a, b) => a - b);
+    update.business_days = days.length === 0 || days.length === 7 ? null : days;
   }
 
   if ("evc_merchant_id" in body) {

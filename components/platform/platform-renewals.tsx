@@ -5,6 +5,7 @@ import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { tierDisplayName } from "@/lib/billing/tier-capabilities";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 type RenewalRow = {
@@ -83,10 +84,13 @@ export function PlatformRenewals() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Pending Renewals</h1>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-400/90">
+            Hilaac Platform
+          </p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Pending Renewals</h1>
           <p className="mt-1 text-sm text-slate-400">
             Confirm USSD subscription payments after owners dial and submit a reference.
           </p>
@@ -114,47 +118,50 @@ export function PlatformRenewals() {
       </div>
 
       {loading && renewals.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-10 text-center text-sm text-slate-400">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-10 text-center text-sm text-slate-400 shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
           <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" /> Loading…
         </div>
       ) : renewals.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-10 text-center text-sm text-slate-400">
+        <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.04] px-4 py-10 text-center text-sm text-slate-400">
           No pending subscription payments.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-[0_8px_30px_rgba(0,0,0,0.25)]">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-left text-slate-400">
-                  <th className="px-4 py-3 font-medium">Restaurant</th>
-                  <th className="px-4 py-3 font-medium">Plan</th>
-                  <th className="px-4 py-3 font-medium">Amount</th>
-                  <th className="px-4 py-3 font-medium">Method</th>
-                  <th className="px-4 py-3 font-medium">Tx ref</th>
-                  <th className="px-4 py-3 font-medium">Requested</th>
-                  <th className="px-4 py-3 font-medium">Action</th>
+                  <th className="px-4 py-3.5 font-medium">Restaurant</th>
+                  <th className="px-4 py-3.5 font-medium">Plan</th>
+                  <th className="px-4 py-3.5 font-medium">Amount</th>
+                  <th className="px-4 py-3.5 font-medium">Method</th>
+                  <th className="px-4 py-3.5 font-medium">Tx ref</th>
+                  <th className="px-4 py-3.5 font-medium">Requested</th>
+                  <th className="px-4 py-3.5 font-medium">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {renewals.map((row) => {
                   const rest = restaurantFromJoin(row);
                   return (
-                    <tr key={row.id} className="border-b border-white/5 last:border-0">
-                      <td className="px-4 py-3 font-medium text-white">
+                    <tr
+                      key={row.id}
+                      className="border-b border-white/5 transition-colors last:border-0 hover:bg-white/[0.03]"
+                    >
+                      <td className="px-4 py-3.5 font-medium text-white">
                         {rest?.name ?? row.restaurant_id}
                         <p className="text-xs font-normal text-slate-400">{rest?.slug}</p>
                       </td>
-                      <td className="px-4 py-3 capitalize text-slate-200">{row.tier}</td>
-                      <td className="px-4 py-3 text-slate-200">
+                      <td className="px-4 py-3.5 text-slate-200">{tierDisplayName(row.tier)}</td>
+                      <td className="px-4 py-3.5 text-slate-200">
                         {formatCurrency(Number(row.amount))}
                       </td>
-                      <td className="px-4 py-3 uppercase text-slate-200">{row.method}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-slate-300">
+                      <td className="px-4 py-3.5 uppercase text-slate-200">{row.method}</td>
+                      <td className="px-4 py-3.5 font-mono text-xs text-slate-300">
                         {row.tx_ref ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-slate-400">{formatDate(row.created_at)}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5 text-slate-400">{formatDate(row.created_at)}</td>
+                      <td className="px-4 py-3.5">
                         <Button
                           type="button"
                           size="sm"

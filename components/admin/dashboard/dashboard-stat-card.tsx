@@ -1,12 +1,33 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+function Sparkline({ values }: { values: number[] }) {
+  const series = values.length === 7 ? values : [...values, ...Array(7).fill(0)].slice(0, 7);
+  const max = Math.max(...series, 1);
+
+  return (
+    <div className="mt-3 flex h-8 items-end gap-1" aria-hidden="true">
+      {series.map((v, i) => {
+        const h = Math.max(12, Math.round((v / max) * 100));
+        return (
+          <span
+            key={i}
+            className="flex-1 rounded-sm bg-[color-mix(in_srgb,var(--admin-brand,#0F172A)_35%,transparent)]"
+            style={{ height: `${h}%` }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export function DashboardStatCard({
   label,
   value,
   icon: Icon,
   delta,
   deltaLabel = "vs yesterday",
+  sparkline,
 }: {
   label: string;
   value: React.ReactNode;
@@ -14,6 +35,8 @@ export function DashboardStatCard({
   /** Percent change; null → muted “no change” */
   delta: number | null;
   deltaLabel?: string;
+  /** Last 7 daily values for the mini bar chart. */
+  sparkline?: number[];
 }) {
   const up = delta != null && delta > 0;
   const down = delta != null && delta < 0;
@@ -29,6 +52,7 @@ export function DashboardStatCard({
           <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
       </div>
+      {sparkline ? <Sparkline values={sparkline} /> : null}
       <p
         className={cn(
           "mt-3 text-xs font-semibold",

@@ -9,6 +9,7 @@ const PAGE_META: Record<string, AdminPageMeta> = {
   tables: { title: "Tables", crumb: "Pages / Tables" },
   orders: { title: "Orders", crumb: "Pages / Orders" },
   reports: { title: "Reports", crumb: "Pages / Reports" },
+  alerts: { title: "Alerts", crumb: "Pages / Alerts" },
   staff: { title: "Staff", crumb: "Pages / Staff" },
   "staff-access": { title: "Staff", crumb: "Pages / Staff" },
   settings: { title: "Settings", crumb: "Pages / Settings" },

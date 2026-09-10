@@ -19,16 +19,21 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { adminBrandBorderClass, adminBrandTextClass } from "@/lib/brand/admin-tokens";
-import { PLANS } from "@/lib/constants";
-import type { RenewalIntent } from "@/lib/platform/subscription-renewal";
+import { PLANS, tierDisplayName } from "@/lib/constants";
+import {
+  billingCardForTier,
+  intentForBillingCard,
+  type RenewalIntent,
+} from "@/lib/platform/subscription-renewal";
+import type { NewBillableTier } from "@/lib/billing/tier-capabilities";
 import { cn, formatDate, daysUntil, formatCurrency } from "@/lib/utils";
 import type { Restaurant } from "@/types/database";
 
 type PayIntent = RenewalIntent;
-type PlanKey = "starter" | "pro";
+type PlanKey = NewBillableTier;
 
 type UssdPayload = {
-  tier: PlanKey;
+  tier: string;
   amount: number;
   priceLabel: string;
   planName: string;
@@ -36,18 +41,32 @@ type UssdPayload = {
   dial: { evc: string; edahab: string };
 };
 
-const DOWNGRADE_LOSSES = [
-  "AI menu image generator",
-  "Direct API mobile money payments (reverts to USSD)",
-  "Unlimited staff accounts (Starter allows up to 3)",
-  "Priority support",
-] as const;
+const BILLING_CARDS: PlanKey[] = ["goronyo", "gorgor", "galeyr"];
+
+const DOWNGRADE_LOSSES: Record<PlanKey, string[]> = {
+  goronyo: [
+    "API auto-payment (reverts to USSD)",
+    "AI menu image generator",
+    "Advanced reports + Insights + export",
+    "Recap email delivery",
+    "Unlimited staff / multi-branch",
+    "AI Business Chatbot and Galeyr tools",
+  ],
+  gorgor: [
+    "AI Business Chatbot (Galeyr exclusive)",
+    "Expenses / P&L",
+    "Staff performance + scheduling",
+    "Customer intelligence",
+  ],
+  galeyr: [],
+};
 
 export function BillingView({ restaurant }: { restaurant: Restaurant }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [payOpen, setPayOpen] = useState(false);
   const [downgradeOpen, setDowngradeOpen] = useState(false);
+  const [pendingTarget, setPendingTarget] = useState<PlanKey | null>(null);
   const [intent, setIntent] = useState<PayIntent>("renew");
   const [ussd, setUssd] = useState<UssdPayload | null>(null);
   const [loadingUssd, setLoadingUssd] = useState(false);
@@ -57,9 +76,9 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
   const [pendingRenewalId, setPendingRenewalId] = useState<string | null>(null);
 
   const daysLeft = daysUntil(restaurant.subscription_end_date);
-  const isPro = restaurant.subscription_tier === "pro";
-  const currentPlanKey: PlanKey = isPro ? "pro" : "starter";
+  const currentCard = billingCardForTier(restaurant.subscription_tier);
   const isExpired = restaurant.subscription_status === "expired" || daysLeft < 0;
+  const isPremium = currentCard !== "goronyo";
 
   useEffect(() => {
     if (searchParams.get("renew") === "1") {
@@ -108,15 +127,18 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
 
   function requestPlanAction(planKey: PlanKey) {
     if (pendingRenewalId) return;
-    if (planKey === currentPlanKey) {
+    const nextIntent = intentForBillingCard(restaurant.subscription_tier, planKey);
+    if (nextIntent === "renew") {
       void openPay("renew");
       return;
     }
-    if (planKey === "pro") {
-      void openPay("upgrade_pro");
+    const rank = { goronyo: 1, gorgor: 2, galeyr: 3 } as const;
+    if (rank[planKey] < rank[currentCard]) {
+      setPendingTarget(planKey);
+      setDowngradeOpen(true);
       return;
     }
-    setDowngradeOpen(true);
+    void openPay(nextIntent);
   }
 
   function dial(next: "evc" | "edahab") {
@@ -154,13 +176,10 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
   }
 
   function payDialogTitle() {
-    if (intent === "upgrade_pro") {
-      return `Upgrade to Pro — ${ussd?.priceLabel ?? PLANS.pro.priceLabel}`;
+    if (intent.startsWith("switch_")) {
+      return `Switch to ${ussd?.planName ?? "plan"} — ${ussd?.priceLabel ?? ""}`;
     }
-    if (intent === "switch_starter") {
-      return `Switch to Starter — ${ussd?.priceLabel ?? PLANS.starter.priceLabel}`;
-    }
-    return `Renew ${ussd?.planName ?? PLANS[currentPlanKey].name} — ${ussd?.priceLabel ?? PLANS[currentPlanKey].priceLabel}`;
+    return `Renew ${ussd?.planName ?? tierDisplayName(restaurant.subscription_tier)} — ${ussd?.priceLabel ?? ""}`;
   }
 
   return (
@@ -170,15 +189,15 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
               Current Plan
-              {isPro && <Crown className={cn("h-5 w-5", adminBrandTextClass)} />}
+              {isPremium && <Crown className={cn("h-5 w-5", adminBrandTextClass)} />}
             </CardTitle>
             <CardDescription>Your subscription status and renewal date.</CardDescription>
           </div>
           <Badge
-            variant={isExpired ? "destructive" : isPro ? "default" : "secondary"}
-            className="text-sm capitalize"
+            variant={isExpired ? "destructive" : isPremium ? "default" : "secondary"}
+            className="text-sm"
           >
-            {restaurant.subscription_tier}
+            {tierDisplayName(restaurant.subscription_tier)}
           </Badge>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -202,14 +221,12 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        {(Object.entries(PLANS) as [PlanKey, (typeof PLANS)[PlanKey]][]).map(([key, plan]) => {
-          const isCurrent = currentPlanKey === key;
+      <div className="grid gap-6 lg:grid-cols-3">
+        {BILLING_CARDS.map((key) => {
+          const plan = PLANS[key];
+          const isCurrent = currentCard === key;
           return (
-            <Card
-              key={key}
-              className={isCurrent ? cn("border-2", adminBrandBorderClass) : ""}
-            >
+            <Card key={key} className={isCurrent ? cn("border-2", adminBrandBorderClass) : ""}>
               <CardHeader>
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-lg">{plan.name}</CardTitle>
@@ -243,24 +260,18 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
                     <Smartphone className="h-4 w-4" />
                     Renew now — {formatCurrency(plan.price)}
                   </BrandButton>
-                ) : key === "pro" ? (
-                  <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={() => requestPlanAction("pro")}
-                    disabled={!!pendingRenewalId}
-                  >
-                    <Crown className="h-4 w-4" />
-                    Upgrade to Pro — {formatCurrency(PLANS.pro.price)}
-                  </Button>
                 ) : (
                   <Button
                     className="w-full"
                     variant="outline"
-                    onClick={() => requestPlanAction("starter")}
+                    onClick={() => requestPlanAction(key)}
                     disabled={!!pendingRenewalId}
                   >
-                    Switch to Starter — {formatCurrency(PLANS.starter.price)}
+                    {key === "galeyr" ||
+                    (key === "gorgor" && currentCard === "goronyo") ? (
+                      <Crown className="h-4 w-4" />
+                    ) : null}
+                    Switch to {plan.name} — {formatCurrency(plan.price)}
                   </Button>
                 )}
               </CardContent>
@@ -269,38 +280,50 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
         })}
       </div>
 
-      <Dialog open={downgradeOpen} onOpenChange={setDowngradeOpen}>
+      <Dialog
+        open={downgradeOpen}
+        onOpenChange={(open) => {
+          setDowngradeOpen(open);
+          if (!open) setPendingTarget(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-600" />
-              Switch to Starter?
+              Switch to {pendingTarget ? PLANS[pendingTarget].name : "a lower plan"}?
             </DialogTitle>
             <DialogDescription>
-              You will lose Pro-only features as soon as Hilaac confirms payment. Switching starts a
-              fresh 30-day Starter period (remaining Pro days are not carried over).
+              You will lose higher-tier features as soon as Hilaac confirms payment. Switching
+              starts a fresh 30-day period (remaining days on your current plan are not carried
+              over).
             </DialogDescription>
           </DialogHeader>
-          <ul className="space-y-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
-            {DOWNGRADE_LOSSES.map((item) => (
-              <li key={item} className="flex items-start gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-600" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          {pendingTarget && DOWNGRADE_LOSSES[pendingTarget].length > 0 ? (
+            <ul className="space-y-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+              {DOWNGRADE_LOSSES[pendingTarget].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-600" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="outline" onClick={() => setDowngradeOpen(false)}>
-              Keep Pro
+              Keep current plan
             </Button>
             <BrandButton
               type="button"
               onClick={() => {
+                if (!pendingTarget) return;
+                const next = intentForBillingCard(restaurant.subscription_tier, pendingTarget);
                 setDowngradeOpen(false);
-                void openPay("switch_starter");
+                void openPay(next);
               }}
             >
-              Continue to pay {formatCurrency(PLANS.starter.price)}
+              Continue to pay{" "}
+              {pendingTarget ? formatCurrency(PLANS[pendingTarget].price) : ""}
             </BrandButton>
           </DialogFooter>
         </DialogContent>

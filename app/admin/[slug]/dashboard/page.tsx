@@ -6,6 +6,16 @@ import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { DashboardRecentOrders } from "@/components/admin/dashboard/dashboard-recent-orders";
 import { DashboardStatCard } from "@/components/admin/dashboard/dashboard-stat-card";
+import { DashboardGreeting } from "@/components/admin/dashboard/dashboard-greeting";
+import { BusinessHealthCard } from "@/components/admin/dashboard/business-health-card";
+import { TodaysTipCard } from "@/components/admin/dashboard/todays-tip-card";
+import { DashboardAlertsPreview } from "@/components/admin/dashboard/dashboard-alerts-preview";
+import { DashboardQuickLinks } from "@/components/admin/dashboard/dashboard-quick-links";
+import { RecapCards } from "@/components/admin/dashboard/recap-cards";
+import { fetchDailyRecap, fetchMonthlyRecap } from "@/lib/recap/fetch-recap";
+import { fetchDashboardExtras } from "@/lib/dashboard/fetch-dashboard-extras";
+import { computeBusinessHealth } from "@/lib/dashboard/business-health";
+import { fetchRestaurantAlerts } from "@/lib/alerts/fetch-alerts";
 import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
 import { formatCurrency, daysUntil } from "@/lib/utils";
 import { APP_TIMEZONE, getAppDayBounds } from "@/lib/time/app-calendar";
@@ -23,7 +33,7 @@ function pctChange(current: number, previous: number): number | null {
 }
 
 export default async function DashboardPage({ params }: { params: { slug: string } }) {
-  const { restaurant } = await getRestaurantContext(params.slug);
+  const { restaurant, profile } = await getRestaurantContext(params.slug);
   const supabase = createClient();
 
   const { start: dayStart, end: dayEnd } = getAppDayBounds(0);
@@ -53,6 +63,10 @@ export default async function DashboardPage({ params }: { params: { slug: string
     awaitingCashierLegacyResult,
     ordersYesterdayResult,
     revenueYesterdayResult,
+    dailyRecapResult,
+    monthlyRecapResult,
+    extras,
+    restaurantAlerts,
   ] = await Promise.all([
     supabase.rpc("get_dashboard_orders_today", {
       p_restaurant_id: restaurant.id,
@@ -110,6 +124,22 @@ export default async function DashboardPage({ params }: { params: { slug: string
       .eq("payment_status", "paid")
       .gte("created_at", yStartIso)
       .lt("created_at", yEndIso),
+    fetchDailyRecap(supabase, restaurant).then(
+      (recap) => ({ recap, error: null as string | null }),
+      (err: unknown) => ({
+        recap: null,
+        error: err instanceof Error ? err.message : "Could not load daily recap",
+      })
+    ),
+    fetchMonthlyRecap(supabase, restaurant).then(
+      (recap) => ({ recap, error: null as string | null }),
+      (err: unknown) => ({
+        recap: null,
+        error: err instanceof Error ? err.message : "Could not load monthly recap",
+      })
+    ),
+    fetchDashboardExtras(supabase, restaurant.id),
+    fetchRestaurantAlerts(supabase, restaurant),
   ]);
 
   if (ordersTodayResult.error) {
@@ -139,6 +169,10 @@ export default async function DashboardPage({ params }: { params: { slug: string
       message: awaitingCashierLegacyResult.error.message,
     });
   }
+  if (extras.sparklineError) {
+    fetchErrors.push({ label: "KPI sparklines", message: extras.sparklineError });
+  }
+  // tipError: silent — TodaysTipCard already shows fallback copy
 
   const ordersToday = Number(ordersTodayResult.data ?? 0);
   const revenueToday = Number(revenueTodayResult.data ?? 0);
@@ -159,8 +193,20 @@ export default async function DashboardPage({ params }: { params: { slug: string
   const ordersDelta = pctChange(ordersToday, ordersYesterday);
   const revenueDelta = pctChange(revenueToday, revenueYesterday);
 
+  const health = computeBusinessHealth({
+    revenueDeltaPct: revenueDelta,
+    ordersDeltaPct: ordersDelta,
+    awaitingPaymentConfirmation,
+    revenueAvailable: !revenueTodayResult.error && !revenueYesterdayResult.error,
+    ordersAvailable: !ordersTodayResult.error && !ordersYesterdayResult.error,
+    backlogAvailable:
+      !awaitingCashierEnumResult.error && !awaitingCashierLegacyResult.error,
+  });
+
   return (
     <div className="w-full min-w-0 max-w-full space-y-6">
+      <DashboardGreeting fullName={profile.full_name} />
+
       {restaurant.subscription_tier === "trial" && (
         <Badge variant={trialDaysLeft <= 2 ? "destructive" : "secondary"} className="text-sm">
           {trialDaysLeft > 0 ? `${trialDaysLeft} day(s) left in trial` : "Trial expired"}
@@ -182,6 +228,49 @@ export default async function DashboardPage({ params }: { params: { slug: string
           </div>
         </div>
       )}
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <BusinessHealthCard health={health} />
+        <TodaysTipCard tip={extras.tip} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <DashboardStatCard
+          label="Orders Today"
+          value={ordersToday}
+          icon={ShoppingBag}
+          delta={ordersDelta}
+          sparkline={extras.sparklines.orders}
+        />
+        <DashboardStatCard
+          label="Revenue Today"
+          value={formatCurrency(revenueToday)}
+          icon={DollarSign}
+          delta={revenueDelta}
+          sparkline={extras.sparklines.revenue}
+        />
+        <DashboardStatCard
+          label="Active Tables"
+          value={
+            <>
+              {activeTables}{" "}
+              <span className="text-sm font-normal text-[var(--admin-muted)]">
+                / {totalTables}
+              </span>
+            </>
+          }
+          icon={Table2}
+          delta={null}
+          sparkline={extras.sparklines.activeTables}
+        />
+        <DashboardStatCard
+          label="Open Orders"
+          value={openOrders}
+          icon={Clock}
+          delta={null}
+          sparkline={extras.sparklines.openOrders}
+        />
+      </div>
 
       {awaitingPaymentConfirmation > 0 && (
         <div
@@ -218,39 +307,21 @@ export default async function DashboardPage({ params }: { params: { slug: string
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardStatCard
-          label="Orders Today"
-          value={ordersToday}
-          icon={ShoppingBag}
-          delta={ordersDelta}
-        />
-        <DashboardStatCard
-          label="Revenue Today"
-          value={formatCurrency(revenueToday)}
-          icon={DollarSign}
-          delta={revenueDelta}
-        />
-        <DashboardStatCard
-          label="Active Tables"
-          value={
-            <>
-              {activeTables}{" "}
-              <span className="text-sm font-normal text-[var(--admin-muted)]">
-                / {totalTables}
-              </span>
-            </>
-          }
-          icon={Table2}
-          delta={null}
-        />
-        <DashboardStatCard
-          label="Open Orders"
-          value={openOrders}
-          icon={Clock}
-          delta={null}
-        />
-      </div>
+      <DashboardAlertsPreview items={restaurantAlerts} slug={params.slug} />
+
+      <DashboardQuickLinks
+        slug={params.slug}
+        pendingOrders={awaitingPaymentConfirmation}
+        menuItemCount={extras.menuItemCount}
+      />
+
+      <RecapCards
+        daily={dailyRecapResult.recap}
+        monthly={monthlyRecapResult.recap}
+        tier={restaurant.subscription_tier}
+        dailyError={dailyRecapResult.error}
+        monthlyError={monthlyRecapResult.error}
+      />
 
       {fetchErrors.some((e) => e.label === "Today's orders list") ? (
         <Card>

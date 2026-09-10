@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   if (!restaurant || !canUseAiFeatures(restaurant.subscription_tier)) {
     return NextResponse.json(
-      { error: "AI Menu Generator is available on the Pro plan (and during your free trial). Please upgrade." },
+      { error: "AI Menu Generator is available on Gorgor and above (and during your free trial). Please upgrade." },
       { status: 403 }
     );
   }

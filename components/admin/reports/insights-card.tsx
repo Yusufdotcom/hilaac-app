@@ -104,7 +104,7 @@ export function InsightsCard({
               className="mt-2 inline-flex text-sm font-semibold underline"
               style={{ color: accent }}
             >
-              Upgrade to Pro to unlock Insights
+              Upgrade to Gorgor to unlock Insights
             </Link>
           </div>
         </div>

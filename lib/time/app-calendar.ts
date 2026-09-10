@@ -6,9 +6,9 @@
  */
 export const APP_TIMEZONE = "Africa/Nairobi";
 
-type Ymd = { year: number; month: number; day: number };
+export type Ymd = { year: number; month: number; day: number };
 
-function getZonedYmd(date: Date, timeZone: string = APP_TIMEZONE): Ymd {
+export function getZonedYmd(date: Date, timeZone: string = APP_TIMEZONE): Ymd {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     year: "numeric",
@@ -23,12 +23,14 @@ function getZonedYmd(date: Date, timeZone: string = APP_TIMEZONE): Ymd {
 }
 
 /**
- * UTC instant corresponding to local midnight (00:00:00) of Y-M-D in `timeZone`.
+ * UTC instant corresponding to a local wall time of Y-M-D HH:MM in `timeZone`.
  */
-export function zonedMidnightToUtc(
+export function zonedWallTimeToUtc(
   year: number,
   month: number,
   day: number,
+  hour: number,
+  minute: number,
   timeZone: string = APP_TIMEZONE
 ): Date {
   const formatter = new Intl.DateTimeFormat("en-US", {
@@ -42,8 +44,7 @@ export function zonedMidnightToUtc(
     hourCycle: "h23",
   });
 
-  // Start with a UTC guess, then correct using the zone's wall-clock reading.
-  let ms = Date.UTC(year, month - 1, day, 0, 0, 0);
+  let ms = Date.UTC(year, month - 1, day, hour, minute, 0);
   for (let i = 0; i < 4; i++) {
     const parts = Object.fromEntries(
       formatter
@@ -60,14 +61,26 @@ export function zonedMidnightToUtc(
       Number(parts.minute),
       Number(parts.second)
     );
-    const desired = Date.UTC(year, month - 1, day, 0, 0, 0);
+    const desired = Date.UTC(year, month - 1, day, hour, minute, 0);
     ms += desired - asUtc;
   }
 
   return new Date(ms);
 }
 
-function addCalendarDays(ymd: Ymd, days: number): Ymd {
+/**
+ * UTC instant corresponding to local midnight (00:00:00) of Y-M-D in `timeZone`.
+ */
+export function zonedMidnightToUtc(
+  year: number,
+  month: number,
+  day: number,
+  timeZone: string = APP_TIMEZONE
+): Date {
+  return zonedWallTimeToUtc(year, month, day, 0, 0, timeZone);
+}
+
+export function addCalendarDays(ymd: Ymd, days: number): Ymd {
   // Use UTC noon anchor to avoid DST edge issues when stepping calendar days.
   const anchor = new Date(Date.UTC(ymd.year, ymd.month - 1, ymd.day, 12, 0, 0));
   anchor.setUTCDate(anchor.getUTCDate() + days);

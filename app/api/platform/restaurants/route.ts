@@ -15,7 +15,7 @@ export async function GET() {
   const { data, error } = await admin
     .from("restaurants")
     .select(
-      "id, name, slug, subscription_tier, subscription_status, subscription_end_date, is_active, is_demo, created_at"
+      "id, name, slug, subscription_tier, subscription_status, subscription_end_date, is_active, is_demo, created_at, last_subscription_reminder_at"
     )
     .order("name", { ascending: true });
 

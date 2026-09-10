@@ -1,5 +1,6 @@
 import type { ReportGranularity } from "@/lib/reports/types";
 import type { SubscriptionTier } from "@/types/database";
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
 import {
   APP_TIMEZONE,
   formatAppDateRangeLabel,
@@ -12,7 +13,7 @@ export const TREND_MIN_ELAPSED_FRACTION = 0.2;
 
 export function hasProReports(tier: SubscriptionTier, subscriptionStatus: string): boolean {
   if (subscriptionStatus === "expired") return false;
-  return tier === "pro" || tier === "trial";
+  return canUseFeature(tier, "advanced_reports");
 }
 
 /**

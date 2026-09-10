@@ -21,7 +21,14 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type public.subscription_tier as enum ('trial', 'starter', 'pro');
+  create type public.subscription_tier as enum (
+    'trial',
+    'starter',
+    'pro',
+    'goronyo',
+    'gorgor',
+    'galeyr'
+  );
 exception when duplicate_object then null; end $$;
 
 do $$ begin
@@ -76,10 +83,19 @@ create table if not exists public.restaurants (
   is_active boolean not null default true,
   is_demo boolean not null default false,
   demo_expires_at timestamptz,
+  last_subscription_reminder_at timestamptz,
+  opening_time time,
+  closing_time time,
+  business_days smallint[],
+  currency text not null default 'USD',
+  currency_rate numeric(18, 8) not null default 1,
+  business_type text not null default 'restaurant',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 comment on table public.restaurants is 'Tenant record. One row per restaurant / customer of Hilaac.';
+comment on column public.restaurants.business_type is
+  'Future expansion: restaurant (default) | retail. No retail UI yet (Step 16).';
 
 -- Existing databases: run once if owner_id is missing or disallows NULL for demos
 -- alter table public.restaurants add column if not exists owner_id uuid references auth.users (id) on delete set null;
@@ -93,6 +109,7 @@ create table if not exists public.profiles (
   phone text,
   avatar_url text,
   is_active boolean not null default true,
+  hourly_rate numeric(10, 2),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -125,6 +142,7 @@ create table if not exists public.menu_items (
   description text,
   ingredients text,
   price numeric(10, 2) not null default 0,
+  cost_price numeric(10, 2),
   image_url text,
   is_available boolean not null default true,
   is_top_pick boolean not null default false,
@@ -145,6 +163,32 @@ create table if not exists public.waiters (
   restaurant_id uuid not null references public.restaurants (id) on delete cascade,
   name text not null,
   created_at timestamptz not null default now(),
+  unique (restaurant_id, name)
+);
+
+-- Step 2 foundations (expenses / inventory; customer_profiles view is after orders)
+create table if not exists public.expenses (
+  id uuid primary key default gen_random_uuid(),
+  restaurant_id uuid not null references public.restaurants (id) on delete cascade,
+  category text not null check (category in ('rent', 'utilities', 'labor', 'supplies', 'other')),
+  amount numeric(12, 2) not null check (amount >= 0),
+  date date not null,
+  note text,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.inventory_items (
+  id uuid primary key default gen_random_uuid(),
+  restaurant_id uuid not null references public.restaurants (id) on delete cascade,
+  name text not null,
+  unit text not null,
+  current_stock numeric(12, 3) not null default 0,
+  daily_usage_estimate numeric(12, 3),
+  reorder_level numeric(12, 3),
+  supplier_delivery_days integer not null default 2,
+  cost_per_unit numeric(12, 2),
+  updated_at timestamptz not null default now(),
   unique (restaurant_id, name)
 );
 
@@ -179,6 +223,21 @@ create table if not exists public.order_items (
   created_at timestamptz not null default now()
 );
 
+create or replace view public.customer_profiles
+with (security_invoker = true)
+as
+select
+  restaurant_id,
+  customer_phone,
+  count(*)::bigint as total_visits,
+  coalesce(sum(total), 0)::numeric as lifetime_spend,
+  max(created_at) as last_visit,
+  min(created_at) as first_visit
+from public.orders
+where customer_phone is not null
+  and status <> 'cancelled'
+group by restaurant_id, customer_phone;
+
 -- ----------------------------------------------------------------------------
 -- 3. INDEXES
 -- ----------------------------------------------------------------------------
@@ -193,6 +252,8 @@ create index if not exists idx_orders_restaurant on public.orders (restaurant_id
 create index if not exists idx_orders_status on public.orders (restaurant_id, status);
 create index if not exists idx_orders_created_at on public.orders (restaurant_id, created_at desc);
 create index if not exists idx_order_items_order on public.order_items (order_id);
+create index if not exists idx_expenses_restaurant_date on public.expenses (restaurant_id, date desc);
+create index if not exists idx_inventory_items_restaurant on public.inventory_items (restaurant_id);
 
 -- ----------------------------------------------------------------------------
 -- 4. updated_at TRIGGER HELPER
@@ -603,6 +664,25 @@ create policy "managers can manage waiters" on public.waiters
     restaurant_id = public.get_my_restaurant_id()
     and public.is_manager_or_owner()
   );
+
+-- ---- expenses / inventory (Step 2) ------------------------------------------
+alter table public.expenses enable row level security;
+drop policy if exists "restaurant_isolation" on public.expenses;
+create policy "restaurant_isolation" on public.expenses
+  for all
+  using (restaurant_id = public.get_my_restaurant_id())
+  with check (restaurant_id = public.get_my_restaurant_id());
+
+alter table public.inventory_items enable row level security;
+drop policy if exists "restaurant_isolation" on public.inventory_items;
+create policy "restaurant_isolation" on public.inventory_items
+  for all
+  using (restaurant_id = public.get_my_restaurant_id())
+  with check (restaurant_id = public.get_my_restaurant_id());
+
+grant select, insert, update, delete on public.expenses to authenticated;
+grant select, insert, update, delete on public.inventory_items to authenticated;
+grant select on public.customer_profiles to authenticated;
 
 -- ---- orders --------------------------------------------------------------------
 -- Prefer POST /api/orders (service role) for creation. Anon INSERT is also

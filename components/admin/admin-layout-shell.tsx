@@ -9,6 +9,7 @@ import {
 } from "@/components/admin/admin-appearance-context";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminTopBar } from "@/components/admin/admin-top-bar";
+import { PlatformSupportBanner } from "@/components/platform/platform-support-banner";
 import { StaffIdleGuardian } from "@/components/auth/staff-idle-guardian";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ function AdminShellChrome({
   currentSlug,
   branches,
   awaitingOrdersCount,
+  alertsCount,
 }: {
   children: React.ReactNode;
   restaurantName: string;
@@ -43,6 +45,7 @@ function AdminShellChrome({
   currentSlug: string;
   branches: OwnerBranch[];
   awaitingOrdersCount: number;
+  alertsCount: number;
 }) {
   const pathname = usePathname();
   const { theme } = useAdminAppearance();
@@ -95,6 +98,7 @@ function AdminShellChrome({
         currentSlug={currentSlug}
         branches={branches}
         awaitingOrdersCount={awaitingOrdersCount}
+        alertsCount={alertsCount}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
       />
@@ -105,26 +109,19 @@ function AdminShellChrome({
           mobileOpen && "overflow-hidden md:overflow-x-clip"
         )}
       >
-        <AdminTopBar
-          slug={currentSlug}
-          userName={userName}
-          userRole={userRole}
-          avatarUrl={avatarUrl}
-          isPlatformAdmin={isPlatformAdmin}
-          onOpenSidebar={() => setMobileOpen(true)}
-        />
-
-        {platformSupportView ? (
-          <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-950 dark:text-amber-100">
-            <p className="font-medium">Platform support view</p>
-            <p className="text-xs opacity-90">
-              You are not this restaurant&apos;s owner. Acting via Super Admin support session.{" "}
-              <a href="/platform/restaurants" className="underline underline-offset-2">
-                Back to Hilaac Platform
-              </a>
-            </p>
-          </div>
-        ) : null}
+        {/* Sticky stack: support banner stays visible for the whole Open session. */}
+        <div className="sticky top-0 z-40">
+          {platformSupportView ? <PlatformSupportBanner /> : null}
+          <AdminTopBar
+            slug={currentSlug}
+            userName={userName}
+            userRole={userRole}
+            avatarUrl={avatarUrl}
+            isPlatformAdmin={isPlatformAdmin}
+            sticky={false}
+            onOpenSidebar={() => setMobileOpen(true)}
+          />
+        </div>
 
         <main className="admin-shell-main relative z-0 flex min-w-0 w-full flex-1 flex-col overflow-x-clip">
           <div className="mx-auto w-full min-w-0 max-w-7xl p-4 sm:p-6 lg:p-8">{children}</div>
@@ -149,6 +146,7 @@ export function AdminLayoutShell({
   currentSlug,
   branches = [],
   awaitingOrdersCount = 0,
+  alertsCount = 0,
 }: {
   children: React.ReactNode;
   restaurantName: string;
@@ -164,6 +162,7 @@ export function AdminLayoutShell({
   currentSlug: string;
   branches?: OwnerBranch[];
   awaitingOrdersCount?: number;
+  alertsCount?: number;
 }) {
   return (
     <AdminBrandProvider brandColor={brandColor}>
@@ -182,6 +181,7 @@ export function AdminLayoutShell({
           currentSlug={currentSlug}
           branches={branches}
           awaitingOrdersCount={awaitingOrdersCount}
+          alertsCount={alertsCount}
         >
           {children}
         </AdminShellChrome>

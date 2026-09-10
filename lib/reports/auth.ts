@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { ownerCanAccessSlug } from "@/lib/admin/owner-branches";
+import { readSupportSessionForUser } from "@/lib/platform/support-session-server";
 import type { Profile, Restaurant } from "@/types/database";
 
 export type ReportsAccessContext = {
@@ -11,7 +12,7 @@ export type ReportsAccessContext = {
 
 /**
  * Verifies the authenticated user can access the restaurant for `slug`
- * and has owner/manager role.
+ * and has owner/manager role (or platform support Open session).
  */
 export async function getVerifiedReportsContext(
   slug: string
@@ -24,7 +25,13 @@ export async function getVerifiedReportsContext(
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
   // H4 residual: API routes are outside page middleware — refuse inactive JWTs here.
-  if (!profile || profile.is_active === false || !["owner", "manager"].includes(profile.role)) {
+  if (!profile || profile.is_active === false) return null;
+
+  const isPlatformAdmin = profile.is_platform_admin === true;
+  const support = isPlatformAdmin ? await readSupportSessionForUser(user.id) : null;
+  const platformSupport = Boolean(support && support.slug === slug);
+
+  if (!platformSupport && !["owner", "manager"].includes(profile.role)) {
     return null;
   }
 
@@ -51,7 +58,14 @@ export async function getVerifiedReportsContext(
   const ownerHasBranchAccess =
     profile.role === "owner" && (await ownerCanAccessSlug(supabase, user.id, slug));
 
-  if (!isPrimaryRestaurant && !isOwnerOfRestaurant && !ownerHasBranchAccess) return null;
+  if (
+    !platformSupport &&
+    !isPrimaryRestaurant &&
+    !isOwnerOfRestaurant &&
+    !ownerHasBranchAccess
+  ) {
+    return null;
+  }
   if (restaurant.slug !== slug) return null;
 
   return {

@@ -1,3 +1,5 @@
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
+
 export function isWhatsAppDryRun(): boolean {
   const raw = process.env.WHATSAPP_DRY_RUN;
   if (raw == null || raw === "") return true; // safe default
@@ -29,5 +31,5 @@ export function estimatedCostUsd(messageType: "order_ready" | "reengagement"): n
 }
 
 export function canUseWhatsAppReengagement(tier: string | null | undefined) {
-  return tier === "pro" || tier === "trial";
+  return canUseFeature(tier, "whatsapp_reengagement");
 }

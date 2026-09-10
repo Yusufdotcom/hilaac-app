@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireActiveStaff } from "@/lib/auth/require-active-staff";
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
 import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
 
 export type AdminNotificationItem = {
@@ -60,7 +61,7 @@ export async function GET() {
     href: `/admin/${slug}/orders`,
   }));
 
-  if (restaurant?.subscription_tier === "pro" || restaurant?.subscription_tier === "trial") {
+  if (canUseFeature(restaurant?.subscription_tier, "advanced_reports")) {
     items.push({
       id: "insights-teaser",
       type: "insight",

@@ -5,6 +5,7 @@ import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { getAdminSlugRedirect } from "@/lib/admin/resolve-user-restaurant";
 import { getOwnerBranches } from "@/lib/admin/owner-branches";
 import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
+import { fetchRestaurantAlerts } from "@/lib/alerts/fetch-alerts";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,6 @@ export default async function AdminLayout({
     "manager",
   ]);
 
-  // Platform support: do not expose the owner's branch list as if it were theirs.
   const branches =
     !platformSupport && profile.role === "owner"
       ? await getOwnerBranches(supabase, user.id)
@@ -41,7 +41,7 @@ export default async function AdminLayout({
     user.email?.split("@")[0] ||
     "User";
 
-  const [{ count: awaitingEnum }, { count: awaitingLegacy }] = await Promise.all([
+  const [{ count: awaitingEnum }, { count: awaitingLegacy }, alerts] = await Promise.all([
     supabase
       .from("orders")
       .select("*", { count: "exact", head: true })
@@ -53,6 +53,7 @@ export default async function AdminLayout({
       .eq("restaurant_id", restaurant.id)
       .eq("payment_status", "pending")
       .not("customer_confirmed_at", "is", null),
+    fetchRestaurantAlerts(supabase, restaurant),
   ]);
 
   const awaitingOrdersCount = (awaitingEnum ?? 0) + (awaitingLegacy ?? 0);
@@ -72,6 +73,7 @@ export default async function AdminLayout({
       currentSlug={params.slug}
       branches={branches}
       awaitingOrdersCount={awaitingOrdersCount}
+      alertsCount={alerts.length}
     >
       {children}
     </AdminLayoutShell>

@@ -1,7 +1,13 @@
 export type UserRole = "owner" | "manager" | "waiter" | "kitchen" | "cashier";
 export type PaymentMode = "ussd" | "api";
 export type BillingModel = "pay_before" | "pay_after";
-export type SubscriptionTier = "trial" | "starter" | "pro";
+export type SubscriptionTier =
+  | "trial"
+  | "starter"
+  | "pro"
+  | "goronyo"
+  | "gorgor"
+  | "galeyr";
 export type SubscriptionStatus = "active" | "expired";
 export type OrderType = "dine-in" | "takeaway";
 export type OrderStatus =
@@ -61,6 +67,15 @@ export interface Restaurant {
   is_active: boolean;
   is_demo: boolean;
   demo_expires_at: string | null;
+  last_subscription_reminder_at?: string | null;
+  opening_time?: string | null;
+  closing_time?: string | null;
+  business_days?: number[] | null;
+  /** Display currency; default USD. SOS in Step 14. */
+  currency?: string;
+  currency_rate?: number;
+  /** Future retail expansion; default restaurant — no behavior change yet. */
+  business_type?: string;
   created_at: string;
   updated_at: string;
 }
@@ -73,6 +88,8 @@ export interface Profile {
   phone: string | null;
   avatar_url?: string | null;
   is_active: boolean;
+  /** Optional hourly wage for labor cost math. */
+  hourly_rate?: number | null;
   /** Platform Super Admin — never grantable via restaurant Staff UI. */
   is_platform_admin?: boolean;
   created_at: string;
@@ -88,7 +105,7 @@ export interface SubscriptionRenewal {
   id: string;
   restaurant_id: string;
   requested_by: string;
-  tier: "starter" | "pro" | "trial";
+  tier: SubscriptionTier;
   amount: number;
   method: PaymentMethod;
   status: SubscriptionRenewalStatus;
@@ -166,6 +183,8 @@ export interface MenuItem {
   description: string | null;
   ingredients: string | null;
   price: number;
+  /** Ingredient / prep cost for margin; nullable until filled. */
+  cost_price?: number | null;
   image_url: string | null;
   is_available: boolean;
   is_top_pick: boolean;
@@ -245,4 +264,40 @@ export interface OrderItem {
 export interface OrderWithItems extends Order {
   order_items: (OrderItem & { menu_item?: MenuItem | null })[];
   table?: RestaurantTable | null;
+}
+
+export type ExpenseCategory = "rent" | "utilities" | "labor" | "supplies" | "other";
+
+export interface Expense {
+  id: string;
+  restaurant_id: string;
+  category: ExpenseCategory;
+  amount: number;
+  date: string;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  unit: string;
+  current_stock: number;
+  daily_usage_estimate: number | null;
+  reorder_level: number | null;
+  supplier_delivery_days: number;
+  cost_per_unit: number | null;
+  updated_at: string;
+}
+
+/** Aggregated from orders via customer_profiles view. */
+export interface CustomerProfile {
+  restaurant_id: string;
+  customer_phone: string;
+  total_visits: number;
+  lifetime_spend: number;
+  last_visit: string;
+  first_visit: string;
 }

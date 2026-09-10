@@ -2,7 +2,6 @@
  * H6: demonstrate masked phone logging (no plaintext phones).
  */
 import { maskPhoneForLog } from "../lib/privacy/mask-phone.ts";
-import { sendPaymentReminder } from "../lib/notifications/send-reminder.ts";
 import { sendWhatsAppTemplate } from "../lib/whatsapp/twilio.ts";
 
 const full = "+252618184696";
@@ -15,7 +14,6 @@ delete process.env.SMS_PROVIDER_API_KEY;
 process.env.WHATSAPP_DRY_RUN = "true";
 
 console.log("--- live log lines from call sites ---");
-await sendPaymentReminder(full, "Demo Restaurant", 3);
 await sendWhatsAppTemplate({
   toWhatsApp: wa,
   contentSid: "",

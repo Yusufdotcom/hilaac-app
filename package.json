@@ -11,7 +11,9 @@
     "db:push": "node scripts/supabase-db.mjs db push",
     "db:query": "node scripts/supabase-db.mjs db query --linked",
     "db:migration-list": "node scripts/supabase-db.mjs migration list --linked",
-    "db:verify-payment": "node scripts/verify-payment-flow.mjs"
+    "db:verify-payment": "node scripts/verify-payment-flow.mjs",
+    "tier:capture-baseline": "node scripts/capture-tier-migration-baseline.mjs",
+    "tier:verify-rollback": "node scripts/verify-tier-migration-rollback.mjs --live"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^4.0.33",

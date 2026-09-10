@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminPageIntro } from "@/components/admin/admin-page-intro";
 import { KpiCards } from "@/components/admin/reports/kpi-cards";
 import { InsightsCard } from "@/components/admin/reports/insights-card";
 import {
@@ -136,8 +137,8 @@ export function ReportsClient({
 
   function handleGranularityChange(value: ReportGranularity) {
     if (!availableGranularities.includes(value)) {
-      toast.message("Upgrade to Pro to unlock this timeframe", {
-        description: `${granularityLabel(value)} reporting is available on Pro.`,
+      toast.message("Upgrade to Gorgor to unlock this timeframe", {
+        description: `${granularityLabel(value)} reporting is available on Gorgor.`,
         action: {
           label: "Billing",
           onClick: () => {
@@ -191,7 +192,7 @@ export function ReportsClient({
   const exportTitle = exportDisabled
     ? isExpired
       ? "Renew your subscription to export analytics"
-      : "Upgrade to Pro to export full analytics"
+      : "Upgrade to Gorgor to export full analytics"
     : undefined;
 
   const isEmpty =
@@ -205,6 +206,9 @@ export function ReportsClient({
 
   return (
     <div className="-mx-4 min-h-full bg-[var(--admin-bg)] px-4 pb-8 pt-0 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+      <AdminPageIntro className="mb-4 pt-1">
+        KPIs, charts, and rule-based insights for the selected period.
+      </AdminPageIntro>
       <div className="admin-glass sticky top-[4.5rem] z-20 -mx-4 border-b border-[var(--admin-border,#E2E8F0)] px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <header className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
@@ -253,7 +257,7 @@ export function ReportsClient({
                           className="inline-flex items-center gap-2"
                           title={
                             locked
-                              ? "Upgrade to Pro to unlock this timeframe"
+                              ? "Upgrade to Gorgor to unlock this timeframe"
                               : undefined
                           }
                         >
@@ -331,7 +335,7 @@ export function ReportsClient({
           >
             <Sparkles className="mt-0.5 h-5 w-5 shrink-0" style={{ color: accent }} />
             <div>
-              <p className="font-semibold">Upgrade to Pro for advanced analytics</p>
+              <p className="font-semibold">Upgrade to Gorgor for advanced analytics</p>
               <p className="mt-1 text-[var(--admin-muted)]">
                 Unlock Insights recommendations, weekly/biweekly/yearly timeframes, and PDF/Excel
                 exports.{" "}

@@ -5,6 +5,7 @@ import { Store } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_TEXT_COLOR, subscriptionPlanLabel } from "@/lib/brand/restaurant-brand";
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
 
 export function SidebarBrandHeader({
   name,
@@ -18,7 +19,7 @@ export function SidebarBrandHeader({
   brandColor?: string | null;
   compact?: boolean;
 }) {
-  const isPro = subscriptionTier === "pro";
+  const isPremium = canUseFeature(subscriptionTier, "advanced_reports");
 
   return (
     <div className={cn("shrink-0 border-b border-white/10 px-4 py-5", compact && "px-3 py-4")}>
@@ -56,9 +57,9 @@ export function SidebarBrandHeader({
           <Badge
             className={cn(
               "mt-1.5 border-0 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-              isPro ? "bg-white/20 hover:bg-white/20" : "bg-white/10 hover:bg-white/10"
+              isPremium ? "bg-white/20 hover:bg-white/20" : "bg-white/10 hover:bg-white/10"
             )}
-            style={{ color: isPro ? SIDEBAR_TEXT_COLOR : "rgba(255,255,255,0.7)" }}
+            style={{ color: isPremium ? SIDEBAR_TEXT_COLOR : "rgba(255,255,255,0.7)" }}
           >
             {subscriptionPlanLabel(subscriptionTier)}
           </Badge>

@@ -5,6 +5,7 @@ import { AdminPageIntro } from "@/components/admin/admin-page-intro";
 import { SettingsForm } from "@/components/admin/settings/settings-form";
 import { ManageBranches } from "@/components/admin/settings/manage-branches";
 import { LoyaltySettingsCard } from "@/components/admin/settings/loyalty-settings-card";
+import { BusinessHoursCard } from "@/components/admin/settings/business-hours-card";
 import { WhatsAppSettingsCard } from "@/components/admin/settings/whatsapp-settings-card";
 import { MfaSettingsCard } from "@/components/admin/settings/mfa-settings-card";
 import { roleRequiresMfa } from "@/lib/auth/roles";
@@ -103,6 +104,7 @@ export default async function SettingsPage({ params }: { params: { slug: string 
       )}
       {roleRequiresMfa(profile.role) ? <MfaSettingsCard /> : null}
       <SettingsForm restaurant={restaurant} />
+      <BusinessHoursCard restaurant={restaurant} />
       <LoyaltySettingsCard
         slug={params.slug}
         restaurantId={restaurant.id}

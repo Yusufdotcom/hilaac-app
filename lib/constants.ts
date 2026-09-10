@@ -1,46 +1,75 @@
+import {
+  TIER_PLANS,
+  canUseFeature,
+  tierDisplayName,
+} from "@/lib/billing/tier-capabilities";
+
+/**
+ * Billing / marketing plan cards.
+ * During migration: keep starter/pro for existing renew flows;
+ * also expose Goronyo/Gorgor/Galeyr for the new UI (Step 1.6).
+ */
 export const PLANS = {
   starter: {
-    name: "Starter",
-    price: 29,
-    priceLabel: "$29/mo",
-    description: "USSD payments, QR ordering, kitchen dashboard.",
-    features: [
-      "QR code ordering",
-      "Unlimited menu items",
-      "Real-time kitchen dashboard",
-      "USSD mobile money (EVC/eDahab)",
-      "Up to 3 staff accounts",
-    ],
+    name: TIER_PLANS.starter.name,
+    price: TIER_PLANS.starter.price,
+    priceLabel: TIER_PLANS.starter.priceLabel,
+    description: TIER_PLANS.starter.description,
+    features: [...TIER_PLANS.starter.features],
   },
   pro: {
-    name: "Pro",
-    price: 79,
-    priceLabel: "$79/mo",
-    description: "Everything in Starter, plus API payments and AI tools.",
-    features: [
-      "Everything in Starter",
-      "Direct API mobile money payments",
-      "AI menu image generator",
-      "Unlimited staff accounts",
-      "Priority support",
-    ],
+    name: TIER_PLANS.pro.name,
+    price: TIER_PLANS.pro.price,
+    priceLabel: TIER_PLANS.pro.priceLabel,
+    description: TIER_PLANS.pro.description,
+    features: [...TIER_PLANS.pro.features],
+  },
+  goronyo: {
+    name: TIER_PLANS.goronyo.name,
+    price: TIER_PLANS.goronyo.price,
+    priceLabel: TIER_PLANS.goronyo.priceLabel,
+    description: TIER_PLANS.goronyo.description,
+    features: [...TIER_PLANS.goronyo.features],
+  },
+  gorgor: {
+    name: TIER_PLANS.gorgor.name,
+    price: TIER_PLANS.gorgor.price,
+    priceLabel: TIER_PLANS.gorgor.priceLabel,
+    description: TIER_PLANS.gorgor.description,
+    features: [...TIER_PLANS.gorgor.features],
+  },
+  galeyr: {
+    name: TIER_PLANS.galeyr.name,
+    price: TIER_PLANS.galeyr.price,
+    priceLabel: TIER_PLANS.galeyr.priceLabel,
+    description: TIER_PLANS.galeyr.description,
+    features: [...TIER_PLANS.galeyr.features],
   },
 } as const;
 
 export const TRIAL_DAYS = 7;
 
+/** @deprecated Prefer canUseFeature(tier, "ai_menu_images") */
 export function canUseAiFeatures(tier: string | null | undefined) {
-  return tier === "pro" || tier === "trial";
+  return canUseFeature(tier, "ai_menu_images");
 }
 
+/** @deprecated Prefer canUseFeature(tier, "api_payments") */
 export function canUseApiPayments(tier: string | null | undefined) {
-  return tier === "pro" || tier === "trial";
+  return canUseFeature(tier, "api_payments");
 }
 
-/** Pro/trial: WhatsApp re-engagement (marketing) templates. */
+/** @deprecated Prefer canUseFeature(tier, "whatsapp_reengagement") */
 export function canUseWhatsAppReengagement(tier: string | null | undefined) {
-  return tier === "pro" || tier === "trial";
+  return canUseFeature(tier, "whatsapp_reengagement");
 }
+
+/** @deprecated Prefer canUseFeature(tier, "recap_email") */
+export function canReceiveRecapEmail(tier: string | null | undefined) {
+  return canUseFeature(tier, "recap_email");
+}
+
+export { canUseFeature, tierDisplayName };
 
 export const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",

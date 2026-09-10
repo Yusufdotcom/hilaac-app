@@ -12,7 +12,8 @@ import { ussdDialString } from "@/lib/platform/ussd";
 import { createAdminClient } from "@/lib/supabase/server";
 
 /**
- * GET /api/admin/subscriptions/ussd?intent=renew|upgrade_pro|switch_starter
+ * GET /api/admin/subscriptions/ussd?intent=renew|switch_goronyo|switch_gorgor|switch_galeyr
+ * (Legacy intents upgrade_pro|switch_starter still accepted during migration.)
  * Returns Hilaac platform USSD dial strings for the owner's restaurant plan.
  * Does not expose restaurant customer merchant codes.
  */

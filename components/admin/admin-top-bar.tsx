@@ -7,6 +7,7 @@ import { AdminNotifications } from "@/components/admin/admin-notifications";
 import { AdminThemeToggle } from "@/components/admin/admin-theme-toggle";
 import { AdminUserMenu } from "@/components/admin/admin-user-menu";
 import { getAdminPageMeta } from "@/lib/admin/admin-page-meta";
+import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
 
 export function AdminTopBar({
@@ -15,6 +16,7 @@ export function AdminTopBar({
   userRole,
   avatarUrl,
   isPlatformAdmin = false,
+  sticky = true,
   onOpenSidebar,
 }: {
   slug: string;
@@ -22,14 +24,20 @@ export function AdminTopBar({
   userRole: UserRole;
   avatarUrl?: string | null;
   isPlatformAdmin?: boolean;
+  /** When false, parent provides sticky stacking (e.g. under PlatformSupportBanner). */
+  sticky?: boolean;
   onOpenSidebar: () => void;
 }) {
   const pathname = usePathname();
   const meta = getAdminPageMeta(pathname);
 
   return (
-    <header className="admin-glass sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[var(--admin-border)] px-4 py-4 sm:gap-6 sm:px-8">
-      <div className="flex min-w-0 items-center gap-3">
+    <header
+      className={cn(
+        "admin-glass z-30 flex items-center justify-between gap-3 border-b border-[var(--admin-border)] px-4 py-4 sm:gap-6 sm:px-8",
+        sticky && "sticky top-0"
+      )}
+    >      <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
           onClick={onOpenSidebar}

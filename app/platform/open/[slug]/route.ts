@@ -53,8 +53,20 @@ export async function GET(
     return NextResponse.redirect(new URL("/platform/restaurants?error=not_found", _req.url));
   }
 
-  // Refuse to open a restaurant the platform admin somehow owns as a "cross-tenant"
-  // path still works; ownership is irrelevant — support cookie is always set.
+  const crossTenant = restaurant.owner_id !== auth.user.id;
+
+  const { error: auditErr } = await admin.from("platform_support_audit").insert({
+    platform_user_id: auth.user.id,
+    restaurant_id: restaurant.id,
+    restaurant_slug: restaurant.slug,
+    restaurant_name: restaurant.name,
+    owner_id: restaurant.owner_id,
+    cross_tenant: crossTenant,
+  });
+  if (auditErr) {
+    console.error("[platform] support_open_audit_failed", auditErr.message);
+  }
+
   const token = await mintPlatformSupportToken(auth.user.id, restaurant.id, restaurant.slug);
   const destination = new URL(`/admin/${restaurant.slug}/dashboard`, _req.url);
   const res = NextResponse.redirect(destination);
@@ -65,7 +77,8 @@ export async function GET(
     restaurantId: restaurant.id,
     slug: restaurant.slug,
     ownerId: restaurant.owner_id,
-    crossTenant: restaurant.owner_id !== auth.user.id,
+    crossTenant,
+    auditOk: !auditErr,
   });
 
   return res;

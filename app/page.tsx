@@ -87,8 +87,10 @@ export default async function LandingPage() {
           <p className="mx-auto mt-3 max-w-xl text-center text-base text-[#94A3B8] sm:mt-4 sm:text-lg">
             7-day free trial. No credit card required.
           </p>
-          <div className="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-6 sm:mt-16 sm:grid-cols-2 sm:gap-8">
-            {Object.entries(PLANS).map(([key, plan]) => (
+          <div className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-6 sm:mt-16 sm:grid-cols-3 sm:gap-8">
+            {(["goronyo", "gorgor", "galeyr"] as const).map((key) => {
+              const plan = PLANS[key];
+              return (
               <div
                 key={key}
                 className="rounded-2xl border border-white/10 bg-white/5 p-6 transition-colors hover:border-[#D4A373]/30 sm:p-8"
@@ -110,7 +112,8 @@ export default async function LandingPage() {
                   Start Free Trial
                 </Link>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <ComparePlansSection />

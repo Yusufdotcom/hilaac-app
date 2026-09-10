@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getBranchDisplayLabel, type OwnerBranch } from "@/lib/admin/owner-branches";
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
 import type { SubscriptionTier } from "@/types/database";
 
 export function ManageBranches({
@@ -40,7 +41,7 @@ export function ManageBranches({
   const [address, setAddress] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const isPro = subscriptionTier === "pro";
+  const canAddBranches = canUseFeature(subscriptionTier, "multi_branch");
 
   async function handleCreateBranch(e: React.FormEvent) {
     e.preventDefault();
@@ -114,7 +115,7 @@ export function ManageBranches({
             </ul>
           )}
 
-          {isPro ? (
+          {canAddBranches ? (
             <BrandButton type="button" onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4" />
               Add New Location
@@ -129,9 +130,9 @@ export function ManageBranches({
             >
               <Lock className="mt-0.5 h-5 w-5 shrink-0" style={{ color: accent }} />
               <div>
-                <p className="font-medium">Upgrade to Pro to add multiple branches.</p>
+                <p className="font-medium">Upgrade to Gorgor 1.0 to add multiple branches.</p>
                 <p className="mt-1 text-[#64748B]">
-                  Pro lets you run 2–3 locations from one account.{" "}
+                  Gorgor and Galeyr let you run 2–3 locations from one account.{" "}
                   <Link href={`/admin/${currentSlug}/billing`} className="font-medium text-[var(--admin-text)] underline">
                     Upgrade now
                   </Link>

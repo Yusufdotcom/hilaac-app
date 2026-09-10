@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { SubscriptionTier } from "@/types/database";
+import { tierDisplayName } from "@/lib/billing/tier-capabilities";
 
 export const DEFAULT_BRAND_COLOR = "#0F172A";
 export const HILAAC_GOLD = "#D4A373";
@@ -241,16 +242,7 @@ export function brandColorWithAlpha(hex: string, alpha: number): string {
 }
 
 export function subscriptionPlanLabel(tier: SubscriptionTier | string): string {
-  switch (tier) {
-    case "pro":
-      return "Pro Plan";
-    case "starter":
-      return "Starter Plan";
-    case "trial":
-      return "Trial Plan";
-    default:
-      return `${tier.charAt(0).toUpperCase()}${tier.slice(1)} Plan`;
-  }
+  return tierDisplayName(tier);
 }
 
 /** Sidebar shell — solid brand background, white labels. */

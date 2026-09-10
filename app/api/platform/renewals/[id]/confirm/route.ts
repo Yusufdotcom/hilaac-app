@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/lib/auth/require-platform-admin";
 import {
   nextEndDateForConfirm,
+  isBillableTier,
+  resolveRenewalTier,
+  shouldForceUssdOnTier,
   type BillableTier,
 } from "@/lib/platform/subscription-renewal";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -50,8 +53,9 @@ export async function POST(
     return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
   }
 
-  const tier: BillableTier =
-    renewal.tier === "pro" || renewal.tier === "starter" ? renewal.tier : "starter";
+  const tier: BillableTier = isBillableTier(renewal.tier)
+    ? renewal.tier
+    : resolveRenewalTier(restaurant.subscription_tier, "renew");
 
   const nextEnd = nextEndDateForConfirm({
     currentTier: restaurant.subscription_tier,
@@ -72,8 +76,8 @@ export async function POST(
     updated_at: new Date().toISOString(),
   };
 
-  // Downgrade / leave Pro: force USSD so API merchant mode cannot linger.
-  if (tier === "starter" && restaurant.subscription_tier !== "starter") {
+  // Leaving API-capable tiers: force USSD so merchant API mode cannot linger.
+  if (shouldForceUssdOnTier(tier) && restaurant.payment_mode !== "ussd") {
     restaurantUpdate.payment_mode = "ussd";
   }
 

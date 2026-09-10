@@ -8,12 +8,7 @@ export type OrderTheme = "light" | "dark";
 export const HERO_IMAGE_MIN = 3;
 export const HERO_IMAGE_MAX = 4;
 
-export function getTimeOfDayGreeting(now = new Date()): string {
-  const hour = now.getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
+export { getTimeOfDayGreeting } from "@/lib/time/greeting";
 
 /**
  * Prefer Top Picks with images, then other available items with images.

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
+  Bell,
   ChevronsUpDown,
   CreditCard,
   LayoutDashboard,
@@ -27,6 +28,7 @@ const MAIN_NAV = [
   { key: "tables", label: "Tables", icon: Table, href: (s: string) => `/admin/${s}/tables` },
   { key: "orders", label: "Orders", icon: ListOrdered, href: (s: string) => `/admin/${s}/orders` },
   { key: "reports", label: "Reports", icon: BarChart3, href: (s: string) => `/admin/${s}/reports` },
+  { key: "alerts", label: "Alerts", icon: Bell, href: (s: string) => `/admin/${s}/alerts` },
 ] as const;
 
 const MANAGE_NAV = [
@@ -169,6 +171,7 @@ export function AdminSidebar({
   currentSlug,
   branches = [],
   awaitingOrdersCount = 0,
+  alertsCount = 0,
   mobileOpen = false,
   onMobileClose,
 }: {
@@ -179,6 +182,7 @@ export function AdminSidebar({
   currentSlug: string;
   branches?: OwnerBranch[];
   awaitingOrdersCount?: number;
+  alertsCount?: number;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 }) {
@@ -208,7 +212,7 @@ export function AdminSidebar({
 
   function renderNav(
     items: typeof MAIN_NAV | typeof MANAGE_NAV,
-    opts?: { showOrdersBadge?: boolean }
+    opts?: { showOrdersBadge?: boolean; showAlertsBadge?: boolean }
   ) {
     return items.map(({ key, href, label, icon: Icon }) => {
       const linkHref = href(slug);
@@ -233,6 +237,11 @@ export function AdminSidebar({
               style={{ backgroundColor: "var(--admin-brand, #9E2E2E)" }}
             >
               {awaitingOrdersCount > 99 ? "99+" : awaitingOrdersCount}
+            </span>
+          )}
+          {opts?.showAlertsBadge && key === "alerts" && alertsCount > 0 && (
+            <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-semibold text-white">
+              {alertsCount > 99 ? "99+" : alertsCount}
             </span>
           )}
         </Link>
@@ -262,7 +271,9 @@ export function AdminSidebar({
       />
 
       <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-[var(--admin-muted)]">MAIN</p>
-      <nav className="mb-6 space-y-1">{renderNav(MAIN_NAV, { showOrdersBadge: true })}</nav>
+      <nav className="mb-6 space-y-1">
+        {renderNav(MAIN_NAV, { showOrdersBadge: true, showAlertsBadge: true })}
+      </nav>
 
       <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-[var(--admin-muted)]">MANAGE</p>
       <nav className="space-y-1">{renderNav(MANAGE_NAV)}</nav>

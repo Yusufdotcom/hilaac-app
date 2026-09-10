@@ -7,6 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+async function readJsonSafe(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if (!text.trim()) {
+    throw new Error(res.ok ? "Empty response from server" : `Server error (${res.status})`);
+  }
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new Error(`Invalid server response (${res.status})`);
+  }
+}
+
 export function PlatformSettingsForm() {
   const [evc, setEvc] = useState("");
   const [edahab, setEdahab] = useState("");
@@ -17,10 +29,10 @@ export function PlatformSettingsForm() {
     void (async () => {
       try {
         const res = await fetch("/api/platform/settings", { cache: "no-store" });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Failed to load settings");
-        setEvc(data.evc_ussd_code ?? "");
-        setEdahab(data.edahab_ussd_code ?? "");
+        const data = await readJsonSafe(res);
+        if (!res.ok) throw new Error(String(data.error ?? "Failed to load settings"));
+        setEvc(String(data.evc_ussd_code ?? ""));
+        setEdahab(String(data.edahab_ussd_code ?? ""));
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Failed to load settings");
       } finally {
@@ -41,9 +53,16 @@ export function PlatformSettingsForm() {
           edahab_ussd_code: edahab,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Save failed");
+      const data = await readJsonSafe(res);
+      if (!res.ok) throw new Error(String(data.error ?? "Save failed"));
       toast.success("Platform payment codes saved (encrypted at rest).");
+      // Reload from server to confirm persistence (not client-only state).
+      const reload = await fetch("/api/platform/settings", { cache: "no-store" });
+      const again = await readJsonSafe(reload);
+      if (reload.ok) {
+        setEvc(String(again.evc_ussd_code ?? ""));
+        setEdahab(String(again.edahab_ussd_code ?? ""));
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -62,7 +81,7 @@ export function PlatformSettingsForm() {
   return (
     <form
       onSubmit={(e) => void handleSave(e)}
-      className="mx-auto max-w-lg space-y-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6"
+      className="mx-auto max-w-lg space-y-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.25)]"
     >
       <div>
         <h1 className="text-2xl font-bold text-white">Platform Settings</h1>
@@ -107,7 +126,7 @@ export function PlatformSettingsForm() {
       <Button
         type="submit"
         disabled={saving}
-        className="w-full bg-amber-500 text-slate-950 hover:bg-amber-400"
+        className="w-full bg-[#9E2E2E] text-white hover:bg-[#821f1f]"
       >
         {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Save encrypted codes

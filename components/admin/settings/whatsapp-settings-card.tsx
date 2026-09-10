@@ -102,7 +102,7 @@ export function WhatsAppSettingsCard({
           WhatsApp Notifications
         </CardTitle>
         <CardDescription>
-          Order-ready alerts (all plans) and optional come-back offers (Pro). Uses Twilio + Meta
+          Order-ready alerts (all plans) and optional come-back offers (Gorgor+). Uses Twilio + Meta
           WhatsApp templates.
         </CardDescription>
       </CardHeader>
@@ -155,7 +155,7 @@ export function WhatsAppSettingsCard({
                 Re-engagement offers{" "}
                 {!meta.reengagement_allowed && (
                   <span className="inline-flex items-center gap-1 text-xs font-normal text-muted-foreground">
-                    <Lock className="h-3 w-3" /> Pro
+                    <Lock className="h-3 w-3" /> Gorgor+
                   </span>
                 )}
               </Label>
@@ -164,7 +164,7 @@ export function WhatsAppSettingsCard({
               </p>
               {!meta.reengagement_allowed && (
                 <Link href={`/admin/${slug}/billing`} className="text-xs font-medium underline">
-                  Upgrade to Pro
+                  Upgrade to Gorgor
                 </Link>
               )}
             </div>

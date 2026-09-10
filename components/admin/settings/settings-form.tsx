@@ -15,6 +15,7 @@ import { BrandRadioOption } from "@/components/admin/brand-radio-option";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { createClient } from "@/lib/supabase/client";
 import { DEFAULT_BRAND_COLOR, normalizeHex, resolveDashboardAccent } from "@/lib/brand/restaurant-brand";
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
 import type { BillingModel, Restaurant } from "@/types/database";
 
 export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
@@ -34,7 +35,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
   const [customBrandingEnabled, setCustomBrandingEnabled] = useState(
     restaurant.custom_branding_enabled ?? false
   );
-  const isPro = restaurant.subscription_tier === "pro";
+  const canCustomBrand = canUseFeature(restaurant.subscription_tier, "custom_branding");
   const [orderTypes, setOrderTypes] = useState({
     dine_in_enabled: restaurant.dine_in_enabled,
     takeaway_enabled: restaurant.takeaway_enabled,
@@ -297,7 +298,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
         .from("restaurants")
         .update({
           brand_color: normalized,
-          custom_branding_enabled: isPro ? customBrandingEnabled : false,
+          custom_branding_enabled: canCustomBrand ? customBrandingEnabled : false,
         })
         .eq("id", restaurant.id);
 
@@ -315,8 +316,8 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
   }
 
   function handleCustomBrandingToggle(enabled: boolean) {
-    if (!isPro) {
-      toast.error("Upgrade to Pro to enable custom customer menu branding");
+    if (!canCustomBrand) {
+      toast.error("Upgrade to Gorgor 1.0 or higher to enable custom customer menu branding");
       return;
     }
     setCustomBrandingEnabled(enabled);
@@ -437,7 +438,7 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
               <Switch
                 id="custom-branding-toggle"
                 checked={customBrandingEnabled}
-                disabled={!isPro}
+                disabled={!canCustomBrand}
                 onCheckedChange={handleCustomBrandingToggle}
               />
             </div>

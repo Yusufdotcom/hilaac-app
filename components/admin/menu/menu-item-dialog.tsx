@@ -116,7 +116,7 @@ export function MenuItemDialog({
 
   async function handleAiGenerate() {
     if (!canUseAi) {
-      toast.error("AI Generate is available on Pro plans (and during your trial). Upgrade to unlock.");
+      toast.error("AI Generate is available on Gorgor and above (and during your trial). Upgrade to unlock.");
       return;
     }
     if (!form.name) {

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAal2ForPrivilegedRole } from "@/lib/auth/aal";
 import { requireActiveStaff } from "@/lib/auth/require-active-staff";
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
 import { createAdminClient } from "@/lib/supabase/server";
 import { generateSlug } from "@/lib/utils";
 
 /**
  * POST /api/admin/branches
- * Creates a new branch restaurant for Pro plan owners.
+ * Creates a new branch restaurant for Gorgor/Galeyr (and legacy Pro) owners.
  */
 export async function POST(req: NextRequest) {
   const auth = await requireActiveStaff({ roles: ["owner"] });
@@ -23,9 +24,9 @@ export async function POST(req: NextRequest) {
     .eq("id", profile.restaurant_id)
     .maybeSingle();
 
-  if (!currentRestaurant || currentRestaurant.subscription_tier !== "pro") {
+  if (!currentRestaurant || !canUseFeature(currentRestaurant.subscription_tier, "multi_branch")) {
     return NextResponse.json(
-      { error: "Upgrade to Pro to add multiple branches." },
+      { error: "Upgrade to Gorgor 1.0 or higher to add multiple branches." },
       { status: 403 }
     );
   }
