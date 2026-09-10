@@ -3,17 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 import { Bot, Loader2, Send, X } from "lucide-react";
 import { useAdminBrandColor } from "@/components/admin/admin-brand-context";
+import { useLocale } from "@/components/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
 type ChatRole = "user" | "assistant";
 type ChatMessage = { role: ChatRole; content: string; toolsUsed?: string[] };
 
-const SUGGESTIONS = [
+const SUGGESTIONS_EN = [
   "How is my business doing today?",
   "What are my top sellers this week?",
   "When are my peak hours?",
   "How is inventory looking?",
   "Who are my best-performing staff?",
+];
+
+const SUGGESTIONS_SO = [
+  "Ganacsigaygu sidee buu u socday maanta?",
+  "Sheyga ugu faa'iidada badan?",
+  "Cidda shaqaaluhu ugu wanaagsan?",
+  "Baraqa goorta dhammaanayso?",
+  "Macaamiisha aan soo noqon muddo dheer?",
 ];
 
 export function BusinessChatbot({
@@ -29,6 +38,8 @@ export function BusinessChatbot({
   hidden?: boolean;
 }) {
   const brand = useAdminBrandColor();
+  const { locale } = useLocale();
+  const suggestions = locale === "so" ? SUGGESTIONS_SO : SUGGESTIONS_EN;
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -169,7 +180,7 @@ export function BusinessChatbot({
                         Ask about your business. Answers come only from your live data.
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {SUGGESTIONS.map((q) => (
+                        {suggestions.map((q) => (
                           <button
                             key={q}
                             type="button"
@@ -220,7 +231,7 @@ export function BusinessChatbot({
 
                 {messages.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5 border-t border-[var(--admin-border,#E2E8F0)] px-3 py-2">
-                    {SUGGESTIONS.slice(0, 3).map((q) => (
+                    {suggestions.slice(0, 3).map((q) => (
                       <button
                         key={q}
                         type="button"

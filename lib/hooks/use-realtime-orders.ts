@@ -208,6 +208,16 @@ export function useRealtimeOrders(
       });
     }
 
+    if (!error && ["new", "preparing", "ready", "delivered", "completed"].includes(status)) {
+      void fetch("/api/notifications/order-status-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      }).catch((err) => {
+        console.error("[status-message] notify failed", err);
+      });
+    }
+
     return error;
   }
 
@@ -289,6 +299,20 @@ export function useRealtimeOrders(
           return prev.map((o) => (o.id === orderId ? previous! : o));
         }
         return mergeOrder(prev, previous!);
+      });
+    }
+
+    if (
+      !error &&
+      fields.status &&
+      ["new", "preparing", "ready", "delivered", "completed"].includes(fields.status)
+    ) {
+      void fetch("/api/notifications/order-status-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      }).catch((err) => {
+        console.error("[status-message] notify failed", err);
       });
     }
 

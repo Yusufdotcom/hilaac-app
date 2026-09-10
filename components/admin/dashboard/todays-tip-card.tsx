@@ -2,6 +2,8 @@ import { Sparkles } from "lucide-react";
 import type { DashboardTip } from "@/lib/dashboard/fetch-dashboard-extras";
 
 export function TodaysTipCard({ tip }: { tip: DashboardTip }) {
+  const isBriefing = tip.kind === "briefing";
+
   return (
     <div
       className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 p-5 text-white sm:p-6"
@@ -22,11 +24,21 @@ export function TodaysTipCard({ tip }: { tip: DashboardTip }) {
           <Sparkles className="h-4 w-4 text-[#D4A373]" aria-hidden="true" />
         </span>
         <p className="text-xs font-medium uppercase tracking-wide text-white/60">
-          Today&apos;s Tip
+          {isBriefing ? "Today's Briefing" : "Today's Tip"}
         </p>
       </div>
-      <p className="relative mt-4 text-lg font-semibold leading-snug">{tip.title}</p>
-      <p className="relative mt-2 text-sm leading-relaxed text-white/70">{tip.message}</p>
+      {!isBriefing ? (
+        <p className="relative mt-4 text-lg font-semibold leading-snug">{tip.title}</p>
+      ) : null}
+      <p
+        className={
+          isBriefing
+            ? "relative mt-4 whitespace-pre-line text-sm leading-relaxed text-white/85"
+            : "relative mt-2 text-sm leading-relaxed text-white/70"
+        }
+      >
+        {tip.message}
+      </p>
     </div>
   );
 }

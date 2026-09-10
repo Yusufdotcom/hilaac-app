@@ -115,7 +115,8 @@ function WorkflowMessage({
   order: NonNullable<ReturnType<typeof useOrderStatusRealtime>["order"]>;
   compact?: boolean;
 }) {
-  const message = customerStatusWorkflowMessage(order);
+  const message =
+    order.status_message?.trim() || customerStatusWorkflowMessage(order);
   if (!message) return null;
 
   return (

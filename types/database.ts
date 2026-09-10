@@ -212,6 +212,8 @@ export interface Profile {
   /** scrypt hash of 4–6 digit staff PIN (Kitchen/Waiter/Cashier tablets). */
   staff_pin_hash?: string | null;
   pin_last_used?: string | null;
+  /** Owner preference for AI briefings (en | so). */
+  preferred_language?: "en" | "so" | null;
   created_at: string;
   updated_at: string;
 }
@@ -370,8 +372,46 @@ export interface Order {
   promo_code?: string | null;
   deyn_code?: string | null;
   deyn_account_id?: string | null;
+  /** AI contextual status copy for the customer status page. */
+  status_message?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface DailyBriefing {
+  id: string;
+  restaurant_id: string;
+  briefing_date: string;
+  content: string;
+  language: "en" | "so";
+  created_at: string;
+}
+
+export type AiAlertSeverity = "urgent" | "important" | "normal";
+
+export interface AiAlert {
+  id: string;
+  restaurant_id: string;
+  severity: AiAlertSeverity;
+  title: string;
+  description: string;
+  why_it_matters: string;
+  action_label: string;
+  href: string;
+  source: "ai" | "system";
+  dedupe_key: string;
+  created_at: string;
+  dismissed_at: string | null;
+}
+
+export interface CustomerOutreachLog {
+  id: string;
+  restaurant_id: string;
+  customer_phone: string;
+  message: string;
+  campaign_id: string | null;
+  sent_at: string;
+  sent_by: string | null;
 }
 
 export type CampaignDiscountType = "percentage" | "fixed";

@@ -15,6 +15,7 @@ export interface TrackedOrder {
   customer_phone: string | null;
   order_type: OrderType | null;
   customer_rating?: number | null;
+  status_message?: string | null;
 }
 
 export type OrderStatusLoadState =

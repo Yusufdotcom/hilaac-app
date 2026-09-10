@@ -10,6 +10,8 @@ export type RestaurantAlert = {
   href: string;
   /** Higher = show first within same severity. */
   rank: number;
+  /** system = live-computed; ai = from ai_alerts table */
+  source?: "system" | "ai";
 };
 
 const SEVERITY_ORDER: Record<AlertSeverity, number> = {

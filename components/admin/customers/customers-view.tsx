@@ -1,9 +1,23 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Loader2, Sparkles } from "lucide-react";
 import { AdminPageIntro } from "@/components/admin/admin-page-intro";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { cn, formatCurrency } from "@/lib/utils";
-import type { CustomerIntelligenceData } from "@/lib/customers/fetch-customer-intelligence";
+import type {
+  AtRiskCustomer,
+  CustomerIntelligenceData,
+} from "@/lib/customers/fetch-customer-intelligence";
 import type { CustomerSegment } from "@/lib/customers/customer-segments";
 
 const SEGMENT_META: Record<
@@ -16,6 +30,14 @@ const SEGMENT_META: Record<
   at_risk: { label: "At-Risk", bar: "bg-red-500", text: "text-red-700" },
 };
 
+type CampaignOption = {
+  id: string;
+  name: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+};
+
 export function CustomersView({
   data,
   gated,
@@ -23,6 +45,17 @@ export function CustomersView({
   data: CustomerIntelligenceData | null;
   gated?: boolean;
 }) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [sendLoading, setSendLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [activePhone, setActivePhone] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [campaignId, setCampaignId] = useState("");
+  const [campaigns, setCampaigns] = useState<CampaignOption[]>([]);
+  const [sentPhones, setSentPhones] = useState<Set<string>>(() => new Set());
+
   if (gated) {
     return (
       <div className="rounded-2xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] px-5 py-10 text-center">
@@ -45,6 +78,69 @@ export function CustomersView({
   const denom = Math.max(data.segmentTotal, 1);
   const fb = data.feedback;
   const fbTotal = Math.max(fb.total, 1);
+  const atRisk = data.atRiskCustomers ?? [];
+
+  async function openReengage(row: AtRiskCustomer) {
+    setActivePhone(row.customer_phone);
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    setPreviewError(null);
+    setSendError(null);
+    setDraft("");
+    setCampaignId("");
+    setCampaigns([]);
+
+    try {
+      const res = await fetch("/api/admin/customers/reengage/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerPhone: row.customer_phone }),
+      });
+      const json = (await res.json()) as {
+        draft?: string;
+        campaigns?: CampaignOption[];
+        error?: string;
+      };
+      if (!res.ok) {
+        setPreviewError(json.error || "Could not draft message");
+        return;
+      }
+      setDraft(json.draft || "");
+      setCampaigns(json.campaigns ?? []);
+    } catch {
+      setPreviewError("Network error — try again");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  async function sendReengage() {
+    if (!activePhone || !draft.trim()) return;
+    setSendLoading(true);
+    setSendError(null);
+    try {
+      const res = await fetch("/api/admin/customers/reengage/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerPhone: activePhone,
+          message: draft.trim(),
+          campaignId: campaignId || null,
+        }),
+      });
+      const json = (await res.json()) as { error?: string; ok?: boolean; dryRun?: boolean };
+      if (!res.ok) {
+        setSendError(json.error || "Send failed");
+        return;
+      }
+      setSentPhones((prev) => new Set(prev).add(activePhone));
+      setPreviewOpen(false);
+    } catch {
+      setSendError("Network error — try again");
+    } finally {
+      setSendLoading(false);
+    }
+  }
 
   return (
     <div className="w-full min-w-0 space-y-6">
@@ -96,6 +192,50 @@ export function CustomersView({
             </p>
           </div>
         ) : null}
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] p-5">
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--admin-text,#0F172A)]">
+            At-Risk customers
+          </h3>
+          <p className="mt-0.5 text-xs text-[var(--admin-muted,#64748B)]">
+            Quiet for 30+ days after 3+ visits — send a welcome-back WhatsApp.
+          </p>
+        </div>
+        {atRisk.length === 0 ? (
+          <p className="text-sm text-[var(--admin-muted,#64748B)]">No at-risk customers right now.</p>
+        ) : (
+          <ul className="divide-y divide-[var(--admin-border)]">
+            {atRisk.map((row) => (
+              <li
+                key={row.customer_phone}
+                className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium tabular-nums text-[var(--admin-text,#0F172A)]">
+                    {row.customer_phone}
+                  </p>
+                  <p className="text-xs text-[var(--admin-muted,#64748B)]">
+                    {row.total_visits} visits · last {row.days_since_last}d ago ·{" "}
+                    {formatCurrency(row.lifetime_spend)} lifetime
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={sentPhones.has(row.customer_phone)}
+                  onClick={() => void openReengage(row)}
+                >
+                  {sentPhones.has(row.customer_phone)
+                    ? "Sent"
+                    : "Send re-engagement message"}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -162,6 +302,71 @@ export function CustomersView({
           )}
         </section>
       </div>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Re-engagement message</DialogTitle>
+          </DialogHeader>
+          {previewLoading ? (
+            <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Drafting Somali message…
+            </div>
+          ) : previewError ? (
+            <p className="text-sm text-destructive">{previewError}</p>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-xs text-muted-foreground">To {activePhone}</p>
+              <div className="space-y-2">
+                <Label htmlFor="reengage-draft">Message</Label>
+                <Textarea
+                  id="reengage-draft"
+                  rows={5}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reengage-campaign">Promo code (optional)</Label>
+                <select
+                  id="reengage-campaign"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={campaignId}
+                  onChange={(e) => setCampaignId(e.target.value)}
+                >
+                  <option value="">No promo</option>
+                  {campaigns.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {sendError ? <p className="text-sm text-destructive">{sendError}</p> : null}
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPreviewOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={previewLoading || !!previewError || sendLoading || !draft.trim()}
+              onClick={() => void sendReengage()}
+            >
+              {sendLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending…
+                </>
+              ) : (
+                "Send"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getAppDayBounds } from "@/lib/time/app-calendar";
+import { getAppDayBounds, getZonedYmd } from "@/lib/time/app-calendar";
 import { fetchReportData } from "@/lib/reports/fetch-report-data";
 
 export type DashboardSparklines = {
@@ -14,20 +14,29 @@ export type DashboardSparklines = {
 export type DashboardTip = {
   title: string;
   message: string;
+  /** When set, UI shows "Today's Briefing" instead of tip. */
+  kind?: "tip" | "briefing";
 };
 
 const TIP_FALLBACK: DashboardTip = {
   title: "Today's tip",
   message: "No tip yet — place a few paid orders to unlock insights.",
+  kind: "tip",
 };
 
 function emptySeven(): number[] {
   return [0, 0, 0, 0, 0, 0, 0];
 }
 
+function todayYmd(): string {
+  const ymd = getZonedYmd(new Date());
+  return `${ymd.year}-${String(ymd.month).padStart(2, "0")}-${String(ymd.day).padStart(2, "0")}`;
+}
+
 /**
  * Last 7 app-days of paid order_count + revenue via get_revenue_by_period,
  * plus open-order day buckets and a tip from the daily Insights engine.
+ * Prefer today's AI briefing when present.
  */
 export async function fetchDashboardExtras(
   supabase: SupabaseClient,
@@ -43,8 +52,9 @@ export async function fetchDashboardExtras(
   const { end: seriesEnd } = getAppDayBounds(0);
   const startIso = seriesStart.toISOString();
   const endIso = seriesEnd.toISOString();
+  const briefingDate = todayYmd();
 
-  const [revenueRes, openOrdersRes, menuCountRes, tipResult] = await Promise.all([
+  const [revenueRes, openOrdersRes, menuCountRes, tipResult, briefingRes] = await Promise.all([
     supabase.rpc("get_revenue_by_period", {
       p_restaurant_id: restaurantId,
       p_start_date: startIso,
@@ -70,6 +80,12 @@ export async function fetchDashboardExtras(
         tip: TIP_FALLBACK,
         error: err instanceof Error ? err.message : "Could not load tip",
       })),
+    supabase
+      .from("daily_briefings")
+      .select("content, language")
+      .eq("restaurant_id", restaurantId)
+      .eq("briefing_date", briefingDate)
+      .maybeSingle(),
   ]);
 
   let sparklineError: string | null = null;
@@ -96,7 +112,6 @@ export async function fetchDashboardExtras(
     for (let i = 0; i < 7; i++) {
       const { start } = getAppDayBounds(-6 + i);
       const key = start.toISOString().slice(0, 10);
-      // Prefer APP day key from period_start; also try ymd local label
       const ymd = getAppDayBounds(-6 + i).ymd;
       const localKey = `${ymd.year}-${String(ymd.month).padStart(2, "0")}-${String(ymd.day).padStart(2, "0")}`;
       const hit = byDay.get(localKey) ?? byDay.get(key) ?? { orders: 0, revenue: 0 };
@@ -122,12 +137,22 @@ export async function fetchDashboardExtras(
     sparklines.openOrders = counts;
   }
 
+  const briefingContent = briefingRes.data?.content?.trim();
+  const tip: DashboardTip =
+    briefingContent && !briefingRes.error
+      ? {
+          title: "Today's Briefing",
+          message: briefingContent,
+          kind: "briefing",
+        }
+      : { ...tipResult.tip, kind: tipResult.tip.kind ?? "tip" };
+
   return {
     sparklines,
-    tip: tipResult.tip,
+    tip,
     menuItemCount: menuCountRes.count ?? 0,
     sparklineError,
-    tipError: tipResult.error,
+    tipError: briefingContent ? null : tipResult.error,
   };
 }
 
@@ -137,5 +162,5 @@ function pickTip(
   if (!insights?.length) return TIP_FALLBACK;
   const sorted = [...insights].sort((a, b) => b.importance - a.importance);
   const top = sorted[0];
-  return { title: top.title, message: top.message };
+  return { title: top.title, message: top.message, kind: "tip" };
 }

@@ -364,7 +364,158 @@ export function buildChatbotTools(supabase: SupabaseClient, restaurantId: string
           returningSalesPct: data.returningSalesPct,
           feedback: data.feedback,
           topProducts: data.topProducts.slice(0, 8),
+          atRiskCount: data.atRiskCustomers.length,
           source: "fetchCustomerIntelligence",
+        };
+      },
+    }),
+
+    getDeynOutstanding: tool({
+      description:
+        "Get Deyn (store credit) outstanding balances, active accounts, and overdue-looking high balances.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const { data, error } = await supabase
+          .from("deyn_accounts")
+          .select("id, customer_name, customer_phone, deyn_code, credit_limit, balance, is_active")
+          .eq("restaurant_id", restaurantId)
+          .eq("is_active", true)
+          .order("balance", { ascending: false })
+          .limit(100);
+        if (error) {
+          console.error("[chatbot] getDeynOutstanding", error.message);
+          return { error: error.message, source: "deyn_accounts" };
+        }
+        const accounts = (data ?? []).map((a) => ({
+          name: a.customer_name,
+          code: a.deyn_code,
+          balance: Number(a.balance) || 0,
+          creditLimit: Number(a.credit_limit) || 0,
+          utilization:
+            Number(a.credit_limit) > 0
+              ? Math.round(((Number(a.balance) || 0) / Number(a.credit_limit)) * 1000) / 10
+              : null,
+        }));
+        const totalOutstanding = accounts.reduce((s, a) => s + a.balance, 0);
+        const nearLimit = accounts.filter(
+          (a) => a.creditLimit > 0 && a.balance >= a.creditLimit * 0.8
+        );
+        return {
+          totalOutstanding,
+          activeAccounts: accounts.length,
+          nearLimitCount: nearLimit.length,
+          topBalances: accounts.slice(0, 10),
+          source: "deyn_accounts",
+        };
+      },
+    }),
+
+    getCampaignPerformance: tool({
+      description: "Get campaign promo performance by redemptions and discount given.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const { data: campaigns, error } = await supabase
+          .from("campaigns")
+          .select("id, name, code, discount_type, discount_value, uses_count, is_active, valid_from, valid_to")
+          .eq("restaurant_id", restaurantId)
+          .order("uses_count", { ascending: false })
+          .limit(30);
+        if (error) {
+          console.error("[chatbot] getCampaignPerformance", error.message);
+          return { error: error.message, source: "campaigns" };
+        }
+        const ids = (campaigns ?? []).map((c) => c.id);
+        let redemptions: { campaign_id: string; discount_applied: number; order_total_after: number | null }[] =
+          [];
+        if (ids.length > 0) {
+          const { data: rows, error: redErr } = await supabase
+            .from("campaign_redemptions")
+            .select("campaign_id, discount_applied, order_total_after")
+            .eq("restaurant_id", restaurantId)
+            .in("campaign_id", ids);
+          if (redErr) {
+            console.error("[chatbot] campaign_redemptions", redErr.message);
+          } else {
+            redemptions = (rows ?? []) as typeof redemptions;
+          }
+        }
+        const byCampaign = new Map<string, { redemptions: number; discount: number; revenue: number }>();
+        for (const r of redemptions) {
+          const cur = byCampaign.get(r.campaign_id) ?? {
+            redemptions: 0,
+            discount: 0,
+            revenue: 0,
+          };
+          cur.redemptions += 1;
+          cur.discount += Number(r.discount_applied) || 0;
+          cur.revenue += Number(r.order_total_after) || 0;
+          byCampaign.set(r.campaign_id, cur);
+        }
+        const top = (campaigns ?? []).map((c) => {
+          const stats = byCampaign.get(c.id) ?? { redemptions: 0, discount: 0, revenue: 0 };
+          return {
+            name: c.name,
+            code: c.code,
+            isActive: c.is_active,
+            usesCount: Number(c.uses_count) || 0,
+            redemptions: stats.redemptions,
+            discountGiven: stats.discount,
+            attributedRevenue: stats.revenue,
+          };
+        });
+        return { campaigns: top.slice(0, 15), source: "campaigns + campaign_redemptions" };
+      },
+    }),
+
+    getInventoryAlerts: tool({
+      description: "Get inventory items at or below reorder level (or out of stock).",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const data = await fetchInventoryPageData(supabase, restaurantId);
+        return {
+          alerts: data.actionRows.slice(0, 20).map((r) => ({
+            name: r.name,
+            status: r.status,
+            onHand: r.current_stock,
+            reorderAt: r.reorder_level,
+          })),
+          count: data.actionRows.length,
+          source: "fetchInventoryPageData",
+        };
+      },
+    }),
+
+    getAnomalyAlerts: tool({
+      description: "Get AI-detected anomaly alerts (cashier gap, AOV drop, waste, revenue soft day).",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const { data, error } = await supabase
+          .from("ai_alerts")
+          .select("id, severity, title, description, why_it_matters, created_at, dedupe_key")
+          .eq("restaurant_id", restaurantId)
+          .is("dismissed_at", null)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (error) {
+          console.error("[chatbot] getAnomalyAlerts", error.message);
+          return {
+            error: error.message,
+            alerts: [],
+            note: "ai_alerts table may not be migrated yet",
+            source: "ai_alerts",
+          };
+        }
+        return {
+          alerts: (data ?? []).map((a) => ({
+            severity: a.severity,
+            title: a.title,
+            description: a.description,
+            whyItMatters: a.why_it_matters,
+            createdAt: a.created_at,
+            key: a.dedupe_key,
+          })),
+          count: data?.length ?? 0,
+          source: "ai_alerts",
         };
       },
     }),

@@ -1,12 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAppDayBounds, getAppMonthBounds } from "@/lib/time/app-calendar";
 import {
+  assignCustomerSegment,
   bucketRatings,
   countSegments,
   returningSalesShare,
   type FeedbackBuckets,
   type SegmentCounts,
 } from "@/lib/customers/customer-segments";
+
+export type AtRiskCustomer = {
+  customer_phone: string;
+  total_visits: number;
+  lifetime_spend: number;
+  last_visit: string;
+  days_since_last: number;
+};
 
 export type CustomerIntelligenceData = {
   totalCustomers: number;
@@ -18,6 +27,7 @@ export type CustomerIntelligenceData = {
   returningSalesPct: number | null;
   feedback: FeedbackBuckets;
   topProducts: { name: string; quantity: number; revenue: number }[];
+  atRiskCustomers: AtRiskCustomer[];
 };
 
 export async function fetchCustomerIntelligence(
@@ -131,6 +141,22 @@ export async function fetchCustomerIntelligence(
     .map((r) => Number(r.customer_rating))
     .filter((n) => n >= 1 && n <= 5);
 
+  const dayMs = 24 * 60 * 60 * 1000;
+  const atRiskCustomers: AtRiskCustomer[] = enriched
+    .filter((p) => assignCustomerSegment(p, now) === "at_risk")
+    .map((p) => ({
+      customer_phone: p.customer_phone,
+      total_visits: p.total_visits,
+      lifetime_spend: p.lifetime_spend,
+      last_visit: p.last_visit,
+      days_since_last: Math.max(
+        0,
+        Math.floor((now.getTime() - new Date(p.last_visit).getTime()) / dayMs)
+      ),
+    }))
+    .sort((a, b) => b.days_since_last - a.days_since_last)
+    .slice(0, 40);
+
   return {
     totalCustomers,
     newThisMonth,
@@ -141,5 +167,6 @@ export async function fetchCustomerIntelligence(
     returningSalesPct: returningSalesShare(returningRevenue, monthRevenue),
     feedback: bucketRatings(ratings),
     topProducts,
+    atRiskCustomers,
   };
 }

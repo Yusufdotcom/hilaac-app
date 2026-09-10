@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const { data: order, error } = await supabase
     .from("orders")
     .select(
-      "id, restaurant_id, order_number, status, payment_status, customer_confirmed_at, order_type, billing_model, total, created_at, customer_rating"
+      "id, restaurant_id, order_number, status, payment_status, customer_confirmed_at, order_type, billing_model, total, created_at, customer_rating, status_message"
     )
     .eq("id", params.id)
     .maybeSingle();

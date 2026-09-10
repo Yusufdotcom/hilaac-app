@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
 import { getAppDayBounds } from "@/lib/time/app-calendar";
 import { daysUntil, formatCurrency } from "@/lib/utils";
+import type { AlertSeverity } from "@/lib/alerts/types";
 import { sortAlerts, type RestaurantAlert } from "@/lib/alerts/types";
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
@@ -34,6 +35,7 @@ export async function fetchRestaurantAlerts(
     priorWeekRevRes,
     menuCostRes,
     inventoryRes,
+    aiAlertsRes,
   ] = await Promise.all([
     supabase
       .from("orders")
@@ -77,6 +79,15 @@ export async function fetchRestaurantAlerts(
       .select("id, name, current_stock, reorder_level")
       .eq("restaurant_id", restaurant.id)
       .limit(200),
+    supabase
+      .from("ai_alerts")
+      .select(
+        "id, severity, title, description, why_it_matters, action_label, href, source, created_at"
+      )
+      .eq("restaurant_id", restaurant.id)
+      .is("dismissed_at", null)
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
 
   const alerts: RestaurantAlert[] = [];
@@ -107,6 +118,7 @@ export async function fetchRestaurantAlerts(
       actionLabel: "Review orders",
       href: `/admin/${slug}/orders`,
       rank: 100,
+      source: "system",
     });
   } else {
     const anyAwaiting =
@@ -124,6 +136,7 @@ export async function fetchRestaurantAlerts(
         actionLabel: "Review orders",
         href: `/admin/${slug}/orders`,
         rank: 90,
+        source: "system",
       });
     }
   }
@@ -144,6 +157,7 @@ export async function fetchRestaurantAlerts(
       actionLabel: "Go to Billing",
       href: `/admin/${slug}/billing`,
       rank: 95,
+      source: "system",
     });
   }
 
@@ -169,6 +183,7 @@ export async function fetchRestaurantAlerts(
           actionLabel: "Open Reports",
           href: `/admin/${slug}/reports`,
           rank: 80,
+          source: "system",
         });
       }
     }
@@ -204,6 +219,7 @@ export async function fetchRestaurantAlerts(
         actionLabel: "View inventory",
         href: `/admin/${slug}/inventory`,
         rank: 85,
+        source: "system",
       });
     } else if (low.length > 0) {
       alerts.push({
@@ -221,6 +237,7 @@ export async function fetchRestaurantAlerts(
         actionLabel: "View inventory",
         href: `/admin/${slug}/inventory`,
         rank: 70,
+        source: "system",
       });
     }
   }
@@ -261,7 +278,32 @@ export async function fetchRestaurantAlerts(
       actionLabel: "Open Menu",
       href: `/admin/${slug}/menu`,
       rank: 40,
+      source: "system",
     });
+  }
+
+  if (!aiAlertsRes.error) {
+    for (const row of aiAlertsRes.data ?? []) {
+      const severity = row.severity as AlertSeverity;
+      if (severity !== "urgent" && severity !== "important" && severity !== "normal") continue;
+      alerts.push({
+        id: `ai-${row.id}`,
+        severity,
+        title: String(row.title),
+        description: String(row.description ?? ""),
+        whyItMatters: String(row.why_it_matters ?? ""),
+        actionLabel: String(row.action_label || "Review"),
+        href: String(row.href || `/admin/${slug}/alerts`),
+        rank: 75,
+        source: "ai",
+      });
+    }
+  } else if (
+    !String(aiAlertsRes.error.message || "")
+      .toLowerCase()
+      .includes("does not exist")
+  ) {
+    console.error("[alerts] ai_alerts", aiAlertsRes.error.message);
   }
 
   return sortAlerts(alerts);

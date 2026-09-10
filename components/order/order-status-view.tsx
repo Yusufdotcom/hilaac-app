@@ -260,7 +260,11 @@ export function OrderStatusView({
   }, [order?.status, order]);
 
   const workflowMessage =
-    isFinal || paymentMessage ? null : order ? customerStatusWorkflowMessage(order) : null;
+    isFinal || paymentMessage
+      ? null
+      : order
+        ? order.status_message?.trim() || customerStatusWorkflowMessage(order)
+        : null;
 
   if (loadState.status === "loading") {
     return (
