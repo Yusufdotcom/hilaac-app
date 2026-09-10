@@ -81,10 +81,22 @@ export async function PATCH(req: NextRequest) {
     "opening_time",
     "closing_time",
     "business_days",
+    "currency",
+    "currency_rate",
   ] as const;
 
   for (const field of plainFields) {
     if (field in body) update[field] = body[field];
+  }
+
+  if ("currency" in body) {
+    const c = String(body.currency || "USD").toUpperCase();
+    update.currency = c === "SOS" ? "SOS" : "USD";
+  }
+  if ("currency_rate" in body) {
+    const rate = Number(body.currency_rate);
+    update.currency_rate =
+      Number.isFinite(rate) && rate > 0 ? rate : update.currency === "SOS" ? 571 : 1;
   }
 
   if ("opening_time" in body) {

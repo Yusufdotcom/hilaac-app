@@ -7,7 +7,9 @@ import { AdminPageIntro } from "@/components/admin/admin-page-intro";
 import { StaffAccountsManager } from "@/components/admin/staff/staff-accounts-manager";
 import { WaiterManager } from "@/components/admin/staff/waiter-manager";
 import { StaffAccessBoard } from "@/components/admin/staff-access/staff-access-board";
+import { StaffPerformanceSection } from "@/components/admin/staff/staff-performance-section";
 import type { Profile, Waiter } from "@/types/database";
+import type { StaffPerformanceData } from "@/lib/staff/fetch-staff-performance";
 
 const TABS = ["accounts", "access", "waiters"] as const;
 type StaffTab = (typeof TABS)[number];
@@ -24,6 +26,8 @@ export function StaffHub({
   restaurantName,
   staff,
   waiters,
+  performance,
+  canUseStaffPerformance,
 }: {
   restaurantId: string;
   slug: string;
@@ -31,6 +35,8 @@ export function StaffHub({
   restaurantName: string;
   staff: Pick<Profile, "id" | "full_name" | "role" | "phone" | "is_active">[];
   waiters: Waiter[];
+  performance: StaffPerformanceData | null;
+  canUseStaffPerformance: boolean;
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -64,8 +70,19 @@ export function StaffHub({
           <TabsTrigger value="waiters">Waiter Names</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="accounts" className="mt-0 space-y-4 focus-visible:ring-0">
+        <TabsContent value="accounts" className="mt-0 space-y-8 focus-visible:ring-0">
           <StaffAccountsManager restaurantId={restaurantId} staff={staff} />
+          <StaffPerformanceSection
+            restaurantId={restaurantId}
+            staffOptions={staff.map((s) => ({
+              id: s.id,
+              full_name: s.full_name,
+              role: s.role,
+            }))}
+            rows={performance?.rows ?? []}
+            shifts={performance?.shifts ?? []}
+            gated={!canUseStaffPerformance}
+          />
         </TabsContent>
 
         <TabsContent value="access" className="mt-0 focus-visible:ring-0">

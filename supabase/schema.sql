@@ -208,6 +208,7 @@ create table if not exists public.orders (
   delivered_by text,
   accepted_at timestamptz,
   accepted_by text,
+  created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

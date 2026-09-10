@@ -22,6 +22,10 @@ import {
 import { cn, formatOrderLabel } from "@/lib/utils";
 import { AcceptOrdersQueue } from "@/components/staff/accept-orders-queue";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
+import {
+  ManualPosDialog,
+  type ManualPosMenuBundle,
+} from "@/components/admin/orders/manual-pos-dialog";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import { useStaffOrderNotifications } from "@/lib/hooks/use-staff-order-notifications";
 import { filterAwaitingAcceptance } from "@/lib/order/acceptance";
@@ -89,6 +93,7 @@ export function WaiterBoard({
   initialOrders,
   waiters,
   initialDeliveryCounts = {},
+  posMenu,
 }: {
   restaurantId: string;
   restaurantName: string;
@@ -96,6 +101,7 @@ export function WaiterBoard({
   initialOrders: OrderWithItems[];
   waiters: Waiter[];
   initialDeliveryCounts?: Record<string, number>;
+  posMenu: ManualPosMenuBundle;
 }) {
   const { alertNewOrder, syncPendingBadge } = useStaffOrderNotifications(
     "Waiter Dashboard",
@@ -113,6 +119,8 @@ export function WaiterBoard({
       onNewOrder: alertNewOrder,
     }
   );
+
+  const [posOpen, setPosOpen] = useState(false);
 
   useEffect(() => {
     syncPendingBadge(orders);
@@ -252,6 +260,15 @@ export function WaiterBoard({
         busyOrderId={acceptBusyId}
         onAccept={handleAcceptOrder}
       />
+
+      <div className="flex justify-end">
+        <Button type="button" onClick={() => setPosOpen(true)} className="rounded-xl">
+          <ShoppingBag className="mr-2 h-4 w-4" />
+          New order
+        </Button>
+      </div>
+
+      <ManualPosDialog open={posOpen} onOpenChange={setPosOpen} menu={posMenu} />
 
       <header className="flex items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">

@@ -7,6 +7,8 @@ import { AdminPageIntro } from "@/components/admin/admin-page-intro";
 import { CategorySection } from "@/components/admin/menu/category-section";
 import { MenuItemSection } from "@/components/admin/menu/menu-item-section";
 import { AddOnSection } from "@/components/admin/menu/add-on-section";
+import { MenuIntelligencePanel } from "@/components/admin/menu/menu-intelligence-panel";
+import type { MenuIntelligenceResult } from "@/lib/menu/menu-intelligence";
 
 export function MenuManager({
   restaurantId,
@@ -16,6 +18,8 @@ export function MenuManager({
   categoryAddOns,
   menuItemAddOns,
   canUseAi,
+  canUseMenuIntelligence,
+  menuIntelligence,
 }: {
   restaurantId: string;
   categories: Category[];
@@ -24,6 +28,8 @@ export function MenuManager({
   categoryAddOns: CategoryAddOn[];
   menuItemAddOns: MenuItemAddOn[];
   canUseAi: boolean;
+  canUseMenuIntelligence: boolean;
+  menuIntelligence: MenuIntelligenceResult | null;
 }) {
   const [tab, setTab] = useState("categories");
 
@@ -38,6 +44,7 @@ export function MenuManager({
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="addons">Add-ons</TabsTrigger>
           <TabsTrigger value="items">Menu Items</TabsTrigger>
+          <TabsTrigger value="intelligence">Menu Intelligence</TabsTrigger>
         </TabsList>
 
         <TabsContent value="categories" className="mt-0 focus-visible:ring-0">
@@ -62,6 +69,13 @@ export function MenuManager({
             categoryAddOns={categoryAddOns}
             menuItemAddOns={menuItemAddOns}
             canUseAi={canUseAi}
+          />
+        </TabsContent>
+
+        <TabsContent value="intelligence" className="mt-0 focus-visible:ring-0">
+          <MenuIntelligencePanel
+            data={menuIntelligence}
+            gated={!canUseMenuIntelligence}
           />
         </TabsContent>
       </Tabs>

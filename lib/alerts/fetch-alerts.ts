@@ -33,6 +33,7 @@ export async function fetchRestaurantAlerts(
     thisWeekRevRes,
     priorWeekRevRes,
     menuCostRes,
+    inventoryRes,
   ] = await Promise.all([
     supabase
       .from("orders")
@@ -70,6 +71,11 @@ export async function fetchRestaurantAlerts(
       .select("id, name, price, cost_price")
       .eq("restaurant_id", restaurant.id)
       .not("cost_price", "is", null)
+      .limit(200),
+    supabase
+      .from("inventory_items")
+      .select("id, name, current_stock, reorder_level")
+      .eq("restaurant_id", restaurant.id)
       .limit(200),
   ]);
 
@@ -168,7 +174,56 @@ export async function fetchRestaurantAlerts(
     }
   }
 
-  // Inventory low-stock alerts deferred until Step 6 (/inventory page).
+  // Inventory low-stock / out-of-stock
+  const inventory = (inventoryRes.data ?? []) as {
+    id: string;
+    name: string;
+    current_stock: number;
+    reorder_level: number | null;
+  }[];
+  if (inventory.length > 0) {
+    const out = inventory.filter((i) => Number(i.current_stock) <= 0);
+    const low = inventory.filter((i) => {
+      const stock = Number(i.current_stock);
+      const reorder = i.reorder_level != null ? Number(i.reorder_level) : null;
+      return stock > 0 && reorder != null && stock <= reorder;
+    });
+    if (out.length > 0) {
+      alerts.push({
+        id: "inventory-out",
+        severity: "urgent",
+        title:
+          out.length === 1
+            ? `${out[0].name} is out of stock`
+            : `${out.length} items are out of stock`,
+        description: out
+          .slice(0, 3)
+          .map((i) => i.name)
+          .join(", "),
+        whyItMatters: "Out-of-stock ingredients stop 86'd dishes and hurt ticket size.",
+        actionLabel: "View inventory",
+        href: `/admin/${slug}/inventory`,
+        rank: 85,
+      });
+    } else if (low.length > 0) {
+      alerts.push({
+        id: "inventory-low",
+        severity: "important",
+        title:
+          low.length === 1
+            ? `${low[0].name} is at reorder level`
+            : `${low.length} items need reorder`,
+        description: low
+          .slice(0, 3)
+          .map((i) => i.name)
+          .join(", "),
+        whyItMatters: "Hitting reorder level without an order risks stockouts mid-service.",
+        actionLabel: "View inventory",
+        href: `/admin/${slug}/inventory`,
+        rank: 70,
+      });
+    }
+  }
 
   // --- Low margin (when cost_price filled) ---
   const withCost = (menuCostRes.data ?? []) as {

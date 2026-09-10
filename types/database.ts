@@ -71,10 +71,13 @@ export interface Restaurant {
   opening_time?: string | null;
   closing_time?: string | null;
   business_days?: number[] | null;
-  /** Display currency; default USD. SOS in Step 14. */
+  /** Display currency; default USD. SOS uses currency_rate (SOS per 1 USD). */
   currency?: string;
   currency_rate?: number;
-  /** Future retail expansion; default restaurant — no behavior change yet. */
+  /**
+   * Step 16 retail-readiness (schema only — no retail UI yet).
+   * When business_type = 'retail': Menu→Products, hide Kitchen/Waiter, reuse inventory, adapt Cashier.
+   */
   business_type?: string;
   created_at: string;
   updated_at: string;
@@ -236,9 +239,14 @@ export interface Order {
   whatsapp_marketing_opt_in?: boolean;
   notes: string | null;
   delivered_by: string | null;
+  /** Guest 1–5 star rating after delivery. */
+  customer_rating?: number | null;
+  customer_rated_at?: string | null;
   /** Staff acceptance before kitchen cooks — independent of payment. */
   accepted_at: string | null;
   accepted_by: string | null;
+  /** Staff who created a manual POS order (null for guest QR). */
+  created_by?: string | null;
   customer_confirmed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -290,6 +298,17 @@ export interface InventoryItem {
   supplier_delivery_days: number;
   cost_per_unit: number | null;
   updated_at: string;
+}
+
+export interface StaffShift {
+  id: string;
+  restaurant_id: string;
+  profile_id: string | null;
+  staff_name: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  created_at: string;
 }
 
 /** Aggregated from orders via customer_profiles view. */

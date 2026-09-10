@@ -5,12 +5,41 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Display currency config — set once from admin shell / order brand. Amounts in DB stay USD. */
+export type CurrencyDisplay = {
+  code: "USD" | "SOS";
+  /** SOS per 1 USD when code is SOS */
+  rate: number;
+};
+
+let currencyDisplay: CurrencyDisplay = { code: "USD", rate: 1 };
+
+export function configureCurrencyDisplay(next: CurrencyDisplay) {
+  currencyDisplay = {
+    code: next.code === "SOS" ? "SOS" : "USD",
+    rate: Number.isFinite(next.rate) && next.rate > 0 ? next.rate : 1,
+  };
+}
+
+export function getCurrencyDisplay(): CurrencyDisplay {
+  return currencyDisplay;
+}
+
+/**
+ * Format a stored USD amount for display.
+ * When currency is SOS, multiplies by the configured rate.
+ */
 export function formatCurrency(amount: number) {
+  const n = Number(amount) || 0;
+  if (currencyDisplay.code === "SOS") {
+    const sos = Math.round(n * currencyDisplay.rate);
+    return `SOS ${sos.toLocaleString("en-US")}`;
+  }
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(n);
 }
 
 /** Human-readable order label, e.g. "Order #102" or fallback to short id for legacy rows. */

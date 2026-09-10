@@ -84,6 +84,8 @@ export default function MenuProbePage() {
           categoryAddOns={categoryAddOns}
           menuItemAddOns={menuItemAddOns}
           canUseAi={false}
+          canUseMenuIntelligence={true}
+          menuIntelligence={null}
         />
       </div>
     </AdminBrandProvider>

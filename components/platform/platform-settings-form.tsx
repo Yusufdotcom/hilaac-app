@@ -22,6 +22,7 @@ async function readJsonSafe(res: Response): Promise<Record<string, unknown>> {
 export function PlatformSettingsForm() {
   const [evc, setEvc] = useState("");
   const [edahab, setEdahab] = useState("");
+  const [sosRate, setSosRate] = useState("571");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -33,6 +34,7 @@ export function PlatformSettingsForm() {
         if (!res.ok) throw new Error(String(data.error ?? "Failed to load settings"));
         setEvc(String(data.evc_ussd_code ?? ""));
         setEdahab(String(data.edahab_ussd_code ?? ""));
+        setSosRate(String(data.usd_sos_rate ?? 571));
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Failed to load settings");
       } finally {
@@ -51,17 +53,18 @@ export function PlatformSettingsForm() {
         body: JSON.stringify({
           evc_ussd_code: evc,
           edahab_ussd_code: edahab,
+          usd_sos_rate: Number(sosRate),
         }),
       });
       const data = await readJsonSafe(res);
       if (!res.ok) throw new Error(String(data.error ?? "Save failed"));
-      toast.success("Platform payment codes saved (encrypted at rest).");
-      // Reload from server to confirm persistence (not client-only state).
+      toast.success("Platform settings saved.");
       const reload = await fetch("/api/platform/settings", { cache: "no-store" });
       const again = await readJsonSafe(reload);
       if (reload.ok) {
         setEvc(String(again.evc_ussd_code ?? ""));
         setEdahab(String(again.edahab_ussd_code ?? ""));
+        setSosRate(String(again.usd_sos_rate ?? 571));
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Save failed");
@@ -118,6 +121,22 @@ export function PlatformSettingsForm() {
         />
       </div>
 
+      <div className="space-y-1.5">
+        <Label htmlFor="platform-sos" className="text-slate-200">
+          USD → SOS exchange rate
+        </Label>
+        <Input
+          id="platform-sos"
+          type="number"
+          min={1}
+          step="0.01"
+          value={sosRate}
+          onChange={(e) => setSosRate(e.target.value)}
+          className="border-white/15 bg-[#0B1220] text-white"
+        />
+        <p className="text-xs text-slate-500">How many SOS equal 1 USD (used when tenants display SOS).</p>
+      </div>
+
       <p className="text-xs text-slate-500">
         Tip: enter the prefix only (e.g. <span className="font-mono">*712*9*</span>). Owners dial
         with $29 or $79 filled in automatically.
@@ -129,7 +148,7 @@ export function PlatformSettingsForm() {
         className="w-full bg-[#9E2E2E] text-white hover:bg-[#821f1f]"
       >
         {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Save encrypted codes
+        Save settings
       </Button>
     </form>
   );

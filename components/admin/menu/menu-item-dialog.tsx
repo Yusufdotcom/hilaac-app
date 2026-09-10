@@ -35,6 +35,7 @@ const EMPTY_FORM = {
   description: "",
   ingredients: "",
   price: "",
+  cost_price: "",
   category_id: "",
   image_url: "",
   use_custom_add_ons: false,
@@ -76,6 +77,10 @@ export function MenuItemDialog({
         description: item.description ?? "",
         ingredients: item.ingredients ?? "",
         price: String(item.price),
+        cost_price:
+          item.cost_price != null && item.cost_price !== undefined
+            ? String(item.cost_price)
+            : "",
         category_id: item.category_id ?? "",
         image_url: item.image_url ?? "",
         use_custom_add_ons: Boolean(item.use_custom_add_ons),
@@ -167,6 +172,8 @@ export function MenuItemDialog({
       description: form.description || null,
       ingredients: form.ingredients || null,
       price: Number(form.price) || 0,
+      cost_price:
+        form.cost_price.trim() === "" ? null : Number(form.cost_price) || 0,
       image_url: form.image_url || null,
       use_custom_add_ons: form.use_custom_add_ons,
     };
@@ -280,23 +287,36 @@ export function MenuItemDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Category</Label>
-              <Select
-                value={form.category_id}
-                onValueChange={(v) => setForm({ ...form, category_id: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="cost_price">Cost price</Label>
+              <Input
+                id="cost_price"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Optional"
+                value={form.cost_price}
+                onChange={(e) => setForm({ ...form, cost_price: e.target.value })}
+              />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Select
+              value={form.category_id}
+              onValueChange={(v) => setForm({ ...form, category_id: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

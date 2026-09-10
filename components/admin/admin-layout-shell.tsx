@@ -9,10 +9,12 @@ import {
 } from "@/components/admin/admin-appearance-context";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminTopBar } from "@/components/admin/admin-top-bar";
+import { BusinessChatbot } from "@/components/admin/chatbot/business-chatbot";
 import { PlatformSupportBanner } from "@/components/platform/platform-support-banner";
 import { StaffIdleGuardian } from "@/components/auth/staff-idle-guardian";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
-import { cn } from "@/lib/utils";
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
+import { cn, configureCurrencyDisplay } from "@/lib/utils";
 import type { OwnerBranch } from "@/lib/admin/owner-branches";
 import type { UserRole } from "@/types/database";
 
@@ -31,6 +33,8 @@ function AdminShellChrome({
   branches,
   awaitingOrdersCount,
   alertsCount,
+  currency = "USD",
+  currencyRate = 1,
 }: {
   children: React.ReactNode;
   restaurantName: string;
@@ -46,10 +50,19 @@ function AdminShellChrome({
   branches: OwnerBranch[];
   awaitingOrdersCount: number;
   alertsCount: number;
+  currency?: string;
+  currencyRate?: number;
 }) {
   const pathname = usePathname();
   const { theme } = useAdminAppearance();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    configureCurrencyDisplay({
+      code: currency === "SOS" ? "SOS" : "USD",
+      rate: currencyRate > 0 ? currencyRate : 1,
+    });
+  }, [currency, currencyRate]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -128,6 +141,12 @@ function AdminShellChrome({
           <PoweredByHilaac className="pb-4 pt-2 sm:pb-6" />
         </main>
       </div>
+
+      <BusinessChatbot
+        slug={currentSlug}
+        restaurantName={restaurantName}
+        canUse={canUseFeature(subscriptionTier, "ai_chatbot")}
+      />
     </div>
   );
 }
@@ -147,6 +166,8 @@ export function AdminLayoutShell({
   branches = [],
   awaitingOrdersCount = 0,
   alertsCount = 0,
+  currency = "USD",
+  currencyRate = 1,
 }: {
   children: React.ReactNode;
   restaurantName: string;
@@ -163,6 +184,8 @@ export function AdminLayoutShell({
   branches?: OwnerBranch[];
   awaitingOrdersCount?: number;
   alertsCount?: number;
+  currency?: string;
+  currencyRate?: number;
 }) {
   return (
     <AdminBrandProvider brandColor={brandColor}>
@@ -182,6 +205,8 @@ export function AdminLayoutShell({
           branches={branches}
           awaitingOrdersCount={awaitingOrdersCount}
           alertsCount={alertsCount}
+          currency={currency}
+          currencyRate={currencyRate}
         >
           {children}
         </AdminShellChrome>

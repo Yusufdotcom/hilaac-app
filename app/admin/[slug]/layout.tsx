@@ -74,6 +74,14 @@ export default async function AdminLayout({
       branches={branches}
       awaitingOrdersCount={awaitingOrdersCount}
       alertsCount={alerts.length}
+      currency={restaurant.currency ?? "USD"}
+      currencyRate={
+        restaurant.currency === "SOS"
+          ? Number(restaurant.currency_rate) > 0
+            ? Number(restaurant.currency_rate)
+            : 571
+          : 1
+      }
     >
       {children}
     </AdminLayoutShell>

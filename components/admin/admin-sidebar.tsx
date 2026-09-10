@@ -10,10 +10,13 @@ import {
   LayoutDashboard,
   ListOrdered,
   LogOut,
+  Package,
   Settings,
   Table,
+  UserRound,
   Users,
   Utensils,
+  Wallet,
   X,
 } from "lucide-react";
 import { cn, daysUntil } from "@/lib/utils";
@@ -22,16 +25,30 @@ import { getBranchDisplayLabel, type OwnerBranch } from "@/lib/admin/owner-branc
 import { resolveBrandColor, subscriptionPlanLabel } from "@/lib/brand/restaurant-brand";
 import type { SubscriptionTier } from "@/types/database";
 
+/**
+ * Admin sidebar nav.
+ *
+ * Step 16 retail-readiness (schema only — do NOT build retail UI yet):
+ * When restaurants.business_type = 'retail':
+ * - "Menu" label → "Products"
+ * - Hide Kitchen / Waiter dashboards (staff post-login)
+ * - Reuse inventory table as-is
+ * - Adapt Cashier for retail checkout
+ * Gate: wait until ≥2 Galeyr restaurants actively use Steps 6–9.
+ */
 const MAIN_NAV = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: (s: string) => `/admin/${s}/dashboard` },
   { key: "menu", label: "Menu", icon: Utensils, href: (s: string) => `/admin/${s}/menu` },
   { key: "tables", label: "Tables", icon: Table, href: (s: string) => `/admin/${s}/tables` },
+  { key: "inventory", label: "Inventory", icon: Package, href: (s: string) => `/admin/${s}/inventory` },
   { key: "orders", label: "Orders", icon: ListOrdered, href: (s: string) => `/admin/${s}/orders` },
   { key: "reports", label: "Reports", icon: BarChart3, href: (s: string) => `/admin/${s}/reports` },
   { key: "alerts", label: "Alerts", icon: Bell, href: (s: string) => `/admin/${s}/alerts` },
 ] as const;
 
 const MANAGE_NAV = [
+  { key: "expenses", label: "Expenses", icon: Wallet, href: (s: string) => `/admin/${s}/expenses` },
+  { key: "customers", label: "Customers", icon: UserRound, href: (s: string) => `/admin/${s}/customers` },
   { key: "staff", label: "Staff", icon: Users, href: (s: string) => `/admin/${s}/staff` },
   { key: "settings", label: "Settings", icon: Settings, href: (s: string) => `/admin/${s}/settings` },
   { key: "billing", label: "Billing", icon: CreditCard, href: (s: string) => `/admin/${s}/billing` },

@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WaitingGame } from "@/components/order/WaitingGame";
 import { LoyaltyStatusCard } from "@/components/order/loyalty-status-card";
+import { OrderRatingCard } from "@/components/order/order-rating-card";
 import { useOrderStatusRealtime } from "@/lib/hooks/use-order-status-realtime";
 import { useOrderBrandOptional } from "@/components/order/order-brand-context";
 import { customerStatusWorkflowMessage } from "@/lib/order/billing-model";
@@ -449,6 +450,14 @@ export function OrderStatusView({
           <PremiumStatusStepper currentIndex={currentIndex} accent={accent} />
         )}
       </div>
+
+      {isFinal && order ? (
+        <OrderRatingCard
+          orderId={order.id}
+          initialRating={order.customer_rating}
+          accent={accent}
+        />
+      ) : null}
 
       {loyalty?.enabled && <LoyaltyStatusCard loyalty={loyalty} accent={accent} />}
 

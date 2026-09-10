@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { WaiterBoard } from "@/components/staff/waiter/waiter-board";
+import { fetchManualPosMenuBundle } from "@/lib/order/fetch-manual-pos-menu";
 import type { OrderWithItems, RestaurantTable } from "@/types/database";
 
 export default async function WaiterPage({ params }: { params: { slug: string } }) {
@@ -15,6 +16,7 @@ export default async function WaiterPage({ params }: { params: { slug: string } 
     { data: orders, error: ordersError },
     { data: waiters, error: waitersError },
     { data: deliveredToday, error: deliveredError },
+    posMenu,
   ] = await Promise.all([
     supabase
       .from("tables")
@@ -36,6 +38,7 @@ export default async function WaiterPage({ params }: { params: { slug: string } 
       .in("status", ["completed", "delivered"])
       .gte("updated_at", startOfDay.toISOString())
       .not("delivered_by", "is", null),
+    fetchManualPosMenuBundle(supabase, restaurant),
   ]);
 
   if (tablesError) console.error("waiter page tables fetch:", tablesError.message);
@@ -57,6 +60,7 @@ export default async function WaiterPage({ params }: { params: { slug: string } 
       initialOrders={(orders as OrderWithItems[]) ?? []}
       waiters={waiters ?? []}
       initialDeliveryCounts={initialDeliveryCounts}
+      posMenu={posMenu}
     />
   );
 }

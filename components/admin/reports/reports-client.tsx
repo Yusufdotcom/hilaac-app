@@ -36,7 +36,10 @@ import {
   TrafficTimingPanel,
 } from "@/components/admin/reports/report-charts";
 import { ReportsSkeleton } from "@/components/admin/reports/report-skeletons";
-import { exportReportsExcel, exportReportsPdf } from "@/components/admin/reports/export-utils";
+import { ReportsLibrary } from "@/components/admin/reports/reports-library";
+import { LocationsComparison } from "@/components/admin/reports/locations-comparison";
+import { exportReportsExcel, exportReportsPdf, exportReportsCsv } from "@/components/admin/reports/export-utils";
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
 import type { ReportData, ReportGranularity } from "@/lib/reports/types";
 import {
   getAvailableGranularities,
@@ -80,9 +83,12 @@ export function ReportsClient({
   const [error, setError] = useState<string | null>(initialError);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
   const [hasCountedUp, setHasCountedUp] = useState(false);
   const [tab, setTab] = useState("overview");
   const [showPrevious, setShowPrevious] = useState(true);
+
+  const showLocations = canUseFeature(subscriptionTier, "multi_branch_comparison");
 
   const availableGranularities = getAvailableGranularities(
     subscriptionTier as "starter" | "pro" | "trial",
@@ -185,6 +191,20 @@ export function ReportsClient({
       toast.error(err instanceof Error ? err.message : "Excel export failed");
     } finally {
       setExportingExcel(false);
+    }
+  }
+
+  async function handleExportCsv() {
+    if (!isPro || isExpired) return;
+    setExportingCsv(true);
+    try {
+      await exportReportsCsv({ slug, restaurantName, data, isPro: true });
+      toast.success("CSV downloaded");
+    } catch (err) {
+      console.error("[reports] CSV export failed", { slug, error: err });
+      toast.error(err instanceof Error ? err.message : "CSV export failed");
+    } finally {
+      setExportingCsv(false);
     }
   }
 
@@ -304,6 +324,21 @@ export function ReportsClient({
                 )}
                 Download Excel
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={exportDisabled || exportingCsv || loading}
+                title={exportTitle}
+                onClick={handleExportCsv}
+                className="gap-2 bg-[var(--admin-card)]"
+              >
+                {exportingCsv ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-4 w-4" />
+                )}
+                Download CSV
+              </Button>
             </div>
           </div>
         </header>
@@ -384,7 +419,7 @@ export function ReportsClient({
                 accent={accent}
               />
 
-              {isEmpty ? (
+              {isEmpty && tab !== "library" && tab !== "locations" ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--admin-border)] bg-[var(--admin-card)] px-6 py-16 text-center shadow-sm">
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--admin-subtle)]">
                     <Sparkles className="h-8 w-8 text-[var(--admin-muted)]" aria-hidden="true" />
@@ -394,12 +429,13 @@ export function ReportsClient({
                     No data available for this period.
                   </p>
                 </div>
-              ) : (
-                <Tabs
-                  value={tab}
-                  onValueChange={setTab}
-                  className="w-full min-w-0 space-y-4"
-                >
+              ) : null}
+
+              <Tabs
+                value={tab}
+                onValueChange={setTab}
+                className="w-full min-w-0 space-y-4"
+              >
                   <TabsList className="admin-surface flex h-auto w-full flex-wrap justify-start gap-1 border p-1 shadow-sm">
                     <TabsTrigger value="overview" className="text-xs sm:text-sm">
                       Overview
@@ -416,8 +452,18 @@ export function ReportsClient({
                     <TabsTrigger value="staff" className="text-xs sm:text-sm">
                       Staff Performance
                     </TabsTrigger>
+                    <TabsTrigger value="library" className="text-xs sm:text-sm">
+                      Library
+                    </TabsTrigger>
+                    {showLocations ? (
+                      <TabsTrigger value="locations" className="text-xs sm:text-sm">
+                        Locations
+                      </TabsTrigger>
+                    ) : null}
                   </TabsList>
 
+                  {!isEmpty || tab === "library" || tab === "locations" ? (
+                    <>
                   <TabsContent
                     value="overview"
                     className="mt-0 space-y-4 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300"
@@ -468,8 +514,19 @@ export function ReportsClient({
                       onRetryWaiter={() => refetch(granularity, periodOffset)}
                     />
                   </TabsContent>
+
+                  <TabsContent value="library" className="mt-0">
+                    <ReportsLibrary slug={slug} subscriptionTier={subscriptionTier} />
+                  </TabsContent>
+
+                  {showLocations ? (
+                    <TabsContent value="locations" className="mt-0">
+                      <LocationsComparison slug={slug} />
+                    </TabsContent>
+                  ) : null}
+                    </>
+                  ) : null}
                 </Tabs>
-              )}
             </>
           )
         )}

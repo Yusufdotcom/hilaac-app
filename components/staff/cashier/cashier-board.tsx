@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,10 @@ import { cn, formatCurrency, formatOrderLabel } from "@/lib/utils";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { AcceptOrdersQueue } from "@/components/staff/accept-orders-queue";
 import { LoyaltyLookupPanel } from "@/components/staff/cashier/loyalty-lookup-panel";
+import {
+  ManualPosDialog,
+  type ManualPosMenuBundle,
+} from "@/components/admin/orders/manual-pos-dialog";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import { filterAwaitingAcceptance } from "@/lib/order/acceptance";
 import type { OrderStatus, OrderWithItems, PaymentStatus } from "@/types/database";
@@ -124,11 +128,13 @@ export function CashierBoard({
   restaurantName,
   slug,
   initialOrders,
+  posMenu,
 }: {
   restaurantId: string;
   restaurantName: string;
   slug: string;
   initialOrders: OrderWithItems[];
+  posMenu: ManualPosMenuBundle;
 }) {
   const { orders, updateOrderFields, patchOrderLocal } = useRealtimeOrders(
     restaurantId,
@@ -137,6 +143,7 @@ export function CashierBoard({
   );
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
   const [acceptBusyId, setAcceptBusyId] = useState<string | null>(null);
+  const [posOpen, setPosOpen] = useState(false);
 
   const awaitingAcceptance = useMemo(() => filterAwaitingAcceptance(orders), [orders]);
 
@@ -216,17 +223,25 @@ export function CashierBoard({
         onAccept={handleAcceptOrder}
       />
 
-      <header className="flex flex-wrap items-center gap-2">
-        <Badge variant="secondary" className="px-3 py-1 text-sm">
-          Pending payment: {summary.total}
-        </Badge>
-        <Badge className="border-0 bg-amber-100 px-3 py-1 text-sm text-amber-900">
-          Customer confirmed: {summary.awaitingCashier}
-        </Badge>
-        <Badge className="border-0 bg-slate-100 px-3 py-1 text-sm text-slate-700">
-          Pay at end: {summary.payAtEnd}
-        </Badge>
-      </header>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <header className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="px-3 py-1 text-sm">
+            Pending payment: {summary.total}
+          </Badge>
+          <Badge className="border-0 bg-amber-100 px-3 py-1 text-sm text-amber-900">
+            Customer confirmed: {summary.awaitingCashier}
+          </Badge>
+          <Badge className="border-0 bg-slate-100 px-3 py-1 text-sm text-slate-700">
+            Pay at end: {summary.payAtEnd}
+          </Badge>
+        </header>
+        <Button type="button" onClick={() => setPosOpen(true)} className="rounded-xl">
+          <Plus className="mr-2 h-4 w-4" />
+          New order
+        </Button>
+      </div>
+
+      <ManualPosDialog open={posOpen} onOpenChange={setPosOpen} menu={posMenu} />
 
       <LoyaltyLookupPanel slug={slug} />
 

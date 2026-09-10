@@ -56,6 +56,15 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
   const [savingOrderTypes, setSavingOrderTypes] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [savingBillingRules, setSavingBillingRules] = useState(false);
+  const [currency, setCurrency] = useState<"USD" | "SOS">(
+    restaurant.currency === "SOS" ? "SOS" : "USD"
+  );
+  const [currencyRate, setCurrencyRate] = useState(
+    String(restaurant.currency_rate && Number(restaurant.currency_rate) > 0
+      ? restaurant.currency_rate
+      : 571)
+  );
+  const [savingCurrency, setSavingCurrency] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [testing, setTesting] = useState<"evc" | "edahab" | null>(null);
   const [testResult, setTestResult] = useState<Record<string, { success: boolean; message: string }>>({});
@@ -264,6 +273,25 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     }
   }
 
+  async function handleSaveCurrency(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingCurrency(true);
+    try {
+      const rate = Number(currencyRate);
+      await patchSettings({
+        restaurant_id: restaurant.id,
+        currency,
+        currency_rate: currency === "SOS" ? (rate > 0 ? rate : 571) : 1,
+      });
+      toast.success("Currency saved");
+      router.refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to save currency");
+    } finally {
+      setSavingCurrency(false);
+    }
+  }
+
   async function handleSavePayment(e: React.FormEvent) {
     e.preventDefault();
     setSavingPayment(true);
@@ -384,6 +412,58 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
             <BrandButton type="submit" disabled={savingGeneral}>
               {savingGeneral && <Loader2 className="h-4 w-4 animate-spin" />}
               Save Details
+            </BrandButton>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="w-full overflow-hidden">
+        <CardHeader>
+          <CardTitle className="text-lg">Currency</CardTitle>
+          <CardDescription>
+            Prices are stored in USD. Choose how amounts display across admin, staff, reports, and
+            exports. SOS uses your exchange rate (SOS per 1 USD).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSaveCurrency} className="space-y-4">
+            <RadioGroup
+              value={currency}
+              onValueChange={(v) => setCurrency(v === "SOS" ? "SOS" : "USD")}
+              className="grid gap-3 sm:grid-cols-2"
+            >
+              <BrandRadioOption value="USD" selectedValue={currency} id="currency-usd">
+                <div>
+                  <p className="font-medium">USD</p>
+                  <p className="text-xs text-muted-foreground">US Dollar</p>
+                </div>
+              </BrandRadioOption>
+              <BrandRadioOption value="SOS" selectedValue={currency} id="currency-sos">
+                <div>
+                  <p className="font-medium">SOS</p>
+                  <p className="text-xs text-muted-foreground">Somali Shilling</p>
+                </div>
+              </BrandRadioOption>
+            </RadioGroup>
+            {currency === "SOS" ? (
+              <div className="space-y-2">
+                <Label htmlFor="currency_rate">SOS per 1 USD</Label>
+                <Input
+                  id="currency_rate"
+                  type="number"
+                  min={1}
+                  step="0.01"
+                  value={currencyRate}
+                  onChange={(e) => setCurrencyRate(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Platform default may also be set under Hilaac Platform → Settings.
+                </p>
+              </div>
+            ) : null}
+            <BrandButton type="submit" disabled={savingCurrency}>
+              {savingCurrency && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save Currency
             </BrandButton>
           </form>
         </CardContent>

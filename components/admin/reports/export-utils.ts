@@ -199,3 +199,32 @@ export async function exportReportsExcel(options: {
 
   XLSX.writeFile(wb, `${restaurantName.replace(/\s+/g, "-").toLowerCase()}-insights.xlsx`);
 }
+
+/** Same Insights datasets as Excel, as CSV (browser download). */
+export async function exportReportsCsv(options: {
+  slug: string;
+  restaurantName: string;
+  data: ReportData;
+  isPro: boolean;
+}) {
+  const { slug, restaurantName, data } = options;
+  const { downloadCsv, slugFilename } = await import("@/lib/reports/export-csv");
+
+  const orders = await fetchOrders(slug, data.meta.startDate, data.meta.endDate);
+  const rows: (string | number)[][] = [
+    ["Section", "Field", "Value"],
+    ["KPI", "Orders", data.kpi.total_orders],
+    ["KPI", "Revenue", data.kpi.total_revenue],
+    ["KPI", "AOV", data.kpi.avg_order_value],
+    ["KPI", "Top item", data.kpi.top_item_name ?? ""],
+    ...data.revenue.map((r) => ["Revenue", r.period_label, r.revenue]),
+    ...data.topItems.map((i) => ["Top items", i.item_name, i.quantity_sold]),
+    ...orders.map((o) => [
+      "Orders",
+      o.id,
+      `${o.total}|${o.status}|${o.payment_method ?? ""}|${o.created_at}`,
+    ]),
+  ];
+
+  downloadCsv(slugFilename(restaurantName, "insights.csv"), ["Section", "Field", "Value"], rows);
+}

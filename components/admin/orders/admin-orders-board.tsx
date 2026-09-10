@@ -1,11 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminPageIntro } from "@/components/admin/admin-page-intro";
 import { AdminOrderDetailDialog } from "@/components/admin/orders/admin-order-detail-dialog";
+import {
+  ManualPosDialog,
+  type ManualPosMenuBundle,
+} from "@/components/admin/orders/manual-pos-dialog";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
 import { cn, formatCurrency, formatDate, formatOrderLabel } from "@/lib/utils";
 import type { OrderWithItems, UserRole } from "@/types/database";
@@ -41,10 +46,12 @@ export function AdminOrdersBoard({
   restaurantId,
   initialOrders,
   actorRole,
+  posMenu,
 }: {
   restaurantId: string;
   initialOrders: OrderWithItems[];
   actorRole: UserRole;
+  posMenu: ManualPosMenuBundle;
 }) {
   const { orders, patchOrderLocal } = useRealtimeOrders(restaurantId, initialOrders, {
     activeOnly: false,
@@ -53,6 +60,7 @@ export function AdminOrdersBoard({
   });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [posOpen, setPosOpen] = useState(false);
 
   const sorted = useMemo(
     () =>
@@ -76,11 +84,19 @@ export function AdminOrdersBoard({
     <div className="w-full min-w-0 space-y-4 sm:space-y-5">
       <AdminPageIntro
         actions={
-          <Badge className="border-0 bg-emerald-50 px-3 py-1 text-emerald-800">Live</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" onClick={() => setPosOpen(true)}>
+              <Plus className="h-4 w-4" />
+              New order
+            </Button>
+            <Badge className="border-0 bg-emerald-50 px-3 py-1 text-emerald-800">Live</Badge>
+          </div>
         }
       >
         Tap a row for details and actions. Updates live — no refresh needed.
       </AdminPageIntro>
+
+      <ManualPosDialog open={posOpen} onOpenChange={setPosOpen} menu={posMenu} />
 
       <Card className="admin-glass-hover w-full min-w-0 overflow-hidden border-[var(--admin-border,#E2E8F0)]">
         <CardContent className="p-0">

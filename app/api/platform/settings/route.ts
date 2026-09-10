@@ -19,7 +19,7 @@ export async function GET() {
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("platform_settings")
-      .select("id, evc_ussd_code_encrypted, edahab_ussd_code_encrypted, updated_at")
+      .select("id, evc_ussd_code_encrypted, edahab_ussd_code_encrypted, usd_sos_rate, updated_at")
       .eq("id", 1)
       .maybeSingle();
 
@@ -47,6 +47,7 @@ export async function GET() {
     return NextResponse.json({
       evc_ussd_code: evc,
       edahab_ussd_code: edahab,
+      usd_sos_rate: Number(data?.usd_sos_rate) > 0 ? Number(data?.usd_sos_rate) : 571,
       updated_at: data?.updated_at ?? null,
     });
   } catch (err: unknown) {
@@ -65,7 +66,11 @@ export async function PATCH(req: NextRequest) {
     const auth = await requirePlatformAdmin();
     if (!auth.ok) return auth.response;
 
-    let body: { evc_ussd_code?: unknown; edahab_ussd_code?: unknown };
+    let body: {
+      evc_ussd_code?: unknown;
+      edahab_ussd_code?: unknown;
+      usd_sos_rate?: unknown;
+    };
     try {
       body = await req.json();
     } catch {
@@ -96,6 +101,14 @@ export async function PATCH(req: NextRequest) {
         500,
         "encryption_error"
       );
+    }
+
+    if ("usd_sos_rate" in body) {
+      const rate = Number(body.usd_sos_rate);
+      if (!Number.isFinite(rate) || rate <= 0) {
+        return jsonError("usd_sos_rate must be a positive number", 400);
+      }
+      update.usd_sos_rate = rate;
     }
 
     const admin = createAdminClient();

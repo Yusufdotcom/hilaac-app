@@ -19,6 +19,7 @@ import { fetchRestaurantAlerts } from "@/lib/alerts/fetch-alerts";
 import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
 import { formatCurrency, daysUntil } from "@/lib/utils";
 import { APP_TIMEZONE, getAppDayBounds } from "@/lib/time/app-calendar";
+import { appDayKey, appWeekKey } from "@/lib/recap/recap-dismiss";
 import type { OrderWithItems } from "@/types/database";
 
 type DashboardFetchError = {
@@ -316,6 +317,9 @@ export default async function DashboardPage({ params }: { params: { slug: string
       />
 
       <RecapCards
+        restaurantId={restaurant.id}
+        dailyPeriodKey={appDayKey()}
+        weeklyPeriodKey={appWeekKey()}
         daily={dailyRecapResult.recap}
         monthly={monthlyRecapResult.recap}
         tier={restaurant.subscription_tier}
