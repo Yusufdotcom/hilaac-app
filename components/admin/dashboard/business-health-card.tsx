@@ -4,10 +4,10 @@ import type { BusinessHealthResult } from "@/lib/dashboard/business-health";
 export function BusinessHealthCard({ health }: { health: BusinessHealthResult }) {
   const pill =
     health.status === "HEALTHY"
-      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
+      ? "admin-pill-emerald"
       : health.status === "NEEDS ATTENTION"
-        ? "bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200"
-        : "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300";
+        ? "admin-pill-amber"
+        : "admin-pill-red";
 
   const bar =
     health.status === "HEALTHY"

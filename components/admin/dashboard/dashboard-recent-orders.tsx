@@ -3,7 +3,9 @@
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocale } from "@/components/i18n/locale-provider";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
+import { LIVE_PILL } from "@/lib/ui/status-pills";
 import { formatCurrency, formatDate, formatOrderLabel } from "@/lib/utils";
 import type { OrderWithItems } from "@/types/database";
 
@@ -23,6 +25,7 @@ export function DashboardRecentOrders({
   /** KPI count — list row count should match this. */
   ordersTodayCount: number;
 }) {
+  const { t } = useLocale();
   const { orders } = useRealtimeOrders(restaurantId, initialOrders, {
     activeOnly: false,
     channelName: `admin-dashboard-orders-${restaurantId}`,
@@ -34,8 +37,8 @@ export function DashboardRecentOrders({
     const endMs = new Date(dayEndIso).getTime();
     return [...orders]
       .filter((o) => {
-        const t = new Date(o.created_at).getTime();
-        return t >= startMs && t < endMs;
+        const created = new Date(o.created_at).getTime();
+        return created >= startMs && created < endMs;
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [orders, dayStartIso, dayEndIso]);
@@ -44,7 +47,7 @@ export function DashboardRecentOrders({
     <Card className="w-full overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 px-4 py-4 sm:px-6">
         <div className="min-w-0">
-          <CardTitle className="text-lg">Today&apos;s Orders</CardTitle>
+          <CardTitle className="text-lg">{t("dash.todaysOrders")}</CardTitle>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {todaysOrders.length} order{todaysOrders.length === 1 ? "" : "s"}
             {todaysOrders.length !== ordersTodayCount
@@ -52,7 +55,7 @@ export function DashboardRecentOrders({
               : ""}
           </p>
         </div>
-        <Badge className="border-0 bg-emerald-50 text-emerald-800">Live</Badge>
+        <Badge className={LIVE_PILL}>{t("dash.live")}</Badge>
       </CardHeader>
       <CardContent className="px-0 pb-2 sm:px-0">
         {todaysOrders.length > 0 ? (

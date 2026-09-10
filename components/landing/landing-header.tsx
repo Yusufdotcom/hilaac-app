@@ -4,7 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { HilaacLogo } from "@/components/brand/hilaac-logo";
+import { LanguageToggle } from "@/components/i18n/language-toggle";
 import { TryDemoButton } from "@/components/landing/try-demo-button";
+import { useLocale } from "@/components/i18n/locale-provider";
 import { cn } from "@/lib/utils";
 
 type NavDropdownProps = {
@@ -56,6 +58,7 @@ function NavDropdown({ label, items }: NavDropdownProps) {
 export function LandingHeader({ dashboardHref = null }: { dashboardHref?: string | null }) {
   const isLoggedIn = Boolean(dashboardHref);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useLocale();
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -112,14 +115,18 @@ export function LandingHeader({ dashboardHref = null }: { dashboardHref?: string
 
         {/* Right — actions (desktop md+) */}
         <div className="hidden shrink-0 items-center justify-end gap-1.5 sm:gap-2 md:flex md:gap-3">
+          <LanguageToggle
+            compact
+            className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+          />
           {isLoggedIn ? (
             <Link href={dashboardHref!} className="landing-btn-nav-pill whitespace-nowrap text-xs sm:text-sm">
-              Go to Dashboard
+              {t("landing.dashboard")}
             </Link>
           ) : (
             <>
               <Link href="/login" className="landing-btn-text hidden text-sm sm:inline-flex">
-                Log in
+                {t("landing.login")}
               </Link>
               <a
                 href="mailto:sales@hilaac.so"
@@ -165,14 +172,20 @@ export function LandingHeader({ dashboardHref = null }: { dashboardHref?: string
           >
             <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3">
               <span className="text-sm font-semibold text-white">Menu</span>
-              <button
-                type="button"
-                onClick={closeMobileMenu}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-[#94A3B8] transition-colors hover:bg-white/10 hover:text-white"
-                aria-label="Close menu"
-              >
-                <X className="h-5 w-5" aria-hidden="true" />
-              </button>
+              <div className="flex items-center gap-2">
+                <LanguageToggle
+                  compact
+                  className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+                />
+                <button
+                  type="button"
+                  onClick={closeMobileMenu}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-[#94A3B8] transition-colors hover:bg-white/10 hover:text-white"
+                  aria-label="Close menu"
+                >
+                  <X className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </div>
             </div>
 
             <ul className="space-y-1">
@@ -201,7 +214,7 @@ export function LandingHeader({ dashboardHref = null }: { dashboardHref?: string
                     onClick={closeMobileMenu}
                     className="mt-2 block rounded-full bg-[#D4A373] px-4 py-3 text-center text-base font-semibold text-[#0F172A] transition-opacity hover:opacity-90"
                   >
-                    Go to Dashboard
+                    {t("landing.dashboard")}
                   </Link>
                 </li>
               ) : (
@@ -212,7 +225,7 @@ export function LandingHeader({ dashboardHref = null }: { dashboardHref?: string
                       onClick={closeMobileMenu}
                       className="block rounded-lg px-4 py-3 text-base font-medium text-white transition-colors hover:bg-white/5"
                     >
-                      Log in
+                      {t("landing.login")}
                     </Link>
                   </li>
                   <li>

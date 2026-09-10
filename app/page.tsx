@@ -1,12 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Check } from "lucide-react";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { WatchDemoButton } from "@/components/landing/watch-demo-button";
+import { HealthScoreDemo } from "@/components/landing/health-score-demo";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
-import { ComparePlansSection } from "@/components/landing/compare-plans-section";
 import { FeaturesSection } from "@/components/landing/features-section";
-import { PLANS } from "@/lib/constants";
+import { PricingSection } from "@/components/landing/pricing-section";
 import { createClient } from "@/lib/supabase/server";
 import { getPostLoginPath } from "@/lib/admin/resolve-user-restaurant";
 
@@ -25,8 +24,9 @@ export default async function LandingPage() {
   return (
     <div className="landing-page min-h-screen overflow-x-hidden">
       <LandingHeader dashboardHref={dashboardHref} />
-      {/* Hero — full viewport */}
-      <section className="landing-hero relative flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center px-4 pb-20 pt-28 text-center sm:min-h-screen sm:px-6 sm:pb-32 sm:pt-36 md:pt-40 lg:pt-48">
+
+      {/* Hero — BI positioning + Health Score demo */}
+      <section className="landing-hero relative flex min-h-[calc(100dvh-4rem)] flex-col justify-center px-4 pb-16 pt-28 sm:min-h-screen sm:px-6 sm:pb-24 sm:pt-36 md:pt-40 lg:pt-44">
         <div className="landing-hero-bg pointer-events-none" aria-hidden="true">
           <Image
             src="/dashboard-bg.png"
@@ -38,17 +38,31 @@ export default async function LandingPage() {
           />
         </div>
 
-        <div className="landing-hero-content relative z-10 mx-auto w-full max-w-4xl px-1">
-          <h1 className="landing-display text-white">Hilaac</h1>
-          <p className="landing-subtitle mx-auto mt-6 max-w-2xl text-center sm:mt-10">
-            Run your restaurant smarter with QR ordering, real-time kitchen dashboards, and
-            AI-powered menus.
-          </p>
-          <div className="mx-auto mt-10 flex w-full max-w-md flex-col items-stretch justify-center gap-3 sm:mt-16 sm:max-w-none sm:flex-row sm:items-center sm:gap-5">
-            <Link href="/signup" className="landing-btn-gold-lg">
-              Start Free Trial
-            </Link>
-            <WatchDemoButton />
+        <div className="landing-hero-content relative z-10 mx-auto grid w-full max-w-[1200px] items-center gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-14">
+          <div className="text-center lg:text-left">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D4A373]">
+              Hilaac
+            </p>
+            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl md:text-5xl lg:text-[3.25rem] lg:leading-[1.1]">
+              Business intelligence built for Somali restaurants
+            </h1>
+            <p className="landing-subtitle mx-auto mt-5 max-w-xl lg:mx-0 lg:mt-6">
+              QR ordering, live kitchen ops, and AI answers on profits, stock, and customers — in
+              one platform.
+            </p>
+            <div className="mx-auto mt-8 flex w-full max-w-md flex-col items-stretch gap-3 sm:mt-10 sm:max-w-none sm:flex-row sm:justify-center lg:justify-start lg:gap-4">
+              <Link href="/signup" className="landing-btn-gold-lg">
+                Start Free Trial
+              </Link>
+              <WatchDemoButton />
+            </div>
+            <p className="mt-4 text-xs text-[#64748B] sm:text-sm">
+              7-day free trial. No credit card required.
+            </p>
+          </div>
+
+          <div className="mx-auto w-full max-w-md lg:mx-0 lg:justify-self-end">
+            <HealthScoreDemo />
           </div>
         </div>
       </section>
@@ -77,48 +91,7 @@ export default async function LandingPage() {
       </section>
 
       <FeaturesSection />
-
-      {/* Pricing anchor */}
-      <section id="pricing" className="border-t border-white/10 px-4 py-16 sm:px-6 sm:py-28">
-        <div className="mx-auto max-w-[1200px]">
-          <h2 className="text-center text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-            Simple pricing
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-center text-base text-[#94A3B8] sm:mt-4 sm:text-lg">
-            7-day free trial. No credit card required.
-          </p>
-          <div className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-6 sm:mt-16 sm:grid-cols-3 sm:gap-8">
-            {(["goronyo", "gorgor", "galeyr"] as const).map((key) => {
-              const plan = PLANS[key];
-              return (
-              <div
-                key={key}
-                className="rounded-2xl border border-white/10 bg-white/5 p-6 transition-colors hover:border-[#D4A373]/30 sm:p-8"
-              >
-                <p className="text-xs font-medium uppercase tracking-wider text-[#D4A373] sm:text-sm">
-                  {plan.name}
-                </p>
-                <p className="mt-2 text-3xl font-bold text-white sm:text-4xl">{plan.priceLabel}</p>
-                <p className="mt-3 text-[#94A3B8]">{plan.description}</p>
-                <ul className="mt-8 space-y-3">
-                  {plan.features.slice(0, 4).map((feat) => (
-                    <li key={feat} className="flex items-start gap-2 text-sm text-[#94A3B8]">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#D4A373]" />
-                      {feat}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/signup" className="landing-btn-gold mt-8 w-full">
-                  Start Free Trial
-                </Link>
-              </div>
-              );
-            })}
-          </div>
-
-          <ComparePlansSection />
-        </div>
-      </section>
+      <PricingSection />
 
       {/* Footer */}
       <footer className="border-t border-white/10 px-4 py-10 sm:px-6 sm:py-12">

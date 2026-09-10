@@ -17,8 +17,9 @@ export const dynamic = "force-dynamic";
  */
 export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
   const session = await getPlatformAdminSession();
+  // Never show a 403 page — bounce restaurant owners (and guests) straight to /admin.
   if (!session) {
-    redirect("/login?error=forbidden");
+    redirect("/admin");
   }
 
   const supabase = createClient();

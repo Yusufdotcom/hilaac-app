@@ -28,15 +28,19 @@ export function StaffHub({
   waiters,
   performance,
   canUseStaffPerformance,
+  actorRole = "owner",
 }: {
   restaurantId: string;
   slug: string;
   appUrl: string;
   restaurantName: string;
-  staff: Pick<Profile, "id" | "full_name" | "role" | "phone" | "is_active">[];
+  staff: (Pick<Profile, "id" | "full_name" | "role" | "phone" | "is_active"> & {
+    has_pin?: boolean;
+  })[];
   waiters: Waiter[];
   performance: StaffPerformanceData | null;
   canUseStaffPerformance: boolean;
+  actorRole?: Profile["role"];
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -71,7 +75,11 @@ export function StaffHub({
         </TabsList>
 
         <TabsContent value="accounts" className="mt-0 space-y-8 focus-visible:ring-0">
-          <StaffAccountsManager restaurantId={restaurantId} staff={staff} />
+          <StaffAccountsManager
+            restaurantId={restaurantId}
+            staff={staff}
+            actorRole={actorRole}
+          />
           <StaffPerformanceSection
             restaurantId={restaurantId}
             staffOptions={staff.map((s) => ({

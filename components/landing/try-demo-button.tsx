@@ -4,10 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useLocale } from "@/components/i18n/locale-provider";
 
 export function TryDemoButton({ className }: { className?: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const { t } = useLocale();
 
   async function handleTryDemo() {
     setLoading(true);
@@ -38,7 +40,7 @@ export function TryDemoButton({ className }: { className?: string }) {
       className={className ?? "landing-btn-solid-white text-sm disabled:opacity-60"}
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-      Try Demo
+      {t("landing.tryDemo")}
     </button>
   );
 }

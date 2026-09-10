@@ -24,6 +24,13 @@ export function AdminAppearanceProvider({ children }: { children: React.ReactNod
     setThemeState(stored ?? (systemPrefersDark() ? "dark" : "light"));
   }, []);
 
+  useEffect(() => {
+    document.documentElement.setAttribute("data-admin-theme", theme);
+    return () => {
+      document.documentElement.removeAttribute("data-admin-theme");
+    };
+  }, [theme]);
+
   function setTheme(next: AdminTheme) {
     setThemeState(next);
     writeStoredAdminTheme(next);

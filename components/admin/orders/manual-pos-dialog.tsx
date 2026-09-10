@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { Loader2, Minus, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { ItemCustomizeSheet } from "@/components/order/item-customize-sheet";
@@ -292,17 +293,35 @@ export function ManualPosDialog({
                     key={item.id}
                     type="button"
                     onClick={() => tryQuickAdd(item)}
-                    className="flex items-start justify-between gap-2 rounded-xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] px-3 py-2.5 text-left transition hover:border-[var(--admin-brand)]"
+                    className="flex items-stretch gap-0 overflow-hidden rounded-xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] text-left transition hover:border-[var(--admin-brand)]"
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-[var(--admin-text,#0F172A)]">
-                        {item.name}
+                    <div className="relative h-20 w-20 shrink-0 bg-[var(--admin-bg,#F8FAFC)]">
+                      {item.image_url ? (
+                        <Image
+                          src={item.image_url}
+                          alt=""
+                          fill
+                          sizes="80px"
+                          quality={65}
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-[var(--admin-muted,#64748B)]">
+                          <UtensilsCrossed className="h-6 w-6 opacity-50" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="flex min-w-0 flex-1 items-start justify-between gap-2 px-3 py-2.5">
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-[var(--admin-text,#0F172A)]">
+                          {item.name}
+                        </span>
+                        <span className="text-xs text-[var(--admin-muted,#64748B)]">
+                          {formatCurrency(Number(item.price))}
+                        </span>
                       </span>
-                      <span className="text-xs text-[var(--admin-muted,#64748B)]">
-                        {formatCurrency(Number(item.price))}
-                      </span>
+                      <Plus className="mt-0.5 h-4 w-4 shrink-0 text-[var(--admin-muted,#64748B)]" />
                     </span>
-                    <Plus className="mt-0.5 h-4 w-4 shrink-0 text-[var(--admin-muted,#64748B)]" />
                   </button>
                 ))}
                 {availableItems.length === 0 ? (
@@ -343,7 +362,7 @@ export function ManualPosDialog({
                           type="button"
                           aria-label="Remove"
                           onClick={() => removeItem(c.cartId)}
-                          className="rounded p-1 text-[var(--admin-muted,#64748B)] hover:bg-red-50 hover:text-red-600"
+                          className="rounded p-1 text-[var(--admin-muted,#64748B)] hover:bg-destructive/10 hover:text-destructive"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>

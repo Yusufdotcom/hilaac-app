@@ -346,7 +346,7 @@ export function ReportsClient({
 
       <div className="mt-6 space-y-6">
         {isExpired && (
-          <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <div className="admin-destructive-panel flex items-start gap-3 rounded-xl border px-4 py-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
               <p className="font-semibold">Subscription expired</p>
@@ -383,8 +383,8 @@ export function ReportsClient({
         )}
 
         {error && (
-          <div className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-2 text-sm text-red-800">
+          <div className="admin-destructive-panel flex flex-col gap-3 rounded-xl border px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-2 text-sm text-destructive">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
               <p>{error}</p>
             </div>

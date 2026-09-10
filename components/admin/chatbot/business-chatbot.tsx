@@ -185,7 +185,7 @@ export function BusinessChatbot({
                           "max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
                           m.role === "user"
                             ? "text-white"
-                            : "bg-[var(--admin-bg,#F8FAFC)] text-[var(--admin-text,#0F172A)]"
+                            : "bg-muted text-foreground"
                         )}
                         style={m.role === "user" ? { backgroundColor: brand } : undefined}
                       >
@@ -205,7 +205,7 @@ export function BusinessChatbot({
                       Checking your data…
                     </div>
                   ) : null}
-                  {error ? <p className="text-xs text-red-600">{error}</p> : null}
+                  {error ? <p className="text-xs text-destructive">{error}</p> : null}
                   <div ref={bottomRef} />
                 </div>
 
@@ -237,7 +237,7 @@ export function BusinessChatbot({
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask about sales, stock, staff…"
                     disabled={busy}
-                    className="min-w-0 flex-1 rounded-xl border border-[var(--admin-border,#E2E8F0)] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--admin-brand)]"
+                    className="min-w-0 flex-1 rounded-xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] px-3 py-2 text-sm text-[var(--admin-text,#0F172A)] outline-none placeholder:text-[var(--admin-muted,#64748B)] focus:ring-2 focus:ring-[var(--admin-brand)]"
                   />
                   <button
                     type="submit"

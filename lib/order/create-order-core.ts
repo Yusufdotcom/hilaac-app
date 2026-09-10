@@ -1,6 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { normalizeLoyaltyPhone } from "@/lib/loyalty/phone";
-import { paymentStatusAwaitingCashierWrite } from "@/lib/payments/constants";
 
 export type CreateOrderLineInput = {
   menuItemId: string;
@@ -117,13 +116,20 @@ export async function createOrderCore(
   }
 
   // Staff POS: guest is present — skip Accept and send straight to kitchen as `new`.
-  // Guest QR: pay_before → awaiting_payment; pay_after → new (still needs Accept).
+  // Guest QR: pay_before → awaiting_payment; pay_after → new (still needs Accept for dine-in).
+  //
+  // payment_status:
+  // - Guest: always `pending` at create. `pending_cashier_confirmation` only after
+  //   customer/provider submits payment (confirm-payment route / webhooks).
+  // - Staff POS pay_before: mark `paid` (cash taken at till) so kitchen can cook immediately.
+  // - Staff POS pay_after: stay `pending` until Confirm Payment after delivery.
   const initialStatus = staffPos
     ? "new"
     : billingModel === "pay_before"
       ? "awaiting_payment"
       : "new";
-  const initialPaymentStatus = paymentStatusAwaitingCashierWrite();
+  const initialPaymentStatus =
+    staffPos && billingModel === "pay_before" ? ("paid" as const) : ("pending" as const);
   const nowIso = new Date().toISOString();
 
   const { data: latestOrder } = await supabase

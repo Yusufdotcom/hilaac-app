@@ -114,7 +114,7 @@ export function ComparePlansSection() {
       <div className="text-center">
         <h3 className="text-xl font-bold tracking-tight text-white sm:text-2xl">Compare plans</h3>
         <p className="mx-auto mt-2 max-w-lg text-sm text-[#94A3B8] sm:text-base">
-          Goronyo, Gorgor, and Galeyr — side by side.
+          Goronyo, Gorgor, and Galeyr side by side. Somali Airlines is custom — contact sales.
         </p>
       </div>
 

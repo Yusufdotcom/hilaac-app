@@ -6,6 +6,7 @@ import { AdminSearch } from "@/components/admin/admin-search";
 import { AdminNotifications } from "@/components/admin/admin-notifications";
 import { AdminThemeToggle } from "@/components/admin/admin-theme-toggle";
 import { AdminUserMenu } from "@/components/admin/admin-user-menu";
+import { LanguageToggle } from "@/components/i18n/language-toggle";
 import { getAdminPageMeta } from "@/lib/admin/admin-page-meta";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
@@ -37,7 +38,8 @@ export function AdminTopBar({
         "admin-glass z-30 flex items-center justify-between gap-3 border-b border-[var(--admin-border)] px-4 py-4 sm:gap-6 sm:px-8",
         sticky && "sticky top-0"
       )}
-    >      <div className="flex min-w-0 items-center gap-3">
+    >
+      <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
           onClick={onOpenSidebar}
@@ -62,6 +64,7 @@ export function AdminTopBar({
       <AdminSearch slug={slug} compact className="lg:hidden" />
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <LanguageToggle compact className="border-[var(--admin-border)]" />
         <AdminThemeToggle />
         <AdminNotifications />
         <AdminUserMenu

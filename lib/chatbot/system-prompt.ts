@@ -9,6 +9,7 @@ Available tools:
 - getRevenueTrend(days) — daily revenue buckets for the last N days
 - getTopItems(limit, timeframe) — best-selling menu items
 - getPeakHours(timeframe) — busiest hours
+- getPeakDays(timeframe) — busiest days of the week
 - getPaymentSplit(timeframe) — EVC / eDahab / Cash mix
 - getMenuProfitability(timeframe) — margin classifications (when cost prices exist)
 - getInventorySummary() — stock levels and reorder needs

@@ -1,7 +1,7 @@
 "use client";
 
 import { Menu } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/database";
 
@@ -15,15 +15,28 @@ export function StaffTopBar({
   role,
   restaurantName,
   onOpenSidebar,
+  pinSession = false,
+  staffDisplayName = null,
+  slug,
 }: {
   role: UserRole;
   restaurantName: string;
   onOpenSidebar: () => void;
+  pinSession?: boolean;
+  staffDisplayName?: string | null;
+  slug?: string;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const segment = pathname.split("/").filter(Boolean)[2] ?? "";
   const title = STAFF_TITLES[segment] ?? "Staff";
   const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
+
+  async function endPinSession() {
+    await fetch("/api/staff/pin/logout", { method: "POST" });
+    router.replace(`/staff/${slug ?? ""}/pin`);
+    router.refresh();
+  }
 
   return (
     <header
@@ -46,15 +59,26 @@ export function StaffTopBar({
       </button>
       <div className="min-w-0">
         <p className="truncate text-xs text-[#64748B]">
-          {restaurantName} · {roleLabel}
+          {restaurantName} · {staffDisplayName || roleLabel}
+          {pinSession ? " · PIN" : ""}
         </p>
         <h1 className="truncate text-lg font-bold text-[#0F172A]">{title}</h1>
       </div>
-      <span
-        className="ml-auto hidden h-2.5 w-2.5 shrink-0 rounded-full sm:block"
-        style={{ backgroundColor: "var(--brand-accent, #9E2E2E)" }}
-        aria-hidden="true"
-      />
+      {pinSession && slug ? (
+        <button
+          type="button"
+          onClick={() => void endPinSession()}
+          className="ml-auto rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+        >
+          Lock
+        </button>
+      ) : (
+        <span
+          className="ml-auto hidden h-2.5 w-2.5 shrink-0 rounded-full sm:block"
+          style={{ backgroundColor: "var(--brand-accent, #9E2E2E)" }}
+          aria-hidden="true"
+        />
+      )}
     </header>
   );
 }

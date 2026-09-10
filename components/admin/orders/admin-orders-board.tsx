@@ -12,25 +12,9 @@ import {
   type ManualPosMenuBundle,
 } from "@/components/admin/orders/manual-pos-dialog";
 import { useRealtimeOrders } from "@/lib/hooks/use-realtime-orders";
+import { LIVE_PILL, orderStatusPill } from "@/lib/ui/status-pills";
 import { cn, formatCurrency, formatDate, formatOrderLabel } from "@/lib/utils";
 import type { OrderWithItems, UserRole } from "@/types/database";
-
-const STATUS_CLASS: Record<string, string> = {
-  awaiting_payment: "bg-orange-100 text-orange-900",
-  new: "bg-blue-100 text-blue-800",
-  preparing: "bg-amber-100 text-amber-900",
-  ready: "bg-emerald-100 text-emerald-900",
-  delivered: "bg-violet-100 text-violet-900",
-  completed: "bg-emerald-100 text-emerald-900",
-  cancelled: "bg-red-100 text-red-800",
-};
-
-const PAYMENT_CLASS: Record<string, string> = {
-  paid: "bg-emerald-100 text-emerald-900",
-  pending: "bg-[var(--admin-subtle)] text-[var(--admin-text)]",
-  pending_cashier_confirmation: "bg-amber-100 text-amber-900",
-  failed: "bg-red-100 text-red-800",
-};
 
 function secondarySummary(order: OrderWithItems) {
   const parts = [
@@ -89,7 +73,7 @@ export function AdminOrdersBoard({
               <Plus className="h-4 w-4" />
               New order
             </Button>
-            <Badge className="border-0 bg-emerald-50 px-3 py-1 text-emerald-800">Live</Badge>
+            <Badge className={cn(LIVE_PILL, "px-3 py-1")}>Live</Badge>
           </div>
         }
       >
@@ -120,10 +104,7 @@ export function AdminOrdersBoard({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge
-                        className={cn(
-                          "max-w-[9rem] truncate border-0 capitalize",
-                          STATUS_CLASS[order.status] ?? "bg-[var(--admin-subtle)]"
-                        )}
+                        className={cn("max-w-[9rem] truncate capitalize", orderStatusPill(order.status))}
                       >
                         {order.status.replaceAll("_", " ")}
                       </Badge>
@@ -178,8 +159,8 @@ export function AdminOrdersBoard({
                     <td className="p-3 lg:p-4">
                       <Badge
                         className={cn(
-                          "max-w-full truncate border-0 capitalize",
-                          STATUS_CLASS[order.status] ?? "bg-[var(--admin-subtle)]"
+                          "max-w-full truncate capitalize",
+                          orderStatusPill(order.status)
                         )}
                       >
                         {order.status.replaceAll("_", " ")}

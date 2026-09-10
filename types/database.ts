@@ -95,6 +95,9 @@ export interface Profile {
   hourly_rate?: number | null;
   /** Platform Super Admin — never grantable via restaurant Staff UI. */
   is_platform_admin?: boolean;
+  /** scrypt hash of 4–6 digit staff PIN (Kitchen/Waiter/Cashier tablets). */
+  staff_pin_hash?: string | null;
+  pin_last_used?: string | null;
   created_at: string;
   updated_at: string;
 }

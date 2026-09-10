@@ -410,3 +410,95 @@
   background: color-mix(in srgb, var(--admin-brand, #9e2e2e) 22%, transparent);
   color: #f2b8b8;
 }
+
+/* Status / payment pills — readable in light + admin dark */
+.admin-pill-live {
+  background: color-mix(in srgb, #10b981 14%, var(--admin-subtle, #f1f5f9));
+  color: #065f46;
+}
+html[data-admin-theme="dark"] .admin-pill-live {
+  background: color-mix(in srgb, #10b981 22%, transparent);
+  color: #6ee7b7;
+}
+
+.admin-pill-orange {
+  background: color-mix(in srgb, #f97316 16%, var(--admin-subtle, #f1f5f9));
+  color: #9a3412;
+}
+html[data-admin-theme="dark"] .admin-pill-orange {
+  background: color-mix(in srgb, #f97316 22%, transparent);
+  color: #fdba74;
+}
+
+.admin-pill-blue {
+  background: color-mix(in srgb, #3b82f6 16%, var(--admin-subtle, #f1f5f9));
+  color: #1e40af;
+}
+html[data-admin-theme="dark"] .admin-pill-blue {
+  background: color-mix(in srgb, #3b82f6 22%, transparent);
+  color: #93c5fd;
+}
+
+.admin-pill-amber {
+  background: color-mix(in srgb, #f59e0b 16%, var(--admin-subtle, #f1f5f9));
+  color: #92400e;
+}
+html[data-admin-theme="dark"] .admin-pill-amber {
+  background: color-mix(in srgb, #f59e0b 22%, transparent);
+  color: #fcd34d;
+}
+
+.admin-pill-emerald {
+  background: color-mix(in srgb, #10b981 16%, var(--admin-subtle, #f1f5f9));
+  color: #065f46;
+}
+html[data-admin-theme="dark"] .admin-pill-emerald {
+  background: color-mix(in srgb, #10b981 22%, transparent);
+  color: #6ee7b7;
+}
+
+.admin-pill-violet {
+  background: color-mix(in srgb, #8b5cf6 16%, var(--admin-subtle, #f1f5f9));
+  color: #5b21b6;
+}
+html[data-admin-theme="dark"] .admin-pill-violet {
+  background: color-mix(in srgb, #8b5cf6 22%, transparent);
+  color: #c4b5fd;
+}
+
+.admin-pill-red {
+  background: color-mix(in srgb, #ef4444 16%, var(--admin-subtle, #f1f5f9));
+  color: #991b1b;
+}
+html[data-admin-theme="dark"] .admin-pill-red {
+  background: color-mix(in srgb, #ef4444 22%, transparent);
+  color: #fca5a5;
+}
+
+.admin-pill-slate {
+  background: var(--admin-subtle, #f1f5f9);
+  color: var(--admin-text, #0f172a);
+}
+html[data-admin-theme="dark"] .admin-pill-slate {
+  background: var(--admin-subtle);
+  color: var(--admin-muted);
+}
+
+.admin-destructive-outline {
+  border-color: color-mix(in srgb, #ef4444 35%, var(--admin-border, #e2e8f0));
+  color: #b91c1c;
+}
+.admin-destructive-outline:hover {
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+}
+html[data-admin-theme="dark"] .admin-destructive-outline {
+  color: #fca5a5;
+}
+
+.admin-destructive-panel {
+  border-color: color-mix(in srgb, #ef4444 35%, var(--admin-border, #e2e8f0));
+  background: color-mix(in srgb, #ef4444 8%, var(--admin-card, #fff));
+}
+html[data-admin-theme="dark"] .admin-destructive-panel {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+}

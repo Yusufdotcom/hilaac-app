@@ -1,11 +1,10 @@
-import Link from "next/link";
-import { ShoppingBag, DollarSign, Table2, Clock, AlertCircle, CreditCard } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { DashboardRecentOrders } from "@/components/admin/dashboard/dashboard-recent-orders";
-import { DashboardStatCard } from "@/components/admin/dashboard/dashboard-stat-card";
+import { DashboardLiveStats } from "@/components/admin/dashboard/dashboard-live-stats";
 import { DashboardGreeting } from "@/components/admin/dashboard/dashboard-greeting";
 import { BusinessHealthCard } from "@/components/admin/dashboard/business-health-card";
 import { TodaysTipCard } from "@/components/admin/dashboard/todays-tip-card";
@@ -17,7 +16,7 @@ import { fetchDashboardExtras } from "@/lib/dashboard/fetch-dashboard-extras";
 import { computeBusinessHealth } from "@/lib/dashboard/business-health";
 import { fetchRestaurantAlerts } from "@/lib/alerts/fetch-alerts";
 import { PENDING_CASHIER_CONFIRMATION } from "@/lib/payments/constants";
-import { formatCurrency, daysUntil } from "@/lib/utils";
+import { daysUntil } from "@/lib/utils";
 import { APP_TIMEZONE, getAppDayBounds } from "@/lib/time/app-calendar";
 import { appDayKey, appWeekKey } from "@/lib/recap/recap-dismiss";
 import type { OrderWithItems } from "@/types/database";
@@ -79,7 +78,6 @@ export default async function DashboardPage({ params }: { params: { slug: string
       .from("orders")
       .select("*, table:table_id(*), order_items(*, menu_item:menu_item_id(*))")
       .eq("restaurant_id", restaurant.id)
-      .eq("payment_status", "paid")
       .gte("created_at", dayStartIso)
       .lt("created_at", dayEndIso)
       .order("created_at", { ascending: false }),
@@ -235,78 +233,21 @@ export default async function DashboardPage({ params }: { params: { slug: string
         <TodaysTipCard tip={extras.tip} />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardStatCard
-          label="Orders Today"
-          value={ordersToday}
-          icon={ShoppingBag}
-          delta={ordersDelta}
-          sparkline={extras.sparklines.orders}
-        />
-        <DashboardStatCard
-          label="Revenue Today"
-          value={formatCurrency(revenueToday)}
-          icon={DollarSign}
-          delta={revenueDelta}
-          sparkline={extras.sparklines.revenue}
-        />
-        <DashboardStatCard
-          label="Active Tables"
-          value={
-            <>
-              {activeTables}{" "}
-              <span className="text-sm font-normal text-[var(--admin-muted)]">
-                / {totalTables}
-              </span>
-            </>
-          }
-          icon={Table2}
-          delta={null}
-          sparkline={extras.sparklines.activeTables}
-        />
-        <DashboardStatCard
-          label="Open Orders"
-          value={openOrders}
-          icon={Clock}
-          delta={null}
-          sparkline={extras.sparklines.openOrders}
-        />
-      </div>
-
-      {awaitingPaymentConfirmation > 0 && (
-        <div
-          className="admin-brand-tint flex flex-col gap-3 rounded-2xl border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
-          style={{
-            borderColor: "color-mix(in srgb, var(--admin-brand, #9E2E2E) 25%, transparent)",
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
-              style={{ backgroundColor: "var(--admin-brand, #9E2E2E)" }}
-            >
-              <CreditCard className="h-4 w-4" aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: "var(--admin-brand, #9E2E2E)" }}>
-                {awaitingPaymentConfirmation}{" "}
-                {awaitingPaymentConfirmation === 1 ? "order" : "orders"} awaiting payment
-                confirmation
-              </p>
-              <p className="text-xs text-[var(--admin-muted,#64748B)]">
-                Not counted in today&apos;s paid Orders/Revenue. Includes older backlog.
-              </p>
-            </div>
-          </div>
-          <Link
-            href={`/admin/${params.slug}/orders`}
-            className="w-full shrink-0 rounded-xl px-4 py-2 text-center text-sm font-semibold text-white sm:w-auto"
-            style={{ backgroundColor: "var(--admin-brand, #9E2E2E)" }}
-          >
-            Review orders
-          </Link>
-        </div>
-      )}
+      <DashboardLiveStats
+        restaurantId={restaurant.id}
+        initialOrders={todaysOrders}
+        dayStartIso={dayStartIso}
+        dayEndIso={dayEndIso}
+        ordersYesterday={ordersYesterday}
+        revenueYesterday={revenueYesterday}
+        activeTables={activeTables}
+        totalTables={totalTables}
+        sparklineOrders={extras.sparklines.orders}
+        sparklineRevenue={extras.sparklines.revenue}
+        sparklineActiveTables={extras.sparklines.activeTables}
+        sparklineOpenOrders={extras.sparklines.openOrders}
+        slug={params.slug}
+      />
 
       <DashboardAlertsPreview items={restaurantAlerts} slug={params.slug} />
 

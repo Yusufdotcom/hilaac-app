@@ -196,6 +196,17 @@ function useReportChartData(data: ReportData) {
     [data.peakHours]
   );
 
+  const peakDaysData = useMemo(
+    () =>
+      (data.peakDays ?? []).map((day) => ({
+        day: day.day_label.slice(0, 3),
+        dayFull: day.day_label,
+        orders: Number(day.order_count) || 0,
+        revenue: Number(day.revenue) || 0,
+      })),
+    [data.peakDays]
+  );
+
   const peakDay = useMemo(() => {
     const days = data.peakDays ?? [];
     if (!days.length) return null;
@@ -251,6 +262,7 @@ function useReportChartData(data: ReportData) {
     revenueData,
     topItemsData,
     peakHoursData,
+    peakDaysData,
     peakDay,
     paymentData,
     paymentPieSlices,
@@ -549,8 +561,11 @@ export function TrafficTimingPanel({
   onShowPreviousChange: (v: boolean) => void;
 }) {
   const reduceMotion = usePrefersReducedMotion();
-  const { peakHoursData, peakDay, revenueData } = useReportChartData(data);
-  const hasPeak = peakHoursData.some((h) => h.orders > 0);
+  const { peakHoursData, peakDaysData, peakDay, revenueData } = useReportChartData(data);
+  const [peakMode, setPeakMode] = useState<"hours" | "days">("hours");
+  const hasPeakHours = peakHoursData.some((h) => h.orders > 0);
+  const hasPeakDays = peakDaysData.some((d) => d.orders > 0);
+  const hasPeak = peakMode === "hours" ? hasPeakHours : hasPeakDays;
 
   // Orders trend uses same buckets as revenue (paid order_count per day).
   const ordersTrend = useMemo(
@@ -635,56 +650,126 @@ export function TrafficTimingPanel({
       </ChartCard>
 
       <ChartCard
-        title="Peak traffic hours"
-        chartId="chart-peak-hours"
+        title={peakMode === "hours" ? "Peak traffic hours" : "Peak traffic days"}
+        chartId={peakMode === "hours" ? "chart-peak-hours" : "chart-peak-days"}
         empty={!hasPeak}
         headerRight={
-          peakDay && peakDay.order_count > 0 ? (
-            <span
-              className="rounded-full bg-[var(--admin-subtle)] px-2.5 py-1 text-xs font-semibold text-[var(--admin-text)]"
-              title={`${peakDay.day_label} had the most orders (${peakDay.order_count}) in this period`}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div
+              className="inline-flex rounded-lg border border-[var(--admin-border)] bg-[var(--admin-subtle)] p-0.5"
+              role="tablist"
+              aria-label="Peak traffic view"
             >
-              Peak day: {peakDay.day_label}
-            </span>
-          ) : null
+              <button
+                type="button"
+                role="tab"
+                aria-selected={peakMode === "hours"}
+                onClick={() => setPeakMode("hours")}
+                className={
+                  peakMode === "hours"
+                    ? "rounded-md bg-[var(--admin-card)] px-2.5 py-1 text-xs font-semibold text-[var(--admin-text)] shadow-sm"
+                    : "rounded-md px-2.5 py-1 text-xs font-medium text-[var(--admin-muted)]"
+                }
+              >
+                Hours
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={peakMode === "days"}
+                onClick={() => setPeakMode("days")}
+                className={
+                  peakMode === "days"
+                    ? "rounded-md bg-[var(--admin-card)] px-2.5 py-1 text-xs font-semibold text-[var(--admin-text)] shadow-sm"
+                    : "rounded-md px-2.5 py-1 text-xs font-medium text-[var(--admin-muted)]"
+                }
+              >
+                Days
+              </button>
+            </div>
+            {peakDay && peakDay.order_count > 0 ? (
+              <span
+                className="rounded-full bg-[var(--admin-subtle)] px-2.5 py-1 text-xs font-semibold text-[var(--admin-text)]"
+                title={`${peakDay.day_label} had the most orders (${peakDay.order_count}) in this period`}
+              >
+                Peak day: {peakDay.day_label}
+              </span>
+            ) : null}
+          </div>
         }
       >
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={peakHoursData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
-            <XAxis
-              dataKey="hour"
-              tick={{ fill: "#64748B", fontSize: 10 }}
-              tickLine={false}
-              axisLine={{ stroke: "#E2E8F0" }}
-              interval={2}
-            />
-            <YAxis
-              tick={{ fill: "#64748B", fontSize: 11 }}
-              tickLine={false}
-              axisLine={{ stroke: "#E2E8F0" }}
-              allowDecimals={false}
-            />
-            <Tooltip
-              contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
-              formatter={(value) => [Number(value ?? 0), "Orders"]}
-              labelFormatter={(label) => {
-                const peakNote =
-                  peakDay && peakDay.order_count > 0
-                    ? ` · Peak day: ${peakDay.day_label}`
-                    : "";
-                return `${label}${peakNote}`;
-              }}
-            />
-            <Bar
-              dataKey="orders"
-              name="Orders"
-              fill={NAVY}
-              radius={[4, 4, 0, 0]}
-              maxBarSize={32}
-              isAnimationActive={!reduceMotion}
-            />
-          </BarChart>
+          {peakMode === "hours" ? (
+            <BarChart data={peakHoursData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+              <XAxis
+                dataKey="hour"
+                tick={{ fill: "#64748B", fontSize: 10 }}
+                tickLine={false}
+                axisLine={{ stroke: "#E2E8F0" }}
+                interval={2}
+              />
+              <YAxis
+                tick={{ fill: "#64748B", fontSize: 11 }}
+                tickLine={false}
+                axisLine={{ stroke: "#E2E8F0" }}
+                allowDecimals={false}
+              />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
+                formatter={(value) => [Number(value ?? 0), "Orders"]}
+                labelFormatter={(label) => {
+                  const peakNote =
+                    peakDay && peakDay.order_count > 0
+                      ? ` · Peak day: ${peakDay.day_label}`
+                      : "";
+                  return `${label}${peakNote}`;
+                }}
+              />
+              <Bar
+                dataKey="orders"
+                name="Orders"
+                fill={NAVY}
+                radius={[4, 4, 0, 0]}
+                maxBarSize={32}
+                isAnimationActive={!reduceMotion}
+              />
+            </BarChart>
+          ) : (
+            <BarChart data={peakDaysData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+              <XAxis
+                dataKey="day"
+                tick={{ fill: "#64748B", fontSize: 11 }}
+                tickLine={false}
+                axisLine={{ stroke: "#E2E8F0" }}
+              />
+              <YAxis
+                tick={{ fill: "#64748B", fontSize: 11 }}
+                tickLine={false}
+                axisLine={{ stroke: "#E2E8F0" }}
+                allowDecimals={false}
+              />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, borderColor: "#E2E8F0" }}
+                formatter={(value, _name, item) => {
+                  const revenue = Number(item?.payload?.revenue ?? 0);
+                  return [
+                    `${Number(value ?? 0)} orders · ${formatCurrency(revenue)}`,
+                    item?.payload?.dayFull ?? "Day",
+                  ];
+                }}
+              />
+              <Bar
+                dataKey="orders"
+                name="Orders"
+                fill={INDIGO}
+                radius={[4, 4, 0, 0]}
+                maxBarSize={40}
+                isAnimationActive={!reduceMotion}
+              />
+            </BarChart>
+          )}
         </ResponsiveContainer>
       </ChartCard>
     </div>

@@ -6,6 +6,8 @@ export type OwnerBranch = {
   slug: string;
   branch_name: string | null;
   address: string | null;
+  subscription_status?: string | null;
+  subscription_end_date?: string | null;
 };
 
 export function getBranchLabel(branch: Pick<OwnerBranch, "name" | "branch_name">): string {
@@ -41,7 +43,7 @@ export async function getOwnerBranches(
 ): Promise<OwnerBranch[]> {
   const { data, error } = await supabase
     .from("restaurants")
-    .select("id, name, slug, branch_name, address")
+    .select("id, name, slug, branch_name, address, subscription_status, subscription_end_date")
     .eq("owner_id", ownerId)
     .order("name");
 

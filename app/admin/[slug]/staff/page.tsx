@@ -8,7 +8,7 @@ import { fetchStaffPerformanceData } from "@/lib/staff/fetch-staff-performance";
 import type { Profile, Waiter } from "@/types/database";
 
 export default async function StaffPage({ params }: { params: { slug: string } }) {
-  const { restaurant } = await getRestaurantContext(params.slug);
+  const { restaurant, profile } = await getRestaurantContext(params.slug);
   const supabase = createClient();
   const admin = createAdminClient();
   const canUseStaffPerformance = canUseFeature(
@@ -20,7 +20,7 @@ export default async function StaffPage({ params }: { params: { slug: string } }
     supabase.from("waiters").select("*").eq("restaurant_id", restaurant.id).order("name"),
     admin
       .from("profiles")
-      .select("id, full_name, role, phone, is_active")
+      .select("id, full_name, role, phone, is_active, staff_pin_hash")
       .eq("restaurant_id", restaurant.id)
       .order("full_name", { ascending: true }),
   ]);
@@ -32,8 +32,18 @@ export default async function StaffPage({ params }: { params: { slug: string } }
     console.error("staff page profiles fetch:", staffError.message);
   }
 
-  const staffList =
-    (staff as Pick<Profile, "id" | "full_name" | "role" | "phone" | "is_active">[]) ?? [];
+  const staffList = (
+    (staff as (Pick<Profile, "id" | "full_name" | "role" | "phone" | "is_active"> & {
+      staff_pin_hash?: string | null;
+    })[]) ?? []
+  ).map((s) => ({
+    id: s.id,
+    full_name: s.full_name,
+    role: s.role,
+    phone: s.phone,
+    is_active: s.is_active,
+    has_pin: Boolean(s.staff_pin_hash),
+  }));
 
   const performance = canUseStaffPerformance
     ? await fetchStaffPerformanceData(
@@ -59,6 +69,7 @@ export default async function StaffPage({ params }: { params: { slug: string } }
         waiters={(waiters as Waiter[]) ?? []}
         performance={performance}
         canUseStaffPerformance={canUseStaffPerformance}
+        actorRole={profile.role}
       />
     </Suspense>
   );

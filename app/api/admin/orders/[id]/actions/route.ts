@@ -69,7 +69,7 @@ export async function POST(
   const { data: order, error: orderError } = await admin
     .from("orders")
     .select(
-      "id, restaurant_id, status, payment_status, customer_confirmed_at, order_number"
+      "id, restaurant_id, status, payment_status, customer_confirmed_at, order_number, order_type, accepted_at"
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -97,7 +97,12 @@ export async function POST(
     return NextResponse.json({ error: "Order is already cancelled" }, { status: 409 });
   }
 
-  const update: { status?: OrderStatus; payment_status?: PaymentStatus } = {};
+  const update: {
+    status?: OrderStatus;
+    payment_status?: PaymentStatus;
+    accepted_at?: string;
+    accepted_by?: string;
+  } = {};
 
   if (action === "confirm_payment") {
     if (!isAwaitingCashierConfirmation(order) && previousPayment !== "pending") {
@@ -109,6 +114,11 @@ export async function POST(
     update.payment_status = "paid";
     if (previousStatus === "awaiting_payment") {
       update.status = "new";
+    }
+    // Takeaway paid = guest present — skip Accept so kitchen can cook immediately.
+    if (order.order_type === "takeaway" && !order.accepted_at) {
+      update.accepted_at = new Date().toISOString();
+      update.accepted_by = "Cashier (paid)";
     }
   } else if (action === "cancel") {
     update.status = "cancelled";

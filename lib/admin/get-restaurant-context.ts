@@ -5,8 +5,12 @@ import type { Profile, Restaurant } from "@/types/database";
 import { getUserRestaurantContext } from "@/lib/admin/resolve-user-restaurant";
 import { ownerCanAccessSlug } from "@/lib/admin/owner-branches";
 import { readSupportSessionForUser } from "@/lib/platform/support-session-server";
+import { readStaffPinSession } from "@/lib/auth/staff-pin-server";
 
-async function loadProfile(supabase: ReturnType<typeof createClient>, userId: string): Promise<Profile | null> {
+async function loadProfile(
+  supabase: ReturnType<typeof createClient>,
+  userId: string
+): Promise<Profile | null> {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
 
   if (profile) return profile as Profile;
@@ -29,22 +33,26 @@ async function loadRestaurantBySlug(
   if (scopedRestaurant) return scopedRestaurant as Restaurant;
 
   const admin = createAdminClient();
-  const { data: adminRestaurant } = await admin.from("restaurants").select("*").eq("slug", slug).maybeSingle();
+  const { data: adminRestaurant } = await admin
+    .from("restaurants")
+    .select("*")
+    .eq("slug", slug)
+    .maybeSingle();
   return (adminRestaurant as Restaurant | null) ?? null;
 }
 
 async function syncOwnerActiveRestaurant(userId: string, restaurantId: string) {
   const admin = createAdminClient();
-  await admin.from("profiles").update({ restaurant_id: restaurantId }).eq("id", userId).eq("role", "owner");
+  await admin
+    .from("profiles")
+    .update({ restaurant_id: restaurantId })
+    .eq("id", userId)
+    .eq("role", "owner");
 }
 
 /**
  * Server-only helper for /admin/[slug]/* and /staff/[slug]/* pages.
- * Verifies the logged-in user belongs to the restaurant identified by
- * `slug`, and (optionally) that their role is in `allowedRoles`.
- *
- * Platform Super Admin may open any slug when a support session cookie is present
- * (or when they own the restaurant). Never writes restaurant_id onto a platform-only profile.
+ * Staff PIN sessions (shared tablets) are accepted when there is no Supabase user.
  */
 export async function getRestaurantContext(
   slug: string,
@@ -55,7 +63,35 @@ export async function getRestaurantContext(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+
+  if (!user) {
+    const pin = await readStaffPinSession();
+    if (!pin || pin.slug !== slug) {
+      redirect(`/staff/${slug}/pin`);
+    }
+    if (allowedRoles && !allowedRoles.includes(pin.role)) {
+      redirect(`/staff/${slug}/${pin.role}`);
+    }
+    const restaurant = await loadRestaurantBySlug(supabase, slug);
+    if (!restaurant || restaurant.id !== pin.restaurantId) notFound();
+
+    const admin = createAdminClient();
+    const { data: pinProfile } = await admin
+      .from("profiles")
+      .select("*")
+      .eq("id", pin.profileId)
+      .maybeSingle();
+
+    if (!pinProfile || pinProfile.is_active === false) {
+      redirect(`/staff/${slug}/pin`);
+    }
+
+    return {
+      restaurant,
+      profile: pinProfile as Profile,
+      platformSupport: false,
+    };
+  }
 
   const resolvedProfile = await loadProfile(supabase, user.id);
   if (!resolvedProfile) redirect("/login");
@@ -71,18 +107,17 @@ export async function getRestaurantContext(
   if (!restaurant) notFound();
 
   const isPrimaryRestaurant = resolvedProfile.restaurant_id === restaurant.id;
-  const isOwnerOfRestaurant = resolvedProfile.role === "owner" && restaurant.owner_id === user.id;
+  const isOwnerOfRestaurant =
+    resolvedProfile.role === "owner" && restaurant.owner_id === user.id;
 
   if (!isPrimaryRestaurant && !isOwnerOfRestaurant && !platformSupport) {
     if (isPlatformAdmin) {
-      // Platform admin must use /platform/open/[slug] (sets support cookie).
       redirect("/platform/restaurants");
     }
     if (!userCtx) redirect("/login?error=no-profile");
     redirect(`/admin/${userCtx.slug}/dashboard`);
   }
 
-  // Never bind a dedicated platform account to a tenant via restaurant_id sync.
   if (isOwnerOfRestaurant && !isPrimaryRestaurant && resolvedProfile.restaurant_id) {
     await syncOwnerActiveRestaurant(user.id, restaurant.id);
     resolvedProfile.restaurant_id = restaurant.id;

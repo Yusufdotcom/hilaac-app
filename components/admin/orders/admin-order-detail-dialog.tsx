@@ -23,25 +23,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { isAwaitingCashierConfirmation } from "@/lib/payments/constants";
+import { orderStatusPill, paymentStatusPill } from "@/lib/ui/status-pills";
 import { cn, formatCurrency, formatDate, formatOrderLabel } from "@/lib/utils";
 import type { OrderStatus, OrderWithItems, UserRole } from "@/types/database";
-
-const STATUS_CLASS: Record<string, string> = {
-  awaiting_payment: "bg-orange-100 text-orange-900",
-  new: "bg-blue-100 text-blue-800",
-  preparing: "bg-amber-100 text-amber-900",
-  ready: "bg-emerald-100 text-emerald-900",
-  delivered: "bg-violet-100 text-violet-900",
-  completed: "bg-emerald-100 text-emerald-900",
-  cancelled: "bg-red-100 text-red-800",
-};
-
-const PAYMENT_CLASS: Record<string, string> = {
-  paid: "bg-emerald-100 text-emerald-900",
-  pending: "bg-slate-100 text-slate-700",
-  pending_cashier_confirmation: "bg-amber-100 text-amber-900",
-  failed: "bg-red-100 text-red-800",
-};
 
 const MANUAL_STATUSES: OrderStatus[] = [
   "awaiting_payment",
@@ -155,20 +139,10 @@ export function AdminOrderDetailDialog({
 
         <div className="space-y-4 text-sm">
           <div className="flex flex-wrap gap-2">
-            <Badge
-              className={cn(
-                "border-0 capitalize",
-                STATUS_CLASS[order.status] ?? "bg-slate-100"
-              )}
-            >
+            <Badge className={cn("capitalize", orderStatusPill(order.status))}>
               {order.status.replaceAll("_", " ")}
             </Badge>
-            <Badge
-              className={cn(
-                "border-0 capitalize",
-                PAYMENT_CLASS[order.payment_status] ?? "bg-slate-100"
-              )}
-            >
+            <Badge className={cn("capitalize", paymentStatusPill(order.payment_status))}>
               {order.payment_status.replaceAll("_", " ")}
             </Badge>
           </div>
@@ -288,14 +262,14 @@ export function AdminOrderDetailDialog({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-red-200 text-red-700 hover:bg-red-50"
+                  className="admin-destructive-outline w-full"
                   disabled={busy}
                   onClick={() => setShowCancel(true)}
                 >
                   Cancel / void order
                 </Button>
               ) : (
-                <div className="space-y-2 rounded-lg border border-red-200 bg-red-50/50 p-3">
+                <div className="admin-destructive-panel space-y-2 rounded-lg border p-3">
                   <Label htmlFor="cancel-reason">Reason (required, logged)</Label>
                   <Textarea
                     id="cancel-reason"

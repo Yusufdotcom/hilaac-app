@@ -169,6 +169,36 @@ export function buildChatbotTools(supabase: SupabaseClient, restaurantId: string
       },
     }),
 
+    getPeakDays: tool({
+      description:
+        "Get busiest days of the week (Sunday–Saturday) for a timeframe. Use for questions like 'what's my busiest day?'.",
+      inputSchema: z.object({ timeframe: timeframeSchema.default("monthly") }),
+      execute: async ({ timeframe }) => {
+        const win = rpcWindow(timeframe, restaurantId);
+        const { data, error } = await supabase.rpc("get_peak_days", {
+          p_restaurant_id: win.p_restaurant_id,
+          p_start_date: win.p_start_date,
+          p_end_date: win.p_end_date,
+        });
+        if (error) {
+          console.error("[chatbot] get_peak_days", error.message);
+          return { error: error.message, window: win.label, source: "get_peak_days" };
+        }
+        const peak_days = ((data as unknown[]) ?? [])
+          .map((raw) => {
+            const row = raw as Record<string, unknown>;
+            return {
+              day_of_week: Number(row.day_of_week ?? 0),
+              day_name: String(row.day_label ?? ""),
+              order_count: Number(row.order_count ?? 0) || 0,
+              revenue: Number(row.revenue ?? 0) || 0,
+            };
+          })
+          .sort((a, b) => b.order_count - a.order_count);
+        return { window: win.label, peak_days, source: "get_peak_days" };
+      },
+    }),
+
     getPaymentSplit: tool({
       description: "Get payment method mix (EVC, eDahab, Cash) for a timeframe.",
       inputSchema: z.object({ timeframe: timeframeSchema.default("monthly") }),
@@ -268,7 +298,8 @@ export function buildChatbotTools(supabase: SupabaseClient, restaurantId: string
     }),
 
     getStaffPerformance: tool({
-      description: "Get staff / waiter performance for the last 30 days.",
+      description:
+        "Get staff / waiter performance for the last 30 days (deliveries and revenue by delivered_by name).",
       inputSchema: z.object({}),
       execute: async () => {
         const { data: staff, error } = await supabase
@@ -281,15 +312,39 @@ export function buildChatbotTools(supabase: SupabaseClient, restaurantId: string
           return { error: error.message, source: "profiles" };
         }
         const perf = await fetchStaffPerformanceData(supabase, restaurantId, staff ?? []);
-        return {
-          rows: perf.rows.slice(0, 15).map((r) => ({
+        const rows = perf.rows
+          .filter((r) => (r.ordersAttributed ?? 0) > 0 || (r.salesAttributed ?? 0) > 0)
+          .slice(0, 15)
+          .map((r) => ({
             name: r.name,
             role: r.role,
             salesAttributed: r.salesAttributed,
             ordersAttributed: r.ordersAttributed,
             hoursWorked: r.hoursWorked,
             attendancePct: r.attendancePct,
-          })),
+          }));
+        const rawWaiters = perf.waiterPerf.slice(0, 15).map((w) => ({
+          name: w.waiter_name,
+          deliveries: w.deliveries,
+          revenue: w.revenue,
+        }));
+        return {
+          rows:
+            rows.length > 0
+              ? rows
+              : rawWaiters.map((w) => ({
+                  name: w.name,
+                  role: "waiter",
+                  salesAttributed: w.revenue,
+                  ordersAttributed: w.deliveries,
+                  hoursWorked: 0,
+                  attendancePct: null,
+                })),
+          rawWaiterDeliveries: rawWaiters,
+          note:
+            rawWaiters.length === 0
+              ? "No deliveries attributed yet — waiters must mark Delivered with a waiter name selected."
+              : undefined,
           source: "get_waiter_performance + staff_shifts",
         };
       },

@@ -72,9 +72,8 @@ function TrendBadge({ trend }: { trend: KpiTrend }) {
     <span
       className={cn(
         "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-bold",
-        up ? "bg-emerald-50 text-[#10B981]" : "bg-red-50 text-[#EF4444]"
+        up ? "admin-pill-emerald" : "admin-pill-red"
       )}
-      style={up ? { color: "#10B981" } : { color: "#EF4444" }}
     >
       {up ? (
         <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />

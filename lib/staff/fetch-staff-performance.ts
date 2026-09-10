@@ -9,6 +9,7 @@ import {
 export type StaffPerformanceData = {
   rows: StaffPerformanceRow[];
   shifts: StaffShift[];
+  waiterPerf: { waiter_name: string; deliveries: number; revenue: number }[];
 };
 
 export async function fetchStaffPerformanceData(
@@ -54,5 +55,6 @@ export async function fetchStaffPerformanceData(
   return {
     rows: buildPerformanceRows({ staff, waiterPerf, shifts }),
     shifts,
+    waiterPerf,
   };
 }

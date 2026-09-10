@@ -16,6 +16,8 @@ export function StaffLayoutShell({
   logoUrl,
   subscriptionTier,
   brandColor,
+  pinSession = false,
+  staffDisplayName = null,
 }: {
   children: React.ReactNode;
   slug: string;
@@ -24,6 +26,9 @@ export function StaffLayoutShell({
   logoUrl: string | null;
   subscriptionTier: string;
   brandColor?: string | null;
+  /** True when unlocked via tablet PIN (not email session). */
+  pinSession?: boolean;
+  staffDisplayName?: string | null;
 }) {
   const accent = resolveBrandColor(brandColor);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -53,6 +58,9 @@ export function StaffLayoutShell({
           role={role}
           restaurantName={restaurantName}
           onOpenSidebar={() => setMenuOpen(true)}
+          pinSession={pinSession}
+          staffDisplayName={staffDisplayName}
+          slug={slug}
         />
         <main className="relative flex-1 overflow-y-auto p-4 text-[#0F172A] sm:p-6 md:p-8">
           <div

@@ -142,7 +142,9 @@ export function AdminUserMenu({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={handleLogout}
-            className={cn("cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-600")}
+            className={cn(
+              "cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive"
+            )}
           >
             <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
             Logout

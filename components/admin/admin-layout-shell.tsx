@@ -10,6 +10,7 @@ import {
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminTopBar } from "@/components/admin/admin-top-bar";
 import { BusinessChatbot } from "@/components/admin/chatbot/business-chatbot";
+import { AdminFavicon } from "@/components/admin/admin-favicon";
 import { PlatformSupportBanner } from "@/components/platform/platform-support-banner";
 import { StaffIdleGuardian } from "@/components/auth/staff-idle-guardian";
 import { PoweredByHilaac } from "@/components/brand/powered-by-hilaac";
@@ -21,6 +22,7 @@ import type { UserRole } from "@/types/database";
 function AdminShellChrome({
   children,
   restaurantName,
+  logoUrl,
   subscriptionTier,
   subscriptionEndDate,
   brandColor,
@@ -38,6 +40,7 @@ function AdminShellChrome({
 }: {
   children: React.ReactNode;
   restaurantName: string;
+  logoUrl?: string | null;
   subscriptionTier: string;
   subscriptionEndDate?: string | null;
   brandColor?: string | null;
@@ -91,6 +94,7 @@ function AdminShellChrome({
       className="admin-shell flex min-h-screen w-full max-w-[100vw] overflow-x-clip"
       data-admin-theme={theme}
     >
+      <AdminFavicon logoUrl={logoUrl} />
       {mobileOpen && (
         <button
           type="button"
@@ -105,6 +109,7 @@ function AdminShellChrome({
 
       <AdminSidebar
         restaurantName={restaurantName}
+        logoUrl={logoUrl}
         subscriptionTier={subscriptionTier}
         subscriptionEndDate={subscriptionEndDate}
         brandColor={brandColor}
@@ -114,6 +119,7 @@ function AdminShellChrome({
         alertsCount={alertsCount}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
+        userRole={userRole}
       />
 
       <div
@@ -154,6 +160,7 @@ function AdminShellChrome({
 export function AdminLayoutShell({
   children,
   restaurantName,
+  logoUrl,
   subscriptionTier,
   subscriptionEndDate,
   brandColor,
@@ -193,6 +200,7 @@ export function AdminLayoutShell({
         <StaffIdleGuardian role={userRole} />
         <AdminShellChrome
           restaurantName={restaurantName}
+          logoUrl={logoUrl}
           subscriptionTier={subscriptionTier}
           subscriptionEndDate={subscriptionEndDate}
           brandColor={brandColor}

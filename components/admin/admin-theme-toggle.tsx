@@ -13,7 +13,7 @@ export function AdminThemeToggle({ className }: { className?: string }) {
       type="button"
       onClick={toggleTheme}
       className={cn(
-        "flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--admin-border)] transition-colors hover:bg-black/5",
+        "flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--admin-border)] transition-colors hover:bg-[var(--admin-hover)]",
         className
       )}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}

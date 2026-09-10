@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   BarChart3,
   Bell,
@@ -21,9 +22,17 @@ import {
 } from "lucide-react";
 import { cn, daysUntil } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { getBranchDisplayLabel, type OwnerBranch } from "@/lib/admin/owner-branches";
+import {
+  getBranchDisplayLabel,
+  getBranchLabel,
+  getBranchLocation,
+  type OwnerBranch,
+} from "@/lib/admin/owner-branches";
 import { resolveBrandColor, subscriptionPlanLabel } from "@/lib/brand/restaurant-brand";
-import type { SubscriptionTier } from "@/types/database";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { NAV_LABEL_TO_KEY } from "@/lib/i18n/locales";
+import type { SubscriptionTier, UserRole } from "@/types/database";
 
 /**
  * Admin sidebar nav.
@@ -47,21 +56,23 @@ const MAIN_NAV = [
 ] as const;
 
 const MANAGE_NAV = [
-  { key: "expenses", label: "Expenses", icon: Wallet, href: (s: string) => `/admin/${s}/expenses` },
-  { key: "customers", label: "Customers", icon: UserRound, href: (s: string) => `/admin/${s}/customers` },
-  { key: "staff", label: "Staff", icon: Users, href: (s: string) => `/admin/${s}/staff` },
-  { key: "settings", label: "Settings", icon: Settings, href: (s: string) => `/admin/${s}/settings` },
-  { key: "billing", label: "Billing", icon: CreditCard, href: (s: string) => `/admin/${s}/billing` },
+  { key: "expenses", label: "Expenses", icon: Wallet, href: (s: string) => `/admin/${s}/expenses`, ownerOnly: true },
+  { key: "customers", label: "Customers", icon: UserRound, href: (s: string) => `/admin/${s}/customers`, ownerOnly: false },
+  { key: "staff", label: "Staff", icon: Users, href: (s: string) => `/admin/${s}/staff`, ownerOnly: false },
+  { key: "settings", label: "Settings", icon: Settings, href: (s: string) => `/admin/${s}/settings`, ownerOnly: false },
+  { key: "billing", label: "Billing", icon: CreditCard, href: (s: string) => `/admin/${s}/billing`, ownerOnly: true },
 ] as const;
 
 function BranchCard({
   restaurantName,
+  logoUrl,
   branchLabel,
   branches,
   currentSlug,
   brandColor,
 }: {
   restaurantName: string;
+  logoUrl?: string | null;
   branchLabel: string;
   branches: OwnerBranch[];
   currentSlug: string;
@@ -71,68 +82,120 @@ function BranchCard({
   const accent = resolveBrandColor(brandColor);
   const initial = (restaurantName.trim()[0] || "R").toUpperCase();
   const canSwitch = branches.length > 1;
+  const [open, setOpen] = useState(false);
+
+  const avatar = logoUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element -- remote restaurant logo URL from storage
+    <img
+      src={logoUrl}
+      alt=""
+      className="h-8 w-8 shrink-0 rounded-lg object-cover"
+    />
+  ) : (
+    <span
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
+      style={{
+        backgroundColor: `color-mix(in srgb, ${accent} 14%, white)`,
+        color: accent,
+      }}
+    >
+      {initial}
+    </span>
+  );
+
+  function branchStatus(b: OwnerBranch): { label: string; active: boolean } {
+    const expired =
+      b.subscription_status === "expired" ||
+      (b.subscription_end_date != null && new Date(b.subscription_end_date) < new Date());
+    return expired
+      ? { label: "Expired", active: false }
+      : { label: "Active", active: true };
+  }
+
+  const trigger = (
+    <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] px-3 py-2.5 transition hover:border-[var(--admin-border)]">
+      <div className="flex min-w-0 items-center gap-2">
+        {avatar}
+        <div className="min-w-0 text-left">
+          <p className="truncate text-sm font-semibold text-[var(--admin-text,#0F172A)]">
+            {restaurantName}
+          </p>
+          <p className="truncate text-xs text-[var(--admin-muted,#64748B)]">{branchLabel}</p>
+        </div>
+      </div>
+      {canSwitch ? (
+        <ChevronsUpDown className="h-4 w-4 shrink-0 text-[var(--admin-muted)]" aria-hidden="true" />
+      ) : null}
+    </div>
+  );
+
+  if (!canSwitch) {
+    return <div className="mb-6">{trigger}</div>;
+  }
 
   return (
-    <div className="relative mb-6">
-      {canSwitch ? (
-        <label className="block">
-          <span className="sr-only">Switch branch</span>
-          <div className="flex items-center justify-between gap-2 rounded-xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] px-3 py-2.5 transition hover:border-[var(--admin-border)]">
-            <div className="flex min-w-0 items-center gap-2">
-              <span
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
-                style={{
-                  backgroundColor: `color-mix(in srgb, ${accent} 14%, white)`,
-                  color: accent,
-                }}
-              >
-                {initial}
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[var(--admin-text,#0F172A)]">
-                  {restaurantName}
-                </p>
-                <p className="truncate text-xs text-[var(--admin-muted,#64748B)]">{branchLabel}</p>
-              </div>
-            </div>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 text-[var(--admin-muted)]" aria-hidden="true" />
-          </div>
-          <select
-            className="absolute inset-0 cursor-pointer opacity-0"
-            value={currentSlug}
-            onChange={(e) => {
-              if (e.target.value !== currentSlug) {
-                router.push(`/admin/${e.target.value}/dashboard`);
-              }
-            }}
+    <div className="relative z-[60] mb-6">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="w-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-brand)] focus-visible:ring-offset-2"
             aria-label="Switch branch"
           >
-            {branches.map((b) => (
-              <option key={b.id} value={b.slug}>
-                {getBranchDisplayLabel(b)}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : (
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] px-3 py-2.5">
-          <span
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
-            style={{
-              backgroundColor: `color-mix(in srgb, ${accent} 14%, white)`,
-              color: accent,
-            }}
-          >
-            {initial}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[var(--admin-text,#0F172A)]">
-              {restaurantName}
-            </p>
-            <p className="truncate text-xs text-[var(--admin-muted,#64748B)]">{branchLabel}</p>
-          </div>
-        </div>
-      )}
+            {trigger}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent side="bottom" align="start" className="p-1.5">
+          <p className="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--admin-muted,#64748B)]">
+            Locations
+          </p>
+          <ul className="max-h-[min(50vh,18rem)] overflow-y-auto">
+            {branches.map((b) => {
+              const selected = b.slug === currentSlug;
+              const status = branchStatus(b);
+              const location = getBranchLocation(b.address);
+              return (
+                <li key={b.id}>
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex w-full items-start gap-2 rounded-lg px-2.5 py-2.5 text-left transition",
+                      selected
+                        ? "bg-[var(--admin-bg,#F1F5F9)] ring-1 ring-[var(--admin-brand,#9E2E2E)]"
+                        : "hover:bg-[var(--admin-bg,#F8FAFC)]"
+                    )}
+                    onClick={() => {
+                      setOpen(false);
+                      if (b.slug !== currentSlug) {
+                        router.push(`/admin/${b.slug}/dashboard`);
+                      }
+                    }}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-[var(--admin-text,#0F172A)]">
+                        {getBranchLabel(b)}
+                      </span>
+                      {location ? (
+                        <span className="mt-0.5 block truncate text-xs text-[var(--admin-muted,#64748B)]">
+                          {location}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                        status.active ? "admin-pill-emerald" : "admin-pill-amber"
+                      )}
+                    >
+                      {status.label}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
@@ -182,6 +245,7 @@ function PlanCard({
 
 export function AdminSidebar({
   restaurantName,
+  logoUrl,
   subscriptionTier,
   subscriptionEndDate,
   brandColor,
@@ -191,8 +255,10 @@ export function AdminSidebar({
   alertsCount = 0,
   mobileOpen = false,
   onMobileClose,
+  userRole = "owner",
 }: {
   restaurantName: string;
+  logoUrl?: string | null;
   subscriptionTier: string;
   subscriptionEndDate?: string | null;
   brandColor?: string | null;
@@ -202,10 +268,12 @@ export function AdminSidebar({
   alertsCount?: number;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  userRole?: UserRole;
 }) {
   const pathname = usePathname();
   const slug = currentSlug;
   const supabase = createClient();
+  const { t } = useLocale();
   const currentBranch = branches.find((b) => b.slug === slug);
   const branchLabel = currentBranch
     ? getBranchDisplayLabel(currentBranch)
@@ -231,7 +299,11 @@ export function AdminSidebar({
     items: typeof MAIN_NAV | typeof MANAGE_NAV,
     opts?: { showOrdersBadge?: boolean; showAlertsBadge?: boolean }
   ) {
-    return items.map(({ key, href, label, icon: Icon }) => {
+    const visible =
+      items === MANAGE_NAV
+        ? MANAGE_NAV.filter((item) => userRole === "owner" || !item.ownerOnly)
+        : MAIN_NAV;
+    return visible.map(({ key, href, label, icon: Icon }) => {
       const linkHref = href(slug);
       const active = isNavActive(linkHref);
       return (
@@ -247,7 +319,9 @@ export function AdminSidebar({
           )}
         >
           <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-          <span className="truncate">{label}</span>
+          <span className="truncate">
+            {NAV_LABEL_TO_KEY[label] ? t(NAV_LABEL_TO_KEY[label]!) : label}
+          </span>
           {opts?.showOrdersBadge && key === "orders" && awaitingOrdersCount > 0 && (
             <span
               className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
@@ -281,6 +355,7 @@ export function AdminSidebar({
 
       <BranchCard
         restaurantName={restaurantName}
+        logoUrl={logoUrl}
         branchLabel={branchLabel}
         branches={branches}
         currentSlug={slug}
@@ -295,12 +370,14 @@ export function AdminSidebar({
       <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-[var(--admin-muted)]">MANAGE</p>
       <nav className="space-y-1">{renderNav(MANAGE_NAV)}</nav>
 
-      <PlanCard
-        slug={slug}
-        subscriptionTier={subscriptionTier}
-        subscriptionEndDate={subscriptionEndDate}
-        onNavigate={onMobileClose}
-      />
+      {userRole === "owner" ? (
+        <PlanCard
+          slug={slug}
+          subscriptionTier={subscriptionTier}
+          subscriptionEndDate={subscriptionEndDate}
+          onNavigate={onMobileClose}
+        />
+      ) : null}
 
       <div className="mt-auto pt-6">
         <button
@@ -309,7 +386,7 @@ export function AdminSidebar({
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--admin-muted)] transition-colors hover:bg-[var(--admin-bg)]"
         >
           <LogOut className="h-[18px] w-[18px]" aria-hidden="true" />
-          Logout
+          {t("nav.logout")}
         </button>
       </div>
     </>

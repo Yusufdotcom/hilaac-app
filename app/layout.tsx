@@ -2,15 +2,20 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { OfflineSyncProvider } from "@/components/offline-sync-provider";
+import { LocaleProvider } from "@/components/i18n/locale-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Hilaac — Run your restaurant smarter.",
+  title: "Hilaac — Business intelligence for Somali restaurants",
   description:
-    "The all-in-one restaurant SaaS platform: QR ordering, real-time kitchen dashboards, AI menus, and mobile money payments.",
+    "QR ordering, live kitchen ops, AI chatbot, inventory, and P&L — built for Somali restaurants. Goronyo, Gorgor, Galeyr, and Somali Airlines plans.",
+  icons: {
+    icon: "/logo-icon.png",
+    apple: "/logo-icon.png",
+  },
   // Google Search Console — content token only (not the full <meta> HTML string).
   verification: {
     google: "upyzLjyhHRlmAKLA_zLXatlB9wri6sUSHN52C3IyOcw",
@@ -22,8 +27,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <OfflineSyncProvider>{children}</OfflineSyncProvider>
-          <Toaster richColors position="top-center" />
+          <LocaleProvider>
+            <OfflineSyncProvider>{children}</OfflineSyncProvider>
+            <Toaster richColors position="top-center" />
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

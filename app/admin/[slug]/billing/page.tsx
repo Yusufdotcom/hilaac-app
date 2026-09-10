@@ -4,7 +4,7 @@ import { AdminPageIntro } from "@/components/admin/admin-page-intro";
 import { BillingView } from "@/components/admin/billing/billing-view";
 
 export default async function BillingPage({ params }: { params: { slug: string } }) {
-  const { restaurant } = await getRestaurantContext(params.slug);
+  const { restaurant } = await getRestaurantContext(params.slug, ["owner"]);
 
   return (
     <div className="w-full space-y-4 sm:space-y-5">
