@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, MessageCircle, Send, Sparkles, X } from "lucide-react";
+import { Bot, Loader2, Send, X } from "lucide-react";
 import { useAdminBrandColor } from "@/components/admin/admin-brand-context";
 import { cn } from "@/lib/utils";
 
@@ -104,15 +104,19 @@ export function BusinessChatbot({
         type="button"
         aria-label={open ? "Close business assistant" : "Open business assistant"}
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 md:bottom-6 md:right-6"
+        className="fixed bottom-5 right-5 z-50 flex h-16 w-16 items-center justify-center rounded-full text-white shadow-lg transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 md:bottom-6 md:right-6"
         style={{ backgroundColor: brand }}
       >
-        {open ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+        {open ? (
+          <X className="h-7 w-7" strokeWidth={2.25} />
+        ) : (
+          <Bot className="h-8 w-8" strokeWidth={2.25} aria-hidden="true" />
+        )}
       </button>
 
       {open ? (
         <div
-          className="fixed bottom-[4.5rem] right-4 z-50 flex w-[min(100vw-2rem,24rem)] flex-col overflow-hidden rounded-2xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] shadow-xl md:bottom-20 md:right-6"
+          className="fixed bottom-[5.5rem] right-4 z-50 flex w-[min(100vw-2rem,24rem)] flex-col overflow-hidden rounded-2xl border border-[var(--admin-border,#E2E8F0)] bg-[var(--admin-card,#fff)] shadow-xl md:bottom-24 md:right-6"
           style={{ maxHeight: "min(70vh, 34rem)" }}
           role="dialog"
           aria-label="Business assistant"
@@ -121,7 +125,7 @@ export function BusinessChatbot({
             className="flex items-center gap-2 px-4 py-3 text-white"
             style={{ backgroundColor: brand }}
           >
-            <Sparkles className="h-4 w-4 shrink-0 opacity-90" aria-hidden="true" />
+            <Bot className="h-5 w-5 shrink-0 opacity-90" aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">Ask Hilaac</p>
               <p className="truncate text-xs opacity-90">{restaurantName}</p>
