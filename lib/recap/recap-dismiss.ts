@@ -1,4 +1,4 @@
-import { getZonedYmd, type Ymd } from "../time/app-calendar";
+import { getZonedYmd, type Ymd } from "@/lib/time/app-calendar";
 
 /** YYYY-MM-DD in APP_TIMEZONE for daily dismiss keys. */
 export function appDayKey(now: Date = new Date()): string {
