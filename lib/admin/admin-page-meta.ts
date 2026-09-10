@@ -17,6 +17,8 @@ const PAGE_META: Record<string, AdminPageMeta> = {
   "staff-access": { title: "Staff", crumb: "Pages / Staff" },
   settings: { title: "Settings", crumb: "Pages / Settings" },
   billing: { title: "Billing", crumb: "Pages / Billing" },
+  packages: { title: "Packages", crumb: "Pages / Packages" },
+  events: { title: "Events", crumb: "Pages / Events" },
 };
 
 const FALLBACK: AdminPageMeta = { title: "Admin", crumb: "Pages / Admin" };

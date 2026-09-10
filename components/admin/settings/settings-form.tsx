@@ -36,6 +36,13 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     restaurant.custom_branding_enabled ?? false
   );
   const canCustomBrand = canUseFeature(restaurant.subscription_tier, "custom_branding");
+  const canSeasonMode = canUseFeature(restaurant.subscription_tier, "ramadan_packages");
+  const [activeSeason, setActiveSeason] = useState<"ramadan" | "eid" | null>(
+    restaurant.active_season === "ramadan" || restaurant.active_season === "eid"
+      ? restaurant.active_season
+      : null
+  );
+  const [savingSeason, setSavingSeason] = useState(false);
   const [orderTypes, setOrderTypes] = useState({
     dine_in_enabled: restaurant.dine_in_enabled,
     takeaway_enabled: restaurant.takeaway_enabled,
@@ -351,6 +358,34 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
     setCustomBrandingEnabled(enabled);
   }
 
+  async function handleSeasonToggle(season: "ramadan" | "eid", enabled: boolean) {
+    if (!canSeasonMode) return;
+    const next: "ramadan" | "eid" | null = enabled
+      ? season
+      : activeSeason === season
+        ? null
+        : activeSeason;
+    const prev = activeSeason;
+    setActiveSeason(next);
+    setSavingSeason(true);
+    try {
+      await patchSettings({ restaurant_id: restaurant.id, active_season: next });
+      toast.success(
+        next === "ramadan"
+          ? "Ramadan Mode enabled"
+          : next === "eid"
+            ? "Eid Mode enabled"
+            : "Season mode turned off"
+      );
+      router.refresh();
+    } catch (err: unknown) {
+      setActiveSeason(prev);
+      toast.error(err instanceof Error ? err.message : "Failed to update season mode");
+    } finally {
+      setSavingSeason(false);
+    }
+  }
+
   return (
     <div className="w-full min-w-0 space-y-4 overflow-x-clip sm:space-y-5">
       {/* Restaurant details */}
@@ -414,6 +449,46 @@ export function SettingsForm({ restaurant }: { restaurant: Restaurant }) {
               Save Details
             </BrandButton>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card className="w-full overflow-hidden">
+        <CardHeader>
+          <CardTitle className="text-lg">Season Mode</CardTitle>
+          <CardDescription>
+            Enable Ramadan or Eid packages for this location. Only one season can be active at a
+            time.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!canSeasonMode ? (
+            <p className="text-sm text-muted-foreground">Somali Airlines 1.0 feature</p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-4 rounded-lg border px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium">Enable Ramadan Mode</p>
+                  <p className="text-xs text-muted-foreground">Iftar / Suhoor package sales</p>
+                </div>
+                <Switch
+                  checked={activeSeason === "ramadan"}
+                  disabled={savingSeason}
+                  onCheckedChange={(on) => handleSeasonToggle("ramadan", on)}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-4 rounded-lg border px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium">Enable Eid Mode</p>
+                  <p className="text-xs text-muted-foreground">Eid celebration packages</p>
+                </div>
+                <Switch
+                  checked={activeSeason === "eid"}
+                  disabled={savingSeason}
+                  onCheckedChange={(on) => handleSeasonToggle("eid", on)}
+                />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

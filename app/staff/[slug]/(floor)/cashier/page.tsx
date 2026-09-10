@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getRestaurantContext } from "@/lib/admin/get-restaurant-context";
 import { CashierBoard } from "@/components/staff/cashier/cashier-board";
 import { fetchManualPosMenuBundle } from "@/lib/order/fetch-manual-pos-menu";
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
 import type { OrderWithItems } from "@/types/database";
 
 export default async function CashierPage({ params }: { params: { slug: string } }) {
@@ -29,6 +30,7 @@ export default async function CashierPage({ params }: { params: { slug: string }
       slug={params.slug}
       initialOrders={(orders as OrderWithItems[]) ?? []}
       posMenu={posMenu}
+      canScanPackages={canUseFeature(restaurant.subscription_tier, "ramadan_packages")}
     />
   );
 }

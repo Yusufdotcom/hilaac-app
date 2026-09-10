@@ -82,6 +82,11 @@ export default async function AdminLayout({
             : 571
           : 1
       }
+      activeSeason={
+        restaurant.active_season === "ramadan" || restaurant.active_season === "eid"
+          ? restaurant.active_season
+          : null
+      }
     >
       {children}
     </AdminLayoutShell>

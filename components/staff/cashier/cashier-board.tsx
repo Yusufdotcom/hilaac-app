@@ -9,6 +9,7 @@ import { cn, formatCurrency, formatOrderLabel } from "@/lib/utils";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
 import { AcceptOrdersQueue } from "@/components/staff/accept-orders-queue";
 import { LoyaltyLookupPanel } from "@/components/staff/cashier/loyalty-lookup-panel";
+import { PackagePassScanPanel } from "@/components/staff/cashier/package-pass-scan-panel";
 import {
   ManualPosDialog,
   type ManualPosMenuBundle,
@@ -130,12 +131,14 @@ export function CashierBoard({
   slug,
   initialOrders,
   posMenu,
+  canScanPackages = false,
 }: {
   restaurantId: string;
   restaurantName: string;
   slug: string;
   initialOrders: OrderWithItems[];
   posMenu: ManualPosMenuBundle;
+  canScanPackages?: boolean;
 }) {
   const { orders, updateOrderFields, patchOrderLocal } = useRealtimeOrders(
     restaurantId,
@@ -265,6 +268,7 @@ export function CashierBoard({
       <ManualPosDialog open={posOpen} onOpenChange={setPosOpen} menu={posMenu} />
 
       <LoyaltyLookupPanel slug={slug} />
+      <PackagePassScanPanel enabled={canScanPackages} />
 
       <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
         <div className="overflow-x-auto">

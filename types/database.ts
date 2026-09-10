@@ -80,8 +80,118 @@ export interface Restaurant {
    * When business_type = 'retail': Menu→Products, hide Kitchen/Waiter, reuse inventory, adapt Cashier.
    */
   business_type?: string;
+  /** Somali Airlines: ramadan | eid | null (off). Only one season at a time. */
+  active_season?: "ramadan" | "eid" | null;
   created_at: string;
   updated_at: string;
+}
+
+export type RamadanPackageType = "normal" | "buffet";
+export type RamadanMealType = "iftar" | "suhoor" | "both";
+export type SeasonKind = "ramadan" | "eid";
+export type RamadanPaymentStatus = "pending" | "paid" | "refunded";
+export type EventType =
+  | "wedding"
+  | "graduation"
+  | "corporate"
+  | "birthday"
+  | "meeting"
+  | "other";
+export type EventBookingStatus = "inquiry" | "confirmed" | "cancelled" | "completed";
+export type EventBookingSource = "direct" | "online_link" | "phone" | "walkin";
+export type TableReservationStatus = "pending" | "confirmed" | "cancelled" | "completed";
+
+export interface RamadanPackage {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  type: RamadanPackageType;
+  price: number;
+  description: string | null;
+  menu_items: unknown;
+  buffet_start_time: string | null;
+  buffet_end_time: string | null;
+  max_daily_capacity: number | null;
+  valid_from: string;
+  valid_to: string;
+  meal_type: RamadanMealType | null;
+  season: SeasonKind;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface RamadanSubscription {
+  id: string;
+  package_id: string;
+  restaurant_id: string;
+  customer_name: string;
+  customer_phone: string;
+  pass_code: string;
+  payment_status: RamadanPaymentStatus;
+  payment_amount: number | null;
+  gifted_by: string | null;
+  gifted_by_phone: string | null;
+  created_at: string;
+}
+
+export interface RamadanCheckin {
+  id: string;
+  subscription_id: string;
+  package_id: string;
+  restaurant_id: string;
+  checkin_date: string;
+  checkin_time: string;
+  confirmed_by: string | null;
+}
+
+export interface EventSpace {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  capacity: number | null;
+  description: string | null;
+  price_per_event: number | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface EventBooking {
+  id: string;
+  restaurant_id: string;
+  space_id: string | null;
+  event_type: EventType;
+  event_name: string | null;
+  contact_name: string;
+  contact_phone: string;
+  contact_organization: string | null;
+  event_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  guest_count: number | null;
+  menu_package: string | null;
+  total_price: number | null;
+  deposit_paid: number;
+  balance_due_date: string | null;
+  status: EventBookingStatus;
+  notes: string | null;
+  booking_source: EventBookingSource;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface TableReservation {
+  id: string;
+  restaurant_id: string;
+  customer_name: string;
+  customer_phone: string;
+  guest_count: number;
+  reservation_date: string;
+  reservation_time: string;
+  special_requests: string | null;
+  status: TableReservationStatus;
+  deposit_paid: number;
+  booking_source: string;
+  created_at: string;
 }
 
 export interface Profile {

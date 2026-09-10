@@ -6,12 +6,15 @@ import { useState } from "react";
 import {
   BarChart3,
   Bell,
+  CalendarDays,
   ChevronsUpDown,
   CreditCard,
   LayoutDashboard,
   ListOrdered,
   LogOut,
+  Moon,
   Package,
+  Plane,
   Settings,
   Table,
   UserRound,
@@ -29,6 +32,7 @@ import {
   type OwnerBranch,
 } from "@/lib/admin/owner-branches";
 import { resolveBrandColor, subscriptionPlanLabel } from "@/lib/brand/restaurant-brand";
+import { canUseFeature } from "@/lib/billing/tier-capabilities";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { NAV_LABEL_TO_KEY } from "@/lib/i18n/locales";
@@ -256,6 +260,7 @@ export function AdminSidebar({
   mobileOpen = false,
   onMobileClose,
   userRole = "owner",
+  activeSeason = null,
 }: {
   restaurantName: string;
   logoUrl?: string | null;
@@ -269,6 +274,7 @@ export function AdminSidebar({
   mobileOpen?: boolean;
   onMobileClose?: () => void;
   userRole?: UserRole;
+  activeSeason?: "ramadan" | "eid" | null;
 }) {
   const pathname = usePathname();
   const slug = currentSlug;
@@ -278,6 +284,11 @@ export function AdminSidebar({
   const branchLabel = currentBranch
     ? getBranchDisplayLabel(currentBranch)
     : "Main location";
+
+  const canPackages = canUseFeature(subscriptionTier, "ramadan_packages");
+  const canEvents = canUseFeature(subscriptionTier, "event_hall_management");
+  const packagesAvailable = canPackages && Boolean(activeSeason);
+  const eventsAvailable = canEvents;
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -340,6 +351,40 @@ export function AdminSidebar({
     });
   }
 
+  function SaNavLink({
+    href,
+    label,
+    icon: Icon,
+    available,
+  }: {
+    href: string;
+    label: string;
+    icon: typeof Moon;
+    available: boolean;
+  }) {
+    const active = isNavActive(href);
+    return (
+      <Link
+        href={href}
+        onClick={() => onMobileClose?.()}
+        className={cn(
+          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+          active
+            ? "admin-nav-active"
+            : available
+              ? "text-[var(--admin-muted,#64748B)] hover:bg-[var(--admin-hover)]"
+              : "text-[var(--admin-muted,#94A3B8)] opacity-70 hover:bg-[var(--admin-hover)]"
+        )}
+      >
+        <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+        <span className="truncate">{label}</span>
+        {!available ? (
+          <Plane className="ml-auto h-3.5 w-3.5 shrink-0 opacity-80" aria-label="Somali Airlines" />
+        ) : null}
+      </Link>
+    );
+  }
+
   const body = (
     <>
       <div className="mb-3 flex items-center justify-end md:hidden">
@@ -365,6 +410,18 @@ export function AdminSidebar({
       <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-[var(--admin-muted)]">MAIN</p>
       <nav className="mb-6 space-y-1">
         {renderNav(MAIN_NAV, { showOrdersBadge: true, showAlertsBadge: true })}
+        <SaNavLink
+          href={`/admin/${slug}/packages`}
+          label="Packages"
+          icon={Moon}
+          available={packagesAvailable}
+        />
+        <SaNavLink
+          href={`/admin/${slug}/events`}
+          label="Events"
+          icon={CalendarDays}
+          available={eventsAvailable}
+        />
       </nav>
 
       <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-[var(--admin-muted)]">MANAGE</p>

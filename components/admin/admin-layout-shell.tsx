@@ -37,6 +37,7 @@ function AdminShellChrome({
   alertsCount,
   currency = "USD",
   currencyRate = 1,
+  activeSeason = null,
 }: {
   children: React.ReactNode;
   restaurantName: string;
@@ -55,6 +56,7 @@ function AdminShellChrome({
   alertsCount: number;
   currency?: string;
   currencyRate?: number;
+  activeSeason?: "ramadan" | "eid" | null;
 }) {
   const pathname = usePathname();
   const { theme } = useAdminAppearance();
@@ -120,6 +122,7 @@ function AdminShellChrome({
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
         userRole={userRole}
+        activeSeason={activeSeason}
       />
 
       <div
@@ -175,6 +178,7 @@ export function AdminLayoutShell({
   alertsCount = 0,
   currency = "USD",
   currencyRate = 1,
+  activeSeason = null,
 }: {
   children: React.ReactNode;
   restaurantName: string;
@@ -193,6 +197,7 @@ export function AdminLayoutShell({
   alertsCount?: number;
   currency?: string;
   currencyRate?: number;
+  activeSeason?: "ramadan" | "eid" | null;
 }) {
   return (
     <AdminBrandProvider brandColor={brandColor}>
@@ -215,6 +220,7 @@ export function AdminLayoutShell({
           alertsCount={alertsCount}
           currency={currency}
           currencyRate={currencyRate}
+          activeSeason={activeSeason}
         >
           {children}
         </AdminShellChrome>

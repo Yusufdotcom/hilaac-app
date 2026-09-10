@@ -89,6 +89,20 @@ export async function PATCH(req: NextRequest) {
     if (field in body) update[field] = body[field];
   }
 
+  if ("active_season" in body) {
+    const v = body.active_season;
+    if (v === null || v === "" || v === undefined) {
+      update.active_season = null;
+    } else if (v === "ramadan" || v === "eid") {
+      update.active_season = v;
+    } else {
+      return NextResponse.json(
+        { error: "active_season must be ramadan, eid, or null" },
+        { status: 400 }
+      );
+    }
+  }
+
   if ("currency" in body) {
     const c = String(body.currency || "USD").toUpperCase();
     update.currency = c === "SOS" ? "SOS" : "USD";
