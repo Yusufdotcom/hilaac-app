@@ -18,7 +18,9 @@ export type MessageKey =
   | "nav.reports"
   | "nav.alerts"
   | "nav.expenses"
+  | "nav.deyn"
   | "nav.customers"
+  | "nav.promotion"
   | "nav.staff"
   | "nav.settings"
   | "nav.billing"
@@ -53,7 +55,9 @@ const en: Dict = {
   "nav.reports": "Reports",
   "nav.alerts": "Alerts",
   "nav.expenses": "Expenses",
+  "nav.deyn": "Deyn",
   "nav.customers": "Customers",
+  "nav.promotion": "Promotion",
   "nav.staff": "Staff",
   "nav.settings": "Settings",
   "nav.billing": "Billing",
@@ -87,7 +91,9 @@ const so: Dict = {
   "nav.reports": "Warbixinada",
   "nav.alerts": "Digniinaha",
   "nav.expenses": "Kharashaadka",
+  "nav.deyn": "Deyn",
   "nav.customers": "Macaamiisha",
+  "nav.promotion": "Promotion",
   "nav.staff": "Shaqaalaha",
   "nav.settings": "Dejinta",
   "nav.billing": "Bixinta",
@@ -121,7 +127,9 @@ const ar: Dict = {
   "nav.reports": "التقارير",
   "nav.alerts": "التنبيهات",
   "nav.expenses": "المصروفات",
+  "nav.deyn": "دين",
   "nav.customers": "العملاء",
+  "nav.promotion": "العروض",
   "nav.staff": "الموظفون",
   "nav.settings": "الإعدادات",
   "nav.billing": "الفوترة",
@@ -170,9 +178,9 @@ export const NAV_LABEL_TO_KEY: Record<string, MessageKey> = {
   Reports: "nav.reports",
   Alerts: "nav.alerts",
   Expenses: "nav.expenses",
-  Campaigns: "nav.expenses",
-  Deyn: "nav.customers",
+  Deyn: "nav.deyn",
   Customers: "nav.customers",
+  Promotion: "nav.promotion",
   Staff: "nav.staff",
   Settings: "nav.settings",
   Billing: "nav.billing",

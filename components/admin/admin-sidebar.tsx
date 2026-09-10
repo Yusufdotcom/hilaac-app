@@ -62,10 +62,10 @@ const MAIN_NAV = [
 ] as const;
 
 const MANAGE_NAV = [
-  { key: "campaigns", label: "Campaigns", icon: TicketPercent, href: (s: string) => `/admin/${s}/campaigns`, ownerOnly: false },
-  { key: "deyn", label: "Deyn", icon: WalletCards, href: (s: string) => `/admin/${s}/deyn`, ownerOnly: false },
   { key: "expenses", label: "Expenses", icon: Wallet, href: (s: string) => `/admin/${s}/expenses`, ownerOnly: true },
+  { key: "deyn", label: "Deyn", icon: WalletCards, href: (s: string) => `/admin/${s}/deyn`, ownerOnly: false },
   { key: "customers", label: "Customers", icon: UserRound, href: (s: string) => `/admin/${s}/customers`, ownerOnly: false },
+  { key: "campaigns", label: "Promotion", icon: TicketPercent, href: (s: string) => `/admin/${s}/campaigns`, ownerOnly: false },
   { key: "staff", label: "Staff", icon: Users, href: (s: string) => `/admin/${s}/staff`, ownerOnly: false },
   { key: "settings", label: "Settings", icon: Settings, href: (s: string) => `/admin/${s}/settings`, ownerOnly: false },
   { key: "billing", label: "Billing", icon: CreditCard, href: (s: string) => `/admin/${s}/billing`, ownerOnly: true },
