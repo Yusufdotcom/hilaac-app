@@ -170,6 +170,8 @@ export const NAV_LABEL_TO_KEY: Record<string, MessageKey> = {
   Reports: "nav.reports",
   Alerts: "nav.alerts",
   Expenses: "nav.expenses",
+  Campaigns: "nav.expenses",
+  Deyn: "nav.customers",
   Customers: "nav.customers",
   Staff: "nav.staff",
   Settings: "nav.settings",

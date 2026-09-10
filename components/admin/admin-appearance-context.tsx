@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import {
   readStoredAdminTheme,
   systemPrefersDark,
@@ -18,6 +19,7 @@ const AdminAppearanceContext = createContext<AdminAppearanceContextValue | null>
 
 export function AdminAppearanceProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<AdminTheme>("light");
+  const { setTheme: setNextTheme } = useTheme();
 
   useEffect(() => {
     const stored = readStoredAdminTheme();
@@ -25,11 +27,16 @@ export function AdminAppearanceProvider({ children }: { children: React.ReactNod
   }, []);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-admin-theme", theme);
+    const root = document.documentElement;
+    root.setAttribute("data-admin-theme", theme);
+    // Keep Tailwind `dark:` + next-themes in sync (alerts, dialogs portaled to body).
+    root.classList.toggle("dark", theme === "dark");
+    setNextTheme(theme);
     return () => {
-      document.documentElement.removeAttribute("data-admin-theme");
+      root.removeAttribute("data-admin-theme");
+      root.classList.remove("dark");
     };
-  }, [theme]);
+  }, [theme, setNextTheme]);
 
   function setTheme(next: AdminTheme) {
     setThemeState(next);

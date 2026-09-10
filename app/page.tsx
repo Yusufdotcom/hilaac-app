@@ -22,7 +22,7 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="landing-page min-h-screen overflow-x-hidden">
+    <div className="landing-page min-h-screen overflow-x-clip">
       <LandingHeader dashboardHref={dashboardHref} />
 
       {/* Hero — BI positioning + Health Score demo */}

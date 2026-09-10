@@ -20,7 +20,9 @@ import {
   UserRound,
   Users,
   Utensils,
+  TicketPercent,
   Wallet,
+  WalletCards,
   X,
 } from "lucide-react";
 import { cn, daysUntil } from "@/lib/utils";
@@ -60,6 +62,8 @@ const MAIN_NAV = [
 ] as const;
 
 const MANAGE_NAV = [
+  { key: "campaigns", label: "Campaigns", icon: TicketPercent, href: (s: string) => `/admin/${s}/campaigns`, ownerOnly: false },
+  { key: "deyn", label: "Deyn", icon: WalletCards, href: (s: string) => `/admin/${s}/deyn`, ownerOnly: false },
   { key: "expenses", label: "Expenses", icon: Wallet, href: (s: string) => `/admin/${s}/expenses`, ownerOnly: true },
   { key: "customers", label: "Customers", icon: UserRound, href: (s: string) => `/admin/${s}/customers`, ownerOnly: false },
   { key: "staff", label: "Staff", icon: Users, href: (s: string) => `/admin/${s}/staff`, ownerOnly: false },

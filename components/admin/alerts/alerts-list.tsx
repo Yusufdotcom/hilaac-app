@@ -6,20 +6,20 @@ const SEVERITY_STYLES: Record<
   AlertSeverity,
   { card: string; dot: string; label: string; button: string }
 > = {
-  urgent: {
-    card: "border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/35",
-    dot: "bg-red-500",
-    label: "text-red-800 dark:text-red-200",
-    button: "bg-red-600 text-white hover:bg-red-700",
-  },
   important: {
-    card: "border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/35",
+    card: "border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-950/30",
     dot: "bg-amber-500",
     label: "text-amber-900 dark:text-amber-100",
     button: "bg-amber-600 text-white hover:bg-amber-700",
   },
+  urgent: {
+    card: "border-red-200 bg-red-50 dark:border-red-800/50 dark:bg-red-950/30",
+    dot: "bg-red-500",
+    label: "text-red-800 dark:text-red-200",
+    button: "bg-red-600 text-white hover:bg-red-700",
+  },
   normal: {
-    card: "border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/35",
+    card: "border-emerald-200 bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-950/30",
     dot: "bg-emerald-500",
     label: "text-emerald-900 dark:text-emerald-100",
     button: "bg-emerald-700 text-white hover:bg-emerald-800",
@@ -70,13 +70,13 @@ export function AlertsList({ alerts }: { alerts: RestaurantAlert[] }) {
                 >
                   {SEVERITY_LABEL[alert.severity]}
                 </p>
-                <p className="mt-1 text-base font-semibold text-[var(--admin-text,#0F172A)]">
+                <p className="mt-1 text-base font-semibold text-foreground dark:text-foreground">
                   {alert.title}
                 </p>
-                <p className="mt-1 text-sm text-[var(--admin-muted,#475569)]">
+                <p className="mt-1 text-sm text-muted-foreground dark:text-foreground/80">
                   {alert.description}
                 </p>
-                <p className="mt-3 text-sm text-[var(--admin-text,#0F172A)]">
+                <p className="mt-3 text-sm text-foreground dark:text-foreground">
                   <span className="font-semibold">Why it matters:</span>{" "}
                   {alert.whyItMatters}
                 </p>

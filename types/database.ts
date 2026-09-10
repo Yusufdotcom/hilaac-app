@@ -36,7 +36,7 @@ export interface OrderActionLog {
   created_at: string;
 }
 export type PaymentStatus = "pending" | "pending_cashier_confirmation" | "paid" | "failed";
-export type PaymentMethod = "evc" | "edahab";
+export type PaymentMethod = "evc" | "edahab" | "deyn";
 
 export interface Restaurant {
   id: string;
@@ -365,8 +365,72 @@ export interface Order {
   /** Staff who created a manual POS order (null for guest QR). */
   created_by?: string | null;
   customer_confirmed_at: string | null;
+  campaign_id?: string | null;
+  campaign_discount?: number | null;
+  promo_code?: string | null;
+  deyn_code?: string | null;
+  deyn_account_id?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type CampaignDiscountType = "percentage" | "fixed";
+
+export interface Campaign {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  code: string;
+  discount_type: CampaignDiscountType;
+  discount_value: number;
+  valid_from: string;
+  valid_to: string;
+  max_uses: number | null;
+  uses_count: number;
+  min_order_amount: number | null;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CampaignRedemption {
+  id: string;
+  restaurant_id: string;
+  campaign_id: string;
+  order_id: string;
+  customer_phone: string | null;
+  discount_applied: number;
+  order_total_before: number | null;
+  order_total_after: number | null;
+  created_at: string;
+}
+
+export interface DeynAccount {
+  id: string;
+  restaurant_id: string;
+  customer_name: string;
+  customer_phone: string;
+  deyn_code: string;
+  credit_limit: number;
+  balance: number;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
+export type DeynTransactionType = "charge" | "payment" | "adjustment";
+
+export interface DeynTransaction {
+  id: string;
+  restaurant_id: string;
+  deyn_account_id: string;
+  order_id: string | null;
+  transaction_type: DeynTransactionType;
+  amount: number;
+  note: string | null;
+  override_limit: boolean;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface OrderItemAddOn {

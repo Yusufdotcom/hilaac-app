@@ -8,11 +8,13 @@ export interface CreateOrderApiPayload {
   restaurantId: string;
   tableId: string | null;
   orderType: "dine-in" | "takeaway";
-  paymentMethod?: "evc" | "edahab" | null;
+  paymentMethod?: "evc" | "edahab" | "deyn" | null;
   billingModel?: "pay_before" | "pay_after";
   customerPhone?: string | null;
   /** Explicit marketing WhatsApp opt-in (re-engagement only). */
   whatsappMarketingOptIn?: boolean;
+  promoCode?: string | null;
+  deynCode?: string | null;
   notes?: string | null;
   items: {
     menuItemId: string;

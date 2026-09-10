@@ -49,7 +49,10 @@ export type TierFeature =
   | "group_bookings"
   | "online_booking_link"
   | "ramadan_yoy_comparison"
-  | "event_pl_report";
+  | "event_pl_report"
+  | "campaign_codes_basic"
+  | "campaign_analytics"
+  | "deyn_ledger";
 
 export type TierCapabilitySet = Readonly<Record<TierFeature, boolean>>;
 
@@ -80,6 +83,9 @@ const GORONYO: TierCapabilitySet = {
   online_booking_link: false,
   ramadan_yoy_comparison: false,
   event_pl_report: false,
+  campaign_codes_basic: true,
+  campaign_analytics: false,
+  deyn_ledger: true,
 };
 
 const GORGOR: TierCapabilitySet = {
@@ -96,6 +102,7 @@ const GORGOR: TierCapabilitySet = {
   inventory: true,
   menu_profitability: true,
   multi_branch_comparison: true,
+  campaign_analytics: true,
 };
 
 const GALEYR: TierCapabilitySet = {

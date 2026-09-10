@@ -191,16 +191,37 @@ export function WaiterBoard({
     });
   }, [tables, activeDineIn]);
 
-  async function handleAcceptOrder(order: OrderWithItems) {
+  async function handleAcceptOrder(
+    order: OrderWithItems,
+    options?: { overrideDeynLimit?: boolean }
+  ) {
     setAcceptBusyId(order.id);
     try {
-      const res = await fetch(`/api/staff/orders/${order.id}/accept`, { method: "POST" });
+      const res = await fetch(`/api/staff/orders/${order.id}/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          override_deyn_limit: options?.overrideDeynLimit === true,
+        }),
+      });
       const data = (await res.json().catch(() => ({}))) as {
         error?: string;
         alreadyAccepted?: boolean;
-        order?: { accepted_at?: string | null; accepted_by?: string | null };
+        code?: string;
+        available?: number;
+        needed?: number;
+        customer_name?: string;
+        can_override?: boolean;
+        order?: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          payment_status?: string | null;
+        };
       };
       if (!res.ok) {
+        if (data.code === "deyn_limit" && data.can_override) {
+          throw data;
+        }
         toast.error(data.error || "Could not accept order");
         return;
       }
@@ -208,6 +229,9 @@ export function WaiterBoard({
         patchOrderLocal(order.id, {
           accepted_at: data.order.accepted_at,
           accepted_by: data.order.accepted_by ?? null,
+          ...(data.order.payment_status
+            ? { payment_status: data.order.payment_status as OrderWithItems["payment_status"] }
+            : {}),
         });
       }
       toast.success(

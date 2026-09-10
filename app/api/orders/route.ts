@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
     paymentMethod,
     billingModel,
     whatsappMarketingOptIn,
+    promoCode,
+    deynCode,
   } = body as {
     restaurantId: string;
     tableId: string | null;
@@ -33,9 +35,11 @@ export async function POST(req: NextRequest) {
     items: IncomingItem[];
     notes?: string;
     customerPhone?: string;
-    paymentMethod?: "evc" | "edahab";
+    paymentMethod?: "evc" | "edahab" | "deyn";
     billingModel?: "pay_before" | "pay_after";
     whatsappMarketingOptIn?: boolean;
+    promoCode?: string;
+    deynCode?: string;
   };
 
   const result = await createOrderCore({
@@ -48,6 +52,8 @@ export async function POST(req: NextRequest) {
     paymentMethod,
     billingModel: billingModel ?? "pay_before",
     whatsappMarketingOptIn,
+    promoCode,
+    deynCode,
   });
 
   if (!result.ok) {
@@ -69,6 +75,8 @@ export async function POST(req: NextRequest) {
     orderId: result.orderId,
     orderNumber: result.orderNumber,
     total: result.total,
+    subtotal: result.subtotal,
+    campaignDiscount: result.campaignDiscount,
     chargeToken,
     accessToken,
   });

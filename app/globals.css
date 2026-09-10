@@ -51,9 +51,14 @@
     @apply border-border;
   }
 
+  html {
+    background-color: hsl(var(--background));
+  }
+
   body {
-    background-color: #ffffff;
-    color: #0f172a;
+    /* Theme tokens — never hard-code white (shows as scroll gaps in dark/landing). */
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
     @apply antialiased;
   }
@@ -85,6 +90,12 @@
   color: #ffffff;
   font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
   letter-spacing: -0.01em;
+}
+
+/* Prevent white body flash / scroll gaps behind navy landing */
+body:has(.landing-page) {
+  background-color: #0f172a;
+  color: #ffffff;
 }
 
 .landing-display {
@@ -268,7 +279,8 @@
   color: var(--admin-text);
 }
 
-.admin-shell[data-admin-theme="dark"] {
+.admin-shell[data-admin-theme="dark"],
+html[data-admin-theme="dark"] {
   --admin-bg: #14171f;
   --admin-card: #1c2030;
   --admin-border: #2a2f42;
@@ -293,6 +305,29 @@
   --accent-foreground: 220 20% 96%;
   --border: 228 22% 21%;
   --input: 228 22% 21%;
+}
+
+/* Body/html paint must follow admin theme so overscroll + portaled dialogs never flash white. */
+html[data-admin-theme="dark"],
+html[data-admin-theme="dark"] body {
+  background-color: var(--admin-bg, #14171f);
+  color: var(--admin-text, #f1f2f6);
+}
+
+html[data-admin-theme="light"],
+html[data-admin-theme="light"] body {
+  background-color: var(--admin-bg, #f5f6fa);
+  color: var(--admin-text, #0f172a);
+}
+
+.admin-shell[data-admin-theme="dark"] .admin-glass,
+.admin-shell[data-admin-theme="dark"] .admin-glass-panel,
+html[data-admin-theme="dark"] .admin-glass,
+html[data-admin-theme="dark"] .admin-glass-panel {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 12px 32px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Shared content surface — same tokens as Dashboard KPI cards */
@@ -355,14 +390,6 @@
     0 1px 0 rgba(255, 255, 255, 0.35) inset,
     0 8px 28px rgba(15, 23, 42, 0.08),
     0 2px 8px rgba(15, 23, 42, 0.04);
-}
-
-.admin-shell[data-admin-theme="dark"] .admin-glass,
-.admin-shell[data-admin-theme="dark"] .admin-glass-panel {
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 12px 32px rgba(0, 0, 0, 0.35),
-    0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .admin-glass-hover {

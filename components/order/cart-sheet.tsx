@@ -268,13 +268,21 @@ export function CartSheet({
   const [phone, setPhone] = useState("");
   const [whatsappMarketingOptIn, setWhatsappMarketingOptIn] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  const [placing, setPlacing] = useState<"evc" | "edahab" | "place" | null>(null);
+  const [placing, setPlacing] = useState<"evc" | "edahab" | "deyn" | "place" | null>(null);
   const [submittingOverlay, setSubmittingOverlay] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"evc" | "edahab" | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"evc" | "edahab" | "deyn" | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentDialCode, setPaymentDialCode] = useState("");
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoMsg, setPromoMsg] = useState<string | null>(null);
+  const [promoOk, setPromoOk] = useState(false);
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [deynCode, setDeynCode] = useState("");
+  const [deynMsg, setDeynMsg] = useState<string | null>(null);
+  const [deynOk, setDeynOk] = useState(false);
+  const [payWithDeyn, setPayWithDeyn] = useState(false);
   const submitAbortRef = useRef<AbortController | null>(null);
   const lastSubmitRef = useRef<null | (() => Promise<void>)>(null);
   const redirectTimerRef = useRef<number | null>(null);
@@ -319,11 +327,106 @@ export function CartSheet({
   }, [guestReady]);
 
   const total = useMemo(() => cartTotal(cart), [cart]);
+  const payableTotal = Math.max(0, Math.round((total - promoDiscount) * 100) / 100);
   const billingModel = useMemo(
     () => billingModelForOrderType(orderType, restaurant),
     [orderType, restaurant]
   );
   const isPayBefore = billingModel === "pay_before";
+
+  useEffect(() => {
+    const code = promoCode.trim().toUpperCase().replace(/\s+/g, "");
+    if (!code) {
+      setPromoMsg(null);
+      setPromoOk(false);
+      setPromoDiscount(0);
+      return;
+    }
+    const t = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/public/campaigns/validate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              restaurant_id: restaurant.id,
+              code,
+              order_total: total,
+            }),
+          });
+          const json = (await res.json().catch(() => ({}))) as {
+            ok?: boolean;
+            error?: string;
+            discount?: number;
+          };
+          if (json.ok) {
+            setPromoOk(true);
+            setPromoDiscount(Number(json.discount) || 0);
+            setPromoMsg(
+              `$${Number(json.discount || 0).toFixed(2)} off applied`
+            );
+          } else {
+            setPromoOk(false);
+            setPromoDiscount(0);
+            setPromoMsg(json.error || "Invalid promo code");
+          }
+        } catch {
+          setPromoOk(false);
+          setPromoDiscount(0);
+          setPromoMsg("Could not validate code");
+        }
+      })();
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [promoCode, restaurant.id, total]);
+
+  useEffect(() => {
+    if (!payWithDeyn) {
+      setDeynMsg(null);
+      setDeynOk(false);
+      return;
+    }
+    const code = deynCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+    if (code.length !== 8) {
+      setDeynOk(false);
+      setDeynMsg(code.length ? "Enter the full 8-character code" : null);
+      return;
+    }
+    const t = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/public/deyn/validate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              restaurant_id: restaurant.id,
+              code,
+              order_total: payableTotal,
+            }),
+          });
+          const json = (await res.json().catch(() => ({}))) as {
+            ok?: boolean;
+            error?: string;
+            customer_name?: string;
+            remaining_after?: number;
+          };
+          if (json.ok) {
+            setDeynOk(true);
+            setDeynMsg(
+              `${json.customer_name} · $${Number(json.remaining_after || 0).toFixed(2)} credit remaining after this order`
+            );
+          } else {
+            setDeynOk(false);
+            setDeynMsg(json.error || "Code not found");
+          }
+        } catch {
+          setDeynOk(false);
+          setDeynMsg("Could not validate Deyn code");
+        }
+      })();
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [deynCode, payWithDeyn, restaurant.id, payableTotal]);
 
   const dineInItems = useMemo(() => cart.filter((i) => i.orderType === "dine-in"), [cart]);
   const takeawayItems = useMemo(() => cart.filter((i) => i.orderType === "takeaway"), [cart]);
@@ -341,20 +444,28 @@ export function CartSheet({
     return `${trimmed}${Math.round(amount)}#`;
   }
 
-  function buildCreatePayload(method?: "evc" | "edahab"): CreateOrderApiPayload | null {
+  function buildCreatePayload(
+    method?: "evc" | "edahab" | "deyn"
+  ): CreateOrderApiPayload | null {
     if (cart.length === 0) return null;
     if (orderType === "dine-in" && !tableNumber) return null;
 
     const table = tables.find((t) => t.table_number === tableNumber);
+    const resolvedMethod = method ?? (payWithDeyn ? "deyn" : undefined);
 
     return {
       restaurantId: restaurant.id,
       tableId: orderType === "dine-in" ? table?.id ?? null : null,
       orderType,
-      billingModel: isPayBefore ? "pay_before" : "pay_after",
-      ...(method ? { paymentMethod: method } : {}),
+      billingModel: isPayBefore && resolvedMethod !== "deyn" ? "pay_before" : billingModel,
+      ...(resolvedMethod ? { paymentMethod: resolvedMethod } : {}),
       customerPhone: phone || null,
       whatsappMarketingOptIn,
+      promoCode: promoOk ? promoCode.trim().toUpperCase().replace(/\s+/g, "") : null,
+      deynCode:
+        resolvedMethod === "deyn"
+          ? deynCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8)
+          : null,
       notes: null,
       items: cart.map((item) => ({
         menuItemId: item.menuItem.id,
@@ -394,9 +505,15 @@ export function CartSheet({
   }
 
   async function createOrder(
-    method?: "evc" | "edahab",
+    method?: "evc" | "edahab" | "deyn",
     signal?: AbortSignal
   ) {
+    if (method === "deyn" && !deynOk) {
+      throw new Error(deynMsg || "Enter a valid Deyn code");
+    }
+    if (promoCode.trim() && !promoOk) {
+      throw new Error(promoMsg || "Fix or clear the promo code");
+    }
     const payload = buildCreatePayload(method);
     if (!payload) return null;
 
@@ -424,7 +541,7 @@ export function CartSheet({
       chargeToken,
       accessToken,
       createPayload: payload,
-      total: Number(data.total ?? total),
+      total: Number(data.total ?? payableTotal),
     };
   }
 
@@ -479,7 +596,7 @@ export function CartSheet({
    * and always redirects after 3s so slow networks still reach Status.
    */
   async function runOrderSubmission(options: {
-    method?: "evc" | "edahab";
+    method?: "evc" | "edahab" | "deyn";
     confirmPayment?: boolean;
     existingOrderId?: string | null;
   }) {
@@ -546,11 +663,39 @@ export function CartSheet({
 
   async function handlePlaceOrderWithoutPayment() {
     if (!validateCheckoutBasics()) return;
+    if (payWithDeyn) {
+      toast.error("Use Pay with Deyn to place this order");
+      return;
+    }
+    if (promoCode.trim() && !promoOk) {
+      toast.error(promoMsg || "Fix or clear the promo code");
+      return;
+    }
 
     const submit = async () => {
       await runOrderSubmission({});
     };
 
+    lastSubmitRef.current = submit;
+    await submit();
+  }
+
+  async function handlePlaceWithDeyn() {
+    if (!validateCheckoutBasics()) return;
+    if (!deynOk) {
+      toast.error(deynMsg || "Enter a valid Deyn code");
+      return;
+    }
+    if (promoCode.trim() && !promoOk) {
+      toast.error(promoMsg || "Fix or clear the promo code");
+      return;
+    }
+
+    setPaymentMethod("deyn");
+    setPlacing("deyn");
+    const submit = async () => {
+      await runOrderSubmission({ method: "deyn", confirmPayment: false });
+    };
     lastSubmitRef.current = submit;
     await submit();
   }
@@ -650,7 +795,7 @@ export function CartSheet({
   async function handleCustomerPaymentConfirmed() {
     setPaymentModalOpen(false);
     const method = paymentMethod;
-    if (!method) return;
+    if (!method || method === "deyn") return;
     await finalizePayBeforeOrder(method);
   }
 
@@ -668,8 +813,12 @@ export function CartSheet({
       void retry();
       return;
     }
-    if (paymentMethod) {
+    if (paymentMethod === "evc" || paymentMethod === "edahab") {
       void finalizePayBeforeOrder(paymentMethod);
+      return;
+    }
+    if (paymentMethod === "deyn") {
+      void handlePlaceWithDeyn();
       return;
     }
     void handlePlaceOrderWithoutPayment();
@@ -682,7 +831,9 @@ export function CartSheet({
     submittingOverlay ||
     cart.length === 0 ||
     hasUnavailableItems ||
-    !phoneValid;
+    !phoneValid ||
+    (promoCode.trim().length > 0 && !promoOk) ||
+    (payWithDeyn && !deynOk);
 
   return (
     <>
@@ -820,6 +971,79 @@ export function CartSheet({
                     </label>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="cart-promo" className="text-[13px] font-semibold text-muted-foreground">
+                      Promo code
+                    </Label>
+                    <Input
+                      id="cart-promo"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      placeholder="RAMADAN10"
+                      className="h-12 rounded-2xl border-border bg-muted/50 text-base uppercase tracking-wide"
+                      autoCapitalize="characters"
+                    />
+                    {promoMsg ? (
+                      <p
+                        className={cn(
+                          "text-xs font-medium",
+                          promoOk ? "text-emerald-600" : "text-red-600"
+                        )}
+                      >
+                        {promoOk ? `✓ ${promoMsg}` : `✕ ${promoMsg}`}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-2 rounded-2xl border border-border bg-muted/30 px-3 py-3">
+                    <label className="flex cursor-pointer items-center gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={payWithDeyn}
+                        onChange={(e) => {
+                          setPayWithDeyn(e.target.checked);
+                          if (!e.target.checked) {
+                            setDeynCode("");
+                            setDeynMsg(null);
+                            setDeynOk(false);
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                      <span className="text-sm font-semibold text-foreground">Pay with Deyn</span>
+                    </label>
+                    {payWithDeyn ? (
+                      <>
+                        <Label htmlFor="cart-deyn" className="text-[13px] text-muted-foreground">
+                          Enter your Deyn code
+                        </Label>
+                        <Input
+                          id="cart-deyn"
+                          value={deynCode}
+                          onChange={(e) =>
+                            setDeynCode(
+                              e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8)
+                            )
+                          }
+                          placeholder="ABCD2345"
+                          maxLength={8}
+                          className="h-12 rounded-2xl border-border bg-background font-mono text-base tracking-widest"
+                          autoCapitalize="characters"
+                        />
+                        {deynMsg ? (
+                          <p
+                            className={cn(
+                              "text-xs font-medium",
+                              deynOk ? "text-emerald-600" : "text-red-600"
+                            )}
+                          >
+                            {deynOk ? `✓ ${deynMsg}` : `✕ ${deynMsg}`}
+                          </p>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
+
                   {showTableLabel && (
                     <div className="flex justify-start">
                       <span
@@ -841,9 +1065,16 @@ export function CartSheet({
                   className="flex items-center justify-between rounded-2xl px-4 py-3.5"
                   style={{ backgroundColor: brandColorWithAlpha(accent, 0.1) }}
                 >
-                  <span className="text-base font-semibold text-foreground/80">Wadarta</span>
+                  <div>
+                    <span className="text-base font-semibold text-foreground/80">Wadarta</span>
+                    {promoOk && promoDiscount > 0 ? (
+                      <p className="text-xs font-medium text-emerald-700">
+                        −{formatCurrency(promoDiscount)} promo
+                      </p>
+                    ) : null}
+                  </div>
                   <span className="text-2xl font-bold tracking-tight tabular-nums" style={accentStyle}>
-                    {formatCurrency(total)}
+                    {formatCurrency(payableTotal)}
                   </span>
                 </div>
 
@@ -854,7 +1085,26 @@ export function CartSheet({
                   </p>
                 )}
 
-                {isPayBefore ? (
+                {payWithDeyn ? (
+                  <button
+                    type="button"
+                    disabled={paymentDisabled}
+                    onClick={() => void handlePlaceWithDeyn()}
+                    className={cn(
+                      "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-bold",
+                      "bg-[#0F172A] text-white shadow-[0_10px_28px_rgba(15,23,42,0.22)]",
+                      "transition-all duration-200 hover:opacity-95 active:scale-[0.98]",
+                      "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+                    )}
+                  >
+                    {placing === "deyn" || !isReady ? (
+                      <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Wallet className="h-5 w-5 shrink-0" aria-hidden="true" />
+                    )}
+                    {placing === "deyn" ? "Placing…" : "Place order with Deyn"}
+                  </button>
+                ) : isPayBefore ? (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Button
                       type="button"

@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { CheckCircle2, ClipboardCheck, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { OrderCustomerPhone } from "@/components/staff/order-customer-phone";
-import { cn, formatOrderLabel } from "@/lib/utils";
+import { cn, formatCurrency, formatOrderLabel } from "@/lib/utils";
 import type { OrderWithItems } from "@/types/database";
 
 function formatLocation(order: OrderWithItems) {
@@ -19,16 +20,50 @@ function formatItems(order: OrderWithItems) {
     .join(", ");
 }
 
+export type AcceptOptions = { overrideDeynLimit?: boolean };
+
 export function AcceptOrdersQueue({
   orders,
   busyOrderId,
   onAccept,
+  deynNames = {},
 }: {
   orders: OrderWithItems[];
   busyOrderId: string | null;
-  onAccept: (order: OrderWithItems) => void;
+  onAccept: (order: OrderWithItems, options?: AcceptOptions) => void | Promise<void>;
+  /** Optional map of deyn_account_id → customer name for badge display. */
+  deynNames?: Record<string, string>;
 }) {
   const count = orders.length;
+  const [limitPrompt, setLimitPrompt] = useState<{
+    order: OrderWithItems;
+    available: number;
+    needed: number;
+    customerName?: string;
+  } | null>(null);
+
+  async function tryAccept(order: OrderWithItems, override = false) {
+    try {
+      await onAccept(order, { overrideDeynLimit: override });
+      setLimitPrompt(null);
+    } catch (err) {
+      const data = err as {
+        code?: string;
+        available?: number;
+        needed?: number;
+        customer_name?: string;
+        can_override?: boolean;
+      };
+      if (data?.code === "deyn_limit" && data.can_override) {
+        setLimitPrompt({
+          order,
+          available: Number(data.available) || 0,
+          needed: Number(data.needed) || 0,
+          customerName: data.customer_name,
+        });
+      }
+    }
+  }
 
   return (
     <section
@@ -59,6 +94,33 @@ export function AcceptOrdersQueue({
         </Badge>
       </div>
 
+      {limitPrompt ? (
+        <div className="border-b border-amber-200 bg-amber-100/80 px-4 py-3 sm:px-5">
+          <p className="text-sm font-semibold text-amber-950">
+            Deyn credit limit would be exceeded
+            {limitPrompt.customerName ? ` for ${limitPrompt.customerName}` : ""}
+          </p>
+          <p className="mt-1 text-xs text-amber-900">
+            {formatCurrency(limitPrompt.available)} available ·{" "}
+            {formatCurrency(limitPrompt.needed)} needed. Override is logged to the audit trail.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              className="bg-amber-900 text-white hover:bg-amber-950"
+              disabled={busyOrderId === limitPrompt.order.id}
+              onClick={() => void tryAccept(limitPrompt.order, true)}
+            >
+              Override &amp; accept
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => setLimitPrompt(null)}>
+              Reject / cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {count === 0 ? (
         <p className="px-4 py-8 text-center text-sm text-[#64748B] sm:px-5">
           No orders waiting for acceptance.
@@ -68,6 +130,9 @@ export function AcceptOrdersQueue({
           {orders.map((order) => {
             const busy = busyOrderId === order.id;
             const accepted = Boolean(order.accepted_at);
+            const isDeyn = order.payment_method === "deyn";
+            const deynName =
+              (order.deyn_account_id && deynNames[order.deyn_account_id]) || null;
 
             return (
               <li
@@ -82,6 +147,12 @@ export function AcceptOrdersQueue({
                     <Badge className="border-0 bg-white text-[#0F172A]">
                       {formatLocation(order)}
                     </Badge>
+                    {isDeyn ? (
+                      <Badge className="border-0 bg-slate-900 text-white">
+                        💳 Deyn — {order.deyn_code || "—"}
+                        {deynName ? ` (${deynName})` : ""}
+                      </Badge>
+                    ) : null}
                   </div>
                   <OrderCustomerPhone
                     phone={order.customer_phone}
@@ -101,7 +172,7 @@ export function AcceptOrdersQueue({
                     <Button
                       type="button"
                       disabled={busy}
-                      onClick={() => onAccept(order)}
+                      onClick={() => void tryAccept(order)}
                       className="h-11 w-full rounded-xl bg-[#0F172A] px-5 font-semibold text-white hover:bg-[#1E293B] sm:w-auto"
                     >
                       {busy ? (

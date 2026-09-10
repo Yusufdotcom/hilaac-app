@@ -20,10 +20,13 @@ export function BusinessChatbot({
   slug,
   restaurantName,
   canUse,
+  hidden = false,
 }: {
   slug: string;
   restaurantName: string;
   canUse: boolean;
+  /** Hide on pages where the FAB would cover critical UI (e.g. Billing). */
+  hidden?: boolean;
 }) {
   const brand = useAdminBrandColor();
   const [open, setOpen] = useState(false);
@@ -32,6 +35,10 @@ export function BusinessChatbot({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (hidden) setOpen(false);
+  }, [hidden]);
 
   useEffect(() => {
     if (!open) return;
@@ -97,6 +104,8 @@ export function BusinessChatbot({
       setBusy(false);
     }
   }
+
+  if (hidden) return null;
 
   return (
     <>

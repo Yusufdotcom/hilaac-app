@@ -235,7 +235,7 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-5">
         {BILLING_CARDS.map((key) => {
           const plan = PLANS[key];
           const isCurrent = currentCard === key;
@@ -244,6 +244,7 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
             <Card
               key={key}
               className={cn(
+                "min-w-0 overflow-hidden",
                 isCurrent && cn("border-2", adminBrandBorderClass),
                 isAirlines &&
                   "border-[#D4A373]/40 bg-gradient-to-b from-[#0F172A] to-[#1E293B] text-white shadow-md"
@@ -295,7 +296,7 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
 
                 {isCurrent ? (
                   <BrandButton
-                    className="w-full"
+                    className="h-auto w-full whitespace-normal px-3 py-2.5 text-sm leading-snug"
                     onClick={() => requestPlanAction(key)}
                     disabled={!!pendingRenewalId}
                   >
@@ -305,7 +306,7 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
                 ) : (
                   <Button
                     className={cn(
-                      "w-full",
+                      "h-auto w-full whitespace-normal px-3 py-2.5 text-sm leading-snug",
                       isAirlines &&
                         "border-[#D4A373]/50 bg-[#D4A373] text-[#0F172A] hover:bg-[#D4A373]/90"
                     )}

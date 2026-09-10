@@ -1,22 +1,46 @@
 import type { LucideIcon } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { cn } from "@/lib/utils";
 
 function Sparkline({ values }: { values: number[] }) {
-  const series = values.length === 7 ? values : [...values, ...Array(7).fill(0)].slice(0, 7);
-  const max = Math.max(...series, 1);
+  const series = (values.length === 7 ? values : [...values, ...Array(7).fill(0)].slice(0, 7)).map(
+    (v, i) => ({ day: i + 1, value: Number(v) || 0 })
+  );
+  const max = Math.max(...series.map((d) => d.value), 1);
 
   return (
-    <div className="mt-3 flex h-8 items-end gap-1" aria-hidden="true">
-      {series.map((v, i) => {
-        const h = Math.max(12, Math.round((v / max) * 100));
-        return (
-          <span
-            key={i}
-            className="flex-1 rounded-sm bg-[color-mix(in_srgb,var(--admin-brand,#0F172A)_35%,transparent)]"
-            style={{ height: `${h}%` }}
+    <div className="mt-3 h-10 w-full" aria-hidden="true">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={series} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+          <XAxis dataKey="day" hide />
+          <YAxis hide domain={[0, max]} />
+          <Tooltip
+            cursor={{ fill: "color-mix(in srgb, var(--admin-brand, #9E2E2E) 12%, transparent)" }}
+            contentStyle={{
+              background: "var(--admin-card, #fff)",
+              border: "1px solid var(--admin-border, #E2E8F0)",
+              borderRadius: 8,
+              fontSize: 11,
+              color: "var(--admin-text, #0F172A)",
+            }}
+            formatter={(value) => [value ?? 0, ""]}
+            labelFormatter={() => ""}
           />
-        );
-      })}
+          <Bar
+            dataKey="value"
+            fill="color-mix(in srgb, var(--admin-brand, #9E2E2E) 55%, transparent)"
+            radius={[2, 2, 0, 0]}
+            isAnimationActive={false}
+          />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -52,12 +76,13 @@ export function DashboardStatCard({
           <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
       </div>
-      {sparkline ? <Sparkline values={sparkline} /> : null}
+      {/* Always render 7-day trend strip (zeros when no history). */}
+      <Sparkline values={sparkline ?? [0, 0, 0, 0, 0, 0, 0]} />
       <p
         className={cn(
           "mt-3 text-xs font-semibold",
-          up && "text-emerald-600",
-          down && "text-red-600",
+          up && "text-emerald-600 dark:text-emerald-400",
+          down && "text-red-600 dark:text-red-400",
           delta == null && "text-[var(--admin-muted,#94A3B8)]",
           delta === 0 && "text-[var(--admin-muted,#94A3B8)]"
         )}

@@ -155,6 +155,7 @@ function AdminShellChrome({
         slug={currentSlug}
         restaurantName={restaurantName}
         canUse={canUseFeature(subscriptionTier, "ai_chatbot")}
+        hidden={pathname.includes("/billing")}
       />
     </div>
   );

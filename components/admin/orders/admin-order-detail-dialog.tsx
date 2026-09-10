@@ -126,10 +126,10 @@ export function AdminOrderDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="admin-glass-panel max-w-lg border-0 sm:max-w-xl">
+      <DialogContent className="admin-glass-panel max-w-lg border-border bg-card text-card-foreground sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{formatOrderLabel(order, { prefix: true })}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-foreground">{formatOrderLabel(order, { prefix: true })}</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Placed {formatDate(order.created_at)}
             {order.updated_at && order.updated_at !== order.created_at
               ? ` · Updated ${formatDate(order.updated_at)}`
@@ -137,7 +137,7 @@ export function AdminOrderDetailDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 text-sm">
+        <div className="space-y-4 text-sm text-foreground">
           <div className="flex flex-wrap gap-2">
             <Badge className={cn("capitalize", orderStatusPill(order.status))}>
               {order.status.replaceAll("_", " ")}
@@ -150,27 +150,27 @@ export function AdminOrderDetailDialog({
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
             <div>
               <dt className="text-muted-foreground">Type</dt>
-              <dd className="font-medium capitalize">{order.order_type}</dd>
+              <dd className="font-medium text-foreground capitalize">{order.order_type}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Table</dt>
-              <dd className="font-medium">{order.table?.table_number ?? "—"}</dd>
+              <dd className="font-medium text-foreground">{order.table?.table_number ?? "—"}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Total</dt>
-              <dd className="font-medium">{formatCurrency(Number(order.total))}</dd>
+              <dd className="font-medium text-foreground">{formatCurrency(Number(order.total))}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Method</dt>
-              <dd className="font-medium uppercase">{order.payment_method ?? "—"}</dd>
+              <dd className="font-medium text-foreground uppercase">{order.payment_method ?? "—"}</dd>
             </div>
             <div className="col-span-2">
               <dt className="text-muted-foreground">Delivered by</dt>
-              <dd className="font-medium">{order.delivered_by ?? "—"}</dd>
+              <dd className="font-medium text-foreground">{order.delivered_by ?? "—"}</dd>
             </div>
             <div className="col-span-2">
               <dt className="mb-1 text-muted-foreground">Customer phone</dt>
-              <dd>
+              <dd className="text-foreground">
                 {order.customer_phone ? (
                   <OrderCustomerPhone phone={order.customer_phone} />
                 ) : (
@@ -183,20 +183,20 @@ export function AdminOrderDetailDialog({
           {order.notes?.trim() && (
             <div>
               <p className="text-muted-foreground">Order notes</p>
-              <p className="mt-1 rounded-lg bg-muted/60 px-3 py-2">{order.notes}</p>
+              <p className="mt-1 rounded-lg bg-muted/60 px-3 py-2 text-foreground">{order.notes}</p>
             </div>
           )}
 
           <div>
-            <p className="mb-2 font-medium">Items</p>
+            <p className="mb-2 font-medium text-foreground">Items</p>
             <ul className="space-y-2">
               {(order.order_items ?? []).map((item) => (
                 <li
                   key={item.id}
-                  className="rounded-lg border border-border/60 px-3 py-2"
+                  className="rounded-lg border border-border bg-card/40 px-3 py-2"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="font-medium">{formatItemLine(item)}</span>
+                    <span className="font-medium text-foreground">{formatItemLine(item)}</span>
                     <span className="shrink-0 text-muted-foreground">
                       {formatCurrency(Number(item.price_at_time) * item.quantity)}
                     </span>

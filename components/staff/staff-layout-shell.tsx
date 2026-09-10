@@ -35,7 +35,7 @@ export function StaffLayoutShell({
 
   return (
     <div
-      className="flex min-h-screen w-full flex-col bg-[#F5F6FA]"
+      className="flex min-h-screen w-full max-w-[100vw] flex-col overflow-x-clip bg-[var(--admin-bg,#F5F6FA)] text-[var(--admin-text,#0F172A)]"
       style={{
         ["--brand-accent" as string]: accent,
         ["--admin-brand" as string]: accent,
@@ -53,7 +53,8 @@ export function StaffLayoutShell({
         onOpenChange={setMenuOpen}
       />
 
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+      {/* Document scroll — do not nest overflow-y-auto (creates mid-page blank gaps). */}
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-clip">
         <StaffTopBar
           role={role}
           restaurantName={restaurantName}
@@ -62,11 +63,11 @@ export function StaffLayoutShell({
           staffDisplayName={staffDisplayName}
           slug={slug}
         />
-        <main className="relative flex-1 overflow-y-auto p-4 text-[#0F172A] sm:p-6 md:p-8">
+        <main className="relative flex min-w-0 flex-1 flex-col overflow-x-clip p-4 sm:p-6 md:p-8">
           <div
             className="pointer-events-none absolute inset-0 -z-0 opacity-100"
             style={{
-              background: `radial-gradient(700px 360px at 10% -10%, color-mix(in srgb, ${accent} 14%, transparent), transparent 70%)`,
+              background: `radial-gradient(700px 360px at 10% -10%, color-mix(in srgb, ${accent} 14%, transparent), transparent 70%), var(--admin-bg, #F5F6FA)`,
             }}
             aria-hidden="true"
           />

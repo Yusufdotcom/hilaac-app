@@ -1,5 +1,17 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { normalizeLoyaltyPhone } from "@/lib/loyalty/phone";
+import {
+  normalizePromoCode,
+  validateCampaignAgainstOrder,
+  type CampaignRow,
+} from "@/lib/campaigns/promo";
+import {
+  normalizeDeynCode,
+  validateDeynForOrder,
+  type DeynAccountRow,
+} from "@/lib/deyn/codes";
+import { getAppDayBounds } from "@/lib/time/app-calendar";
+import type { PaymentMethod } from "@/types/database";
 
 export type CreateOrderLineInput = {
   menuItemId: string;
@@ -15,9 +27,11 @@ export type CreateOrderCoreInput = {
   items: CreateOrderLineInput[];
   notes?: string | null;
   customerPhone?: string | null;
-  paymentMethod?: "evc" | "edahab" | null;
+  paymentMethod?: PaymentMethod | null;
   billingModel: "pay_before" | "pay_after";
   whatsappMarketingOptIn?: boolean;
+  promoCode?: string | null;
+  deynCode?: string | null;
   /** When set, order is staff POS: auto-accepted and kitchen-visible as `new`. */
   staffPos?: {
     createdBy: string;
@@ -31,6 +45,8 @@ export type CreateOrderCoreResult =
       orderId: string;
       orderNumber: number | null;
       total: number;
+      subtotal: number;
+      campaignDiscount: number;
     }
   | { ok: false; status: number; error: string };
 
@@ -51,6 +67,8 @@ export async function createOrderCore(
     paymentMethod,
     billingModel,
     whatsappMarketingOptIn,
+    promoCode,
+    deynCode,
     staffPos,
   } = input;
   const marketingOptIn = Boolean(whatsappMarketingOptIn);
@@ -84,7 +102,7 @@ export async function createOrderCore(
   const menuItemMap = new Map((menuItems ?? []).map((m) => [m.id, m]));
   const addOnMap = new Map((addOns ?? []).map((a) => [a.id, a]));
 
-  let total = 0;
+  let subtotal = 0;
   const orderItemsPayload: {
     menu_item_id: string;
     quantity: number;
@@ -104,7 +122,7 @@ export async function createOrderCore(
       .filter((a): a is NonNullable<typeof a> => !!a && a.restaurant_id === restaurantId);
 
     const unitPrice = Number(menuItem.price) + selectedAddOns.reduce((sum, a) => sum + Number(a.price), 0);
-    total += unitPrice * quantity;
+    subtotal += unitPrice * quantity;
 
     orderItemsPayload.push({
       menu_item_id: menuItem.id,
@@ -115,17 +133,69 @@ export async function createOrderCore(
     });
   }
 
-  // Staff POS: guest is present — skip Accept and send straight to kitchen as `new`.
-  // Guest QR: pay_before → awaiting_payment; pay_after → new (still needs Accept for dine-in).
-  //
-  // payment_status:
-  // - Guest: always `pending` at create. `pending_cashier_confirmation` only after
-  //   customer/provider submits payment (confirm-payment route / webhooks).
-  // - Staff POS pay_before: mark `paid` (cash taken at till) so kitchen can cook immediately.
-  // - Staff POS pay_after: stay `pending` until Confirm Payment after delivery.
+  let campaignDiscount = 0;
+  let campaignId: string | null = null;
+  let promoNormalized: string | null = null;
+  let campaignUses = 0;
+  const codeIn = normalizePromoCode(promoCode ?? "");
+  if (codeIn) {
+    const { data: campaign } = await supabase
+      .from("campaigns")
+      .select("*")
+      .eq("restaurant_id", restaurantId)
+      .eq("code", codeIn)
+      .maybeSingle();
+
+    if (!campaign) {
+      return { ok: false, status: 400, error: "Invalid promo code" };
+    }
+
+    const { ymd } = getAppDayBounds(0);
+    const today = `${ymd.year}-${String(ymd.month).padStart(2, "0")}-${String(ymd.day).padStart(2, "0")}`;
+    const check = validateCampaignAgainstOrder(campaign as CampaignRow, subtotal, today);
+    if (!check.ok) {
+      return { ok: false, status: 400, error: check.error };
+    }
+    campaignDiscount = check.discount;
+    campaignId = check.campaign.id;
+    promoNormalized = check.campaign.code;
+    campaignUses = Number(check.campaign.uses_count) || 0;
+  }
+
+  let total = Math.max(0, Math.round((subtotal - campaignDiscount) * 100) / 100);
+
+  let deynAccountId: string | null = null;
+  let deynNormalized: string | null = null;
+  const method: PaymentMethod | null = paymentMethod ?? null;
+
+  if (method === "deyn") {
+    const dCode = normalizeDeynCode(deynCode ?? "");
+    if (dCode.length !== 8) {
+      return { ok: false, status: 400, error: "Enter a valid 8-character Deyn code" };
+    }
+    const { data: account } = await supabase
+      .from("deyn_accounts")
+      .select("*")
+      .eq("deyn_code", dCode)
+      .maybeSingle();
+
+    const check = validateDeynForOrder(
+      (account as DeynAccountRow | null) ?? null,
+      restaurantId,
+      total
+    );
+    if (!check.ok) {
+      return { ok: false, status: 400, error: check.error };
+    }
+    deynAccountId = check.account.id;
+    deynNormalized = check.account.deyn_code;
+  } else if (deynCode) {
+    return { ok: false, status: 400, error: "Deyn code requires Pay with Deyn" };
+  }
+
   const initialStatus = staffPos
     ? "new"
-    : billingModel === "pay_before"
+    : billingModel === "pay_before" && method !== "deyn"
       ? "awaiting_payment"
       : "new";
   const initialPaymentStatus =
@@ -153,12 +223,17 @@ export async function createOrderCore(
       status: initialStatus,
       payment_status: initialPaymentStatus,
       billing_model: billingModel,
-      payment_method: paymentMethod ?? null,
+      payment_method: method,
       order_number: nextOrderNumber,
       total,
       customer_phone: customerPhone || null,
       whatsapp_marketing_opt_in: marketingOptIn,
       notes: notes || null,
+      campaign_id: campaignId,
+      campaign_discount: campaignDiscount > 0 ? campaignDiscount : null,
+      promo_code: promoNormalized,
+      deyn_code: deynNormalized,
+      deyn_account_id: deynAccountId,
       ...(staffPos
         ? {
             accepted_at: nowIso,
@@ -181,6 +256,22 @@ export async function createOrderCore(
   if (itemsError) {
     await supabase.from("orders").delete().eq("id", order.id);
     return { ok: false, status: 500, error: itemsError.message };
+  }
+
+  if (campaignId && campaignDiscount > 0) {
+    await supabase.from("campaign_redemptions").insert({
+      restaurant_id: restaurantId,
+      campaign_id: campaignId,
+      order_id: order.id,
+      customer_phone: customerPhone || null,
+      discount_applied: campaignDiscount,
+      order_total_before: subtotal,
+      order_total_after: total,
+    });
+    await supabase
+      .from("campaigns")
+      .update({ uses_count: campaignUses + 1 })
+      .eq("id", campaignId);
   }
 
   const phoneNormalized = normalizeLoyaltyPhone(customerPhone);
@@ -211,5 +302,7 @@ export async function createOrderCore(
     orderId: order.id,
     orderNumber: order.order_number,
     total,
+    subtotal,
+    campaignDiscount,
   };
 }
