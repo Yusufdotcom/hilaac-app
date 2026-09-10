@@ -7,8 +7,7 @@ import {
 /**
  * Billing / marketing plan cards.
  * During migration: keep starter/pro for existing renew flows;
- * also expose Goronyo/Gorgor/Galeyr for the new UI (Step 1.6).
- * Somali Airlines is marketing-only until a paid enterprise product ships (no DB enum yet).
+ * expose Goronyo/Gorgor/Galeyr/Somali Airlines for the current UI.
  */
 export const PLANS = {
   starter: {
@@ -47,23 +46,15 @@ export const PLANS = {
     features: [...TIER_PLANS.galeyr.features],
   },
   somali_airlines: {
-    name: "Somali Airlines",
-    price: 120,
-    priceLabel: "$120/mo",
-    description:
-      "Enterprise ops for events, Ramadan packages, wedding halls, and Deyn — plus everything in Galeyr.",
-    features: [
-      "Everything in Galeyr 1.0",
-      "Ramadan packages & seasonal menus",
-      "Events & wedding hall management",
-      "Deyn (credit) ledger",
-      "Diaspora Mode & multi-site ops",
-      "Dedicated onboarding & support",
-    ],
+    name: TIER_PLANS.somali_airlines.name,
+    price: TIER_PLANS.somali_airlines.price,
+    priceLabel: TIER_PLANS.somali_airlines.priceLabel,
+    description: TIER_PLANS.somali_airlines.description,
+    features: [...TIER_PLANS.somali_airlines.features],
   },
 } as const;
 
-/** Landing + marketing grid order (includes enterprise Somali Airlines). */
+/** Landing + marketing grid order. */
 export const LANDING_PLAN_KEYS = [
   "goronyo",
   "gorgor",

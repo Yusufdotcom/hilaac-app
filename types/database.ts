@@ -7,7 +7,8 @@ export type SubscriptionTier =
   | "pro"
   | "goronyo"
   | "gorgor"
-  | "galeyr";
+  | "galeyr"
+  | "somali_airlines";
 export type SubscriptionStatus = "active" | "expired";
 export type OrderType = "dine-in" | "takeaway";
 export type OrderStatus =

@@ -1,13 +1,13 @@
 /**
- * Canonical subscription capability map for the Goronyo / Gorgor / Galeyr model.
+ * Canonical subscription capability map:
+ * Goronyo / Gorgor / Galeyr / Somali Airlines (+ legacy).
  *
  * Legacy mapping (migration period):
- * - starter → Goronyo capabilities (existing Starter customers unchanged)
- * - pro     → Galeyr capabilities (never strip a paid Pro feature mid-migration)
- * - trial   → Galeyr capabilities (matches today's trial = Pro-feature access)
+ * - starter → Goronyo capabilities
+ * - pro     → Somali Airlines capabilities (V3: never strip a paid Pro feature)
+ * - trial   → Galeyr capabilities (trial = BI access, not SA exclusives)
  *
- * Fail-safe: unknown tier → most permissive (Galeyr) + loud console error.
- * Never lock out a paying customer due to a billing edge case.
+ * Fail-safe: unknown tier → most permissive (Somali Airlines) + loud console error.
  */
 
 export const TIER_VALUES = [
@@ -17,6 +17,7 @@ export const TIER_VALUES = [
   "goronyo",
   "gorgor",
   "galeyr",
+  "somali_airlines",
 ] as const;
 
 export type KnownTier = (typeof TIER_VALUES)[number];
@@ -40,7 +41,15 @@ export type TierFeature =
   | "expenses_pnl"
   | "staff_performance"
   | "customer_intelligence"
-  | "cross_branch_benchmarking";
+  | "cross_branch_benchmarking"
+  | "ramadan_packages"
+  | "eid_packages"
+  | "package_gifting"
+  | "event_hall_management"
+  | "group_bookings"
+  | "online_booking_link"
+  | "ramadan_yoy_comparison"
+  | "event_pl_report";
 
 export type TierCapabilitySet = Readonly<Record<TierFeature, boolean>>;
 
@@ -63,6 +72,14 @@ const GORONYO: TierCapabilitySet = {
   staff_performance: false,
   customer_intelligence: false,
   cross_branch_benchmarking: false,
+  ramadan_packages: false,
+  eid_packages: false,
+  package_gifting: false,
+  event_hall_management: false,
+  group_bookings: false,
+  online_booking_link: false,
+  ramadan_yoy_comparison: false,
+  event_pl_report: false,
 };
 
 const GORGOR: TierCapabilitySet = {
@@ -88,6 +105,18 @@ const GALEYR: TierCapabilitySet = {
   staff_performance: true,
   customer_intelligence: true,
   cross_branch_benchmarking: true,
+};
+
+const SOMALI_AIRLINES: TierCapabilitySet = {
+  ...GALEYR,
+  ramadan_packages: true,
+  eid_packages: true,
+  package_gifting: true,
+  event_hall_management: true,
+  group_bookings: true,
+  online_booking_link: true,
+  ramadan_yoy_comparison: true,
+  event_pl_report: true,
 };
 
 const GORONYO_FEATURES = [
@@ -118,7 +147,18 @@ const GALEYR_FEATURES = [
   "Cross-branch benchmarking",
 ] as const;
 
-/** Display / billing metadata for the new 3-tier model (+ legacy aliases). */
+const SOMALI_AIRLINES_FEATURES = [
+  "Everything in Galeyr 1.0",
+  "Ramadan + Eid packages (Normal + Buffet)",
+  "Wedding & event hall management",
+  "Online booking link for social media",
+  "Group & corporate bookings with quotes",
+  "Package gifting via WhatsApp",
+  "Year-over-year Ramadan comparison",
+  "Post-event profit reports",
+] as const;
+
+/** Display / billing metadata for the 4-tier model (+ legacy aliases). */
 export const TIER_PLANS = {
   goronyo: {
     name: "Goronyo 1.0",
@@ -141,6 +181,13 @@ export const TIER_PLANS = {
     description: "Full business intelligence — chatbot, P&L, staff, and customer insights.",
     features: GALEYR_FEATURES,
   },
+  somali_airlines: {
+    name: "Somali Airlines 1.0",
+    price: 120,
+    priceLabel: "$120/mo",
+    description: "For restaurants that do it all — events, halls, Ramadan packages.",
+    features: SOMALI_AIRLINES_FEATURES,
+  },
   /** Legacy aliases — kept during migration so old UI/email copy still resolves. */
   starter: {
     name: "Starter",
@@ -153,8 +200,8 @@ export const TIER_PLANS = {
     name: "Pro",
     price: 79,
     priceLabel: "$79/mo",
-    description: "Legacy plan — maps to Galeyr capabilities.",
-    features: GALEYR_FEATURES,
+    description: "Legacy plan — maps to Somali Airlines capabilities (V3).",
+    features: SOMALI_AIRLINES_FEATURES,
   },
   trial: {
     name: "Trial",
@@ -169,8 +216,9 @@ const CAPABILITIES_BY_TIER: Record<KnownTier, TierCapabilitySet> = {
   goronyo: GORONYO,
   gorgor: GORGOR,
   galeyr: GALEYR,
+  somali_airlines: SOMALI_AIRLINES,
   starter: GORONYO,
-  pro: GALEYR,
+  pro: SOMALI_AIRLINES,
   trial: GALEYR,
 };
 
@@ -182,7 +230,7 @@ export function normalizeTier(tier: string | null | undefined): KnownTier | null
   return (TIER_VALUES as readonly string[]).includes(t) ? (t as KnownTier) : null;
 }
 
-/** Resolve capability set. Unknown tiers fail open to Galeyr. */
+/** Resolve capability set. Unknown tiers fail open to Somali Airlines. */
 export function capabilitiesForTier(tier: string | null | undefined): TierCapabilitySet {
   const known = normalizeTier(tier);
   if (known) return CAPABILITIES_BY_TIER[known];
@@ -191,10 +239,10 @@ export function capabilitiesForTier(tier: string | null | undefined): TierCapabi
   if (!unknownTierLogged.has(key)) {
     unknownTierLogged.add(key);
     console.error(
-      `[billing] Unknown subscription_tier "${key}" — failing OPEN to Galeyr capabilities. Fix mapping immediately.`
+      `[billing] Unknown subscription_tier "${key}" — failing OPEN to Somali Airlines capabilities. Fix mapping immediately.`
     );
   }
-  return GALEYR;
+  return SOMALI_AIRLINES;
 }
 
 export function canUseFeature(
@@ -210,14 +258,20 @@ export function tierDisplayName(tier: string | null | undefined): string {
   if (known === "goronyo") return TIER_PLANS.goronyo.name;
   if (known === "gorgor") return TIER_PLANS.gorgor.name;
   if (known === "galeyr") return TIER_PLANS.galeyr.name;
+  if (known === "somali_airlines") return TIER_PLANS.somali_airlines.name;
   if (known === "starter") return "Starter Plan";
   if (known === "pro") return "Pro Plan";
   return "Trial Plan";
 }
 
 /** Billable paid tiers for renew / switch flows (new model). */
-export type NewBillableTier = "goronyo" | "gorgor" | "galeyr";
+export type NewBillableTier = "goronyo" | "gorgor" | "galeyr" | "somali_airlines";
 
 export function isNewBillableTier(tier: string | null | undefined): tier is NewBillableTier {
-  return tier === "goronyo" || tier === "gorgor" || tier === "galeyr";
+  return (
+    tier === "goronyo" ||
+    tier === "gorgor" ||
+    tier === "galeyr" ||
+    tier === "somali_airlines"
+  );
 }

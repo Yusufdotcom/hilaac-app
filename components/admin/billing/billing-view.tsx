@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, CheckCircle2, Crown, Smartphone, AlertTriangle } from "lucide-react";
+import { Loader2, CheckCircle2, Crown, Smartphone, AlertTriangle, Plane } from "lucide-react";
 import { toast } from "sonner";
 import { BrandButton } from "@/components/admin/brand-button";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,14 @@ type UssdPayload = {
   dial: { evc: string; edahab: string };
 };
 
-const BILLING_CARDS: PlanKey[] = ["goronyo", "gorgor", "galeyr"];
+const BILLING_CARDS: PlanKey[] = ["goronyo", "gorgor", "galeyr", "somali_airlines"];
+
+const PLAN_RANK: Record<PlanKey, number> = {
+  goronyo: 1,
+  gorgor: 2,
+  galeyr: 3,
+  somali_airlines: 4,
+};
 
 const DOWNGRADE_LOSSES: Record<PlanKey, string[]> = {
   goronyo: [
@@ -51,14 +58,22 @@ const DOWNGRADE_LOSSES: Record<PlanKey, string[]> = {
     "Recap email delivery",
     "Unlimited staff / multi-branch",
     "AI Business Chatbot and Galeyr tools",
+    "Ramadan / Events (Somali Airlines)",
   ],
   gorgor: [
     "AI Business Chatbot (Galeyr exclusive)",
     "Expenses / P&L",
     "Staff performance + scheduling",
     "Customer intelligence",
+    "Ramadan / Events (Somali Airlines)",
   ],
-  galeyr: [],
+  galeyr: [
+    "Ramadan + Eid packages",
+    "Wedding & event hall management",
+    "Online booking link",
+    "Post-event profit reports",
+  ],
+  somali_airlines: [],
 };
 
 export function BillingView({ restaurant }: { restaurant: Restaurant }) {
@@ -132,8 +147,7 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
       void openPay("renew");
       return;
     }
-    const rank = { goronyo: 1, gorgor: 2, galeyr: 3 } as const;
-    if (rank[planKey] < rank[currentCard]) {
+    if (PLAN_RANK[planKey] < PLAN_RANK[currentCard]) {
       setPendingTarget(planKey);
       setDowngradeOpen(true);
       return;
@@ -221,30 +235,58 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         {BILLING_CARDS.map((key) => {
           const plan = PLANS[key];
           const isCurrent = currentCard === key;
+          const isAirlines = key === "somali_airlines";
           return (
-            <Card key={key} className={isCurrent ? cn("border-2", adminBrandBorderClass) : ""}>
+            <Card
+              key={key}
+              className={cn(
+                isCurrent && cn("border-2", adminBrandBorderClass),
+                isAirlines &&
+                  "border-[#D4A373]/40 bg-gradient-to-b from-[#0F172A] to-[#1E293B] text-white shadow-md"
+              )}
+            >
               <CardHeader>
                 <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-lg">{plan.name}</CardTitle>
+                  <CardTitle
+                    className={cn(
+                      "flex items-center gap-2 text-lg",
+                      isAirlines && "text-[#D4A373]"
+                    )}
+                  >
+                    {isAirlines ? <Plane className="h-5 w-5 shrink-0" aria-hidden="true" /> : null}
+                    {plan.name}
+                  </CardTitle>
                   {isCurrent && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge
+                      variant="secondary"
+                      className={cn("text-xs", isAirlines && "bg-[#D4A373]/20 text-[#D4A373]")}
+                    >
                       Current
                     </Badge>
                   )}
                 </div>
-                <div className="text-3xl font-bold">{plan.priceLabel}</div>
-                <CardDescription>{plan.description}</CardDescription>
+                <div className={cn("text-3xl font-bold", isAirlines && "text-white")}>
+                  {plan.priceLabel}
+                </div>
+                <CardDescription className={cn(isAirlines && "text-slate-300")}>
+                  {isAirlines
+                    ? "For restaurants that do it all — events, halls, Ramadan packages."
+                    : plan.description}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <ul className="space-y-2 text-sm">
+                <ul className={cn("space-y-2 text-sm", isAirlines && "text-slate-200")}>
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <CheckCircle2
-                        className={cn("mt-0.5 h-4 w-4 shrink-0", adminBrandTextClass)}
+                        className={cn(
+                          "mt-0.5 h-4 w-4 shrink-0",
+                          isAirlines ? "text-[#D4A373]" : adminBrandTextClass
+                        )}
                       />{" "}
                       {f}
                     </li>
@@ -262,14 +304,23 @@ export function BillingView({ restaurant }: { restaurant: Restaurant }) {
                   </BrandButton>
                 ) : (
                   <Button
-                    className="w-full"
-                    variant="outline"
+                    className={cn(
+                      "w-full",
+                      isAirlines &&
+                        "border-[#D4A373]/50 bg-[#D4A373] text-[#0F172A] hover:bg-[#D4A373]/90"
+                    )}
+                    variant={isAirlines ? "default" : "outline"}
                     onClick={() => requestPlanAction(key)}
                     disabled={!!pendingRenewalId}
                   >
-                    {key === "galeyr" ||
+                    {key === "somali_airlines" ||
+                    key === "galeyr" ||
                     (key === "gorgor" && currentCard === "goronyo") ? (
-                      <Crown className="h-4 w-4" />
+                      key === "somali_airlines" ? (
+                        <Plane className="h-4 w-4" />
+                      ) : (
+                        <Crown className="h-4 w-4" />
+                      )
                     ) : null}
                     Switch to {plan.name} — {formatCurrency(plan.price)}
                   </Button>

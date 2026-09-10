@@ -1,17 +1,10 @@
 import Link from "next/link";
 import { Check, Plane } from "lucide-react";
 import { ComparePlansSection } from "@/components/landing/compare-plans-section";
-import { LANDING_PLAN_KEYS, PLANS, type LandingPlanKey } from "@/lib/constants";
+import { LANDING_PLAN_KEYS, PLANS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-function PlanCta({ planKey }: { planKey: LandingPlanKey }) {
-  if (planKey === "somali_airlines") {
-    return (
-      <a href="mailto:sales@hilaac.so" className="landing-btn-gold mt-8 w-full">
-        Contact Sales
-      </a>
-    );
-  }
+function PlanCta() {
   return (
     <Link href="/signup" className="landing-btn-gold mt-8 w-full">
       Start Free Trial
@@ -75,7 +68,7 @@ export function PricingSection() {
                   ))}
                 </ul>
 
-                <PlanCta planKey={key} />
+                <PlanCta />
               </div>
             );
           })}

@@ -11,7 +11,8 @@ export type RenewalIntent =
   | "switch_starter"
   | "switch_goronyo"
   | "switch_gorgor"
-  | "switch_galeyr";
+  | "switch_galeyr"
+  | "switch_somali_airlines";
 
 const DAY_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -21,6 +22,7 @@ const BILLABLE: readonly BillableTier[] = [
   "goronyo",
   "gorgor",
   "galeyr",
+  "somali_airlines",
 ];
 
 export function isBillableTier(tier: string | null | undefined): tier is BillableTier {
@@ -33,6 +35,7 @@ export function parseRenewalIntent(raw: unknown): RenewalIntent {
   if (raw === "switch_goronyo") return "switch_goronyo";
   if (raw === "switch_gorgor") return "switch_gorgor";
   if (raw === "switch_galeyr") return "switch_galeyr";
+  if (raw === "switch_somali_airlines") return "switch_somali_airlines";
   return "renew";
 }
 
@@ -42,11 +45,12 @@ export function isPlanSwitchIntent(intent: RenewalIntent): boolean {
 
 /**
  * Which billing card highlights as "current" for a restaurant tier.
- * Legacy starter → Goronyo card; legacy pro/trial → Galeyr card.
+ * Legacy starter → Goronyo; legacy pro → Somali Airlines; trial → Galeyr.
  */
 export function billingCardForTier(
   tier: SubscriptionTier | string | null | undefined
 ): NewBillableTier {
+  if (tier === "somali_airlines" || tier === "pro") return "somali_airlines";
   if (tier === "gorgor") return "gorgor";
   if (tier === "goronyo" || tier === "starter") return "goronyo";
   return "galeyr";
@@ -60,7 +64,8 @@ export function intentForBillingCard(
   if (targetCard === currentCard) return "renew";
   if (targetCard === "goronyo") return "switch_goronyo";
   if (targetCard === "gorgor") return "switch_gorgor";
-  return "switch_galeyr";
+  if (targetCard === "galeyr") return "switch_galeyr";
+  return "switch_somali_airlines";
 }
 
 export function resolveRenewalTier(
@@ -70,6 +75,7 @@ export function resolveRenewalTier(
   if (intent === "switch_goronyo") return "goronyo";
   if (intent === "switch_gorgor") return "gorgor";
   if (intent === "switch_galeyr") return "galeyr";
+  if (intent === "switch_somali_airlines") return "somali_airlines";
   if (intent === "upgrade_pro") return "pro";
   if (intent === "switch_starter") return "starter";
 
