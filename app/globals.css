@@ -4,8 +4,14 @@
 
 @layer base {
   :root {
-    --hilaac-navy: #0f172a;
-    --hilaac-gold: #d4a373;
+    --hilaac-navy: #0a1628;
+    --hilaac-navy-mid: #0f2040;
+    --hilaac-navy-light: #1a3055;
+    --hilaac-gold: #c9a84c;
+    --hilaac-gold-light: #e8c97a;
+    --hilaac-gold-pale: #f5e6c0;
+    --hilaac-white: #ffffff;
+    --hilaac-offwhite: #f5f0e8;
     --hilaac-muted: #94a3b8;
     --hilaac-dark: #1e293b;
 
@@ -84,18 +90,30 @@
   color: #0f172a;
 }
 
-/* ── Landing page — Claude-style dark premium (scoped) ── */
+/* ── Landing page — Hilaac brand navy / gold (scoped) ── */
 .landing-page {
-  background-color: #0f172a;
-  color: #ffffff;
+  background-color: var(--hilaac-navy);
+  color: var(--hilaac-white);
   font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
   letter-spacing: -0.01em;
 }
 
+.font-brand {
+  font-family: var(--font-montserrat), var(--font-inter), sans-serif;
+}
+
+.font-elegant {
+  font-family: var(--font-cormorant), Georgia, serif;
+}
+
+.font-ui {
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
 /* Prevent white body flash / scroll gaps behind navy landing */
 body:has(.landing-page) {
-  background-color: #0f172a;
-  color: #ffffff;
+  background-color: var(--hilaac-navy);
+  color: var(--hilaac-white);
 }
 
 .landing-display {
@@ -111,25 +129,64 @@ body:has(.landing-page) {
   color: #94a3b8;
 }
 
-/* Hero ghost background */
+/* Hero animated mesh + particles */
 .landing-hero-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
+  background: var(--hilaac-navy);
 }
 
-.landing-hero-bg__image {
-  object-fit: cover;
-  object-position: center top;
-  opacity: 0.1;
-  filter: blur(8px);
-  transform: scale(1.05);
+.landing-hero-mesh {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(ellipse 55% 45% at 72% 42%, rgba(201, 168, 76, 0.14), transparent 60%),
+    radial-gradient(ellipse 40% 35% at 18% 18%, rgba(201, 168, 76, 0.1), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 48% 88%, rgba(26, 48, 85, 0.9), transparent 70%),
+    linear-gradient(145deg, #0a1628 0%, #0f2040 45%, #0a1628 100%);
+  animation: landing-mesh-drift 8s ease-in-out infinite alternate;
 }
 
-@media (min-width: 640px) {
-  .landing-hero-bg__image {
-    transform: scale(1.08);
+.landing-hero-particles {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(245, 230, 192, 0.45), transparent),
+    radial-gradient(1px 1px at 28% 68%, rgba(201, 168, 76, 0.4), transparent),
+    radial-gradient(1.5px 1.5px at 46% 18%, rgba(245, 230, 192, 0.35), transparent),
+    radial-gradient(1px 1px at 62% 54%, rgba(201, 168, 76, 0.35), transparent),
+    radial-gradient(1.5px 1.5px at 78% 30%, rgba(245, 230, 192, 0.4), transparent),
+    radial-gradient(1px 1px at 88% 72%, rgba(201, 168, 76, 0.3), transparent),
+    radial-gradient(1px 1px at 34% 40%, rgba(245, 230, 192, 0.25), transparent),
+    radial-gradient(1.5px 1.5px at 54% 78%, rgba(201, 168, 76, 0.3), transparent);
+  animation: landing-particles-drift 14s linear infinite;
+  opacity: 0.85;
+}
+
+@keyframes landing-mesh-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(-2%, 1.5%, 0) scale(1.04);
+  }
+}
+
+@keyframes landing-particles-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, -12px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero-mesh,
+  .landing-hero-particles {
+    animation: none;
   }
 }
 
@@ -145,7 +202,7 @@ body:has(.landing-page) {
 
 /* Header & hero buttons */
 .landing-btn-text {
-  @apply font-medium text-white transition-colors duration-200 hover:text-[#D4A373];
+  @apply font-medium text-white transition-colors duration-200 hover:text-[#C9A84C];
 }
 
 .landing-btn-ghost-nav {
@@ -166,15 +223,70 @@ body:has(.landing-page) {
 }
 
 .landing-btn-gold-lg {
-  @apply bg-[#D4A373] text-[#0F172A] hover:scale-[1.02] hover:opacity-95;
+  @apply bg-[#C9A84C] font-semibold text-[#0A1628] hover:scale-[1.02] hover:bg-[#E8C97A];
+  font-family: var(--font-montserrat), var(--font-inter), sans-serif;
 }
 
 .landing-btn-gold {
-  @apply inline-flex items-center justify-center rounded-full bg-[#D4A373] px-6 py-3 text-sm font-semibold text-[#0F172A] transition-all duration-200 hover:opacity-90;
+  @apply inline-flex items-center justify-center rounded-full bg-[#C9A84C] px-6 py-3 text-sm font-semibold text-[#0A1628] transition-all duration-200 hover:bg-[#E8C97A];
 }
 
 .landing-btn-ghost-lg {
-  @apply border border-white bg-transparent text-white hover:bg-white/5;
+  @apply border border-[#C9A84C] bg-transparent text-[#C9A84C] hover:bg-[#C9A84C]/10;
+  font-family: var(--font-montserrat), var(--font-inter), sans-serif;
+}
+
+/* Somali Airlines pricing card — rotating gold border + shimmer */
+.landing-sa-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    linear-gradient(#070e1a, #070e1a) padding-box,
+    linear-gradient(120deg, #c9a84c, #070e1a, #e8c97a, #070e1a, #c9a84c) border-box;
+  border: 1px solid transparent;
+  background-size: 100% 100%, 300% 300%;
+  animation: landing-sa-border 6s linear infinite;
+}
+
+.landing-sa-shimmer {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    rgba(201, 168, 76, 0.12) 45%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: landing-sa-shimmer 3.5s ease-in-out infinite;
+}
+
+@keyframes landing-sa-border {
+  0% {
+    background-position: 0 0, 0% 50%;
+  }
+  100% {
+    background-position: 0 0, 100% 50%;
+  }
+}
+
+@keyframes landing-sa-shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -40% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-sa-card,
+  .landing-sa-shimmer,
+  .landing-map-pin .animate-ping {
+    animation: none !important;
+  }
 }
 
 .no-scrollbar::-webkit-scrollbar {

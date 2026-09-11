@@ -14,7 +14,7 @@ const DEMO_BREAKDOWN = [
 
 /**
  * Marketing-only Business Health Score preview for the landing hero.
- * Sample numbers — clearly labeled Demo so it is never confused with live data.
+ * Compact by default so the real dashboard screenshot stays primary.
  */
 export function HealthScoreDemo({ className }: { className?: string }) {
   const [animated, setAnimated] = useState(0);
@@ -40,34 +40,37 @@ export function HealthScoreDemo({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "relative w-full max-w-md overflow-hidden rounded-2xl border border-white/15 bg-[#1E293B]/90 p-5 shadow-2xl shadow-black/40 backdrop-blur-md sm:p-6",
+        "relative w-full overflow-hidden rounded-xl border border-hilaac-gold/30 bg-hilaac-navy-mid/95 p-3.5 shadow-2xl shadow-black/50 backdrop-blur-md sm:p-4",
         className
       )}
       aria-label="Demo business health score"
     >
-      <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#D4A373]/15 blur-2xl" />
-      <div className="relative flex items-start justify-between gap-3">
+      <div
+        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-hilaac-gold/20 blur-2xl"
+        aria-hidden="true"
+      />
+      <div className="relative flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-[#94A3B8]">
+          <p className="font-ui text-[10px] font-medium uppercase tracking-wider text-hilaac-gold-pale/70">
             Business Health Score
           </p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#D4A373]">
+          <p className="mt-0.5 font-brand text-[9px] font-semibold uppercase tracking-[0.16em] text-hilaac-gold">
             Demo · sample data
           </p>
         </div>
-        <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
+        <span className="rounded-full border border-hilaac-gold/40 bg-hilaac-gold/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-hilaac-gold-light">
           {DEMO_STATUS}
         </span>
       </div>
 
-      <p className="relative mt-4 text-5xl font-bold tabular-nums text-white sm:text-6xl">
+      <p className="relative mt-2 font-brand text-3xl font-extrabold tabular-nums tracking-tight text-hilaac-white sm:text-4xl">
         {animated}
-        <span className="ml-1 text-lg font-medium text-[#94A3B8]">/100</span>
+        <span className="ml-1 text-sm font-medium text-hilaac-gold-pale/60">/100</span>
       </p>
 
-      <div className="relative mt-4 h-2 w-full overflow-hidden rounded-full bg-white/10">
+      <div className="relative mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-hilaac-navy-light">
         <div
-          className="h-full rounded-full bg-emerald-500 transition-[width] duration-300 ease-out"
+          className="h-full rounded-full bg-gradient-to-r from-hilaac-gold to-hilaac-gold-light transition-[width] duration-300 ease-out"
           style={{ width: `${Math.max(0, Math.min(100, animated))}%` }}
           role="progressbar"
           aria-valuenow={animated}
@@ -77,15 +80,13 @@ export function HealthScoreDemo({ className }: { className?: string }) {
         />
       </div>
 
-      <p className="relative mt-4 text-sm leading-relaxed text-[#94A3B8]">
-        Strong lunch rush, one ingredient needs reorder soon. Ask Hilaac for the full story.
-      </p>
-
-      <dl className="relative mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
-        {DEMO_BREAKDOWN.map((row) => (
+      <dl className="relative mt-3 grid grid-cols-2 gap-2 border-t border-hilaac-gold/15 pt-2.5">
+        {DEMO_BREAKDOWN.slice(0, 2).map((row) => (
           <div key={row.label}>
-            <dt className="text-[11px] uppercase tracking-wide text-[#64748B]">{row.label}</dt>
-            <dd className="mt-0.5 text-sm font-semibold text-white">{row.value}</dd>
+            <dt className="font-ui text-[9px] uppercase tracking-wide text-hilaac-gold-pale/50">
+              {row.label}
+            </dt>
+            <dd className="mt-0.5 font-ui text-xs font-semibold text-hilaac-white">{row.value}</dd>
           </div>
         ))}
       </dl>

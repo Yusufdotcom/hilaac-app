@@ -2,12 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Play } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-export function WatchDemoButton({ className }: { className?: string }) {
+export function WatchDemoButton({
+  className,
+  label = "Watch Demo",
+}: {
+  className?: string;
+  label?: string;
+}) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -34,12 +40,8 @@ export function WatchDemoButton({ className }: { className?: string }) {
       disabled={loading}
       className={cn("landing-btn-ghost-lg disabled:opacity-50", className)}
     >
-      {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Play className="h-4 w-4 fill-current" aria-hidden="true" />
-      )}
-      Watch Demo
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+      {label}
     </button>
   );
 }

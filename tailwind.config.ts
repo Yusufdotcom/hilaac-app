@@ -18,8 +18,15 @@ const config: Config = {
     extend: {
       colors: {
         hilaac: {
-          navy: "#0F172A",
-          gold: "#D4A373",
+          navy: "#0A1628",
+          "navy-mid": "#0F2040",
+          "navy-light": "#1A3055",
+          gold: "#C9A84C",
+          "gold-light": "#E8C97A",
+          "gold-pale": "#F5E6C0",
+          white: "#FFFFFF",
+          offwhite: "#F5F0E8",
+          // Legacy aliases kept for admin surfaces still on older tokens
           dark: "#1E293B",
           muted: "#94A3B8",
         },
@@ -65,6 +72,9 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        brand: ["var(--font-montserrat)", "var(--font-inter)", "sans-serif"],
+        elegant: ["var(--font-cormorant)", "Georgia", "serif"],
+        ui: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
